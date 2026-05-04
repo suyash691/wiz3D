@@ -20,18 +20,13 @@ This project modernizes that source code, replaces kernel-level hooks with a pro
 
 ## Current Status
 
-### Released Build:
-
 * **AMD HD3D:** ✅ **Mostly Working!** HD3D games render stereo interally, so all that's needed is proxy to enable that rendering, capture the quad buffer output, and display it using modern stereo3D standards. The Proxy chain is successfully triggering stereo3D and capturing the quad buffer output. All that remains is getting that quad buffer output to display corrently in modern formats like Top-and-Bottom and Side-by-Side. Currently Half TAB and Half SBS is supported with about half the games, the other games still need work displaying the output correctly.
 * **DirectX 9:** ✅ **Mostly Working!** `d3d9.dll` proxy loader works! Left 4 Dead 2 and many others run in full stereo3D, outputs in all originally supported formats, and the profile system loads shader fixes and stereo settings for all originally supported games.
-* **DirectX 8:** ⚠️ **In Progress.** Wrapper to convert DX8 to use DX9's stereoization. DX8 to DX9 converstion is working. Here for testing.
+* **DirectX 8:** ✅ **Partially Worikng.** Wrapper to convert DX8 to use DX9's stereoization. One tested game working, needs further testing.
 * **DirectX 7:** ⚠️ **In Progress.** Wrapper to convert DX7 to use DX9's stereoization. DX7 to DX9 converstion is working. Here for testing.
-
-### Unreleased Builds:
-
 * **DirectX 10/11:** ⚠️ **Partial.** The DX10/11 wrapper was never completely finished by iZ3D Inc. Some games work, but implementation in wiz3D still has some way to go and hasn't got any games booting with stereo3D initialised yet.
 * **OpenGL:** ⚠️ **In Progress.** Basic build has been made, untested. 
-* **Nvidia 3D Vision 'Ready':** ⚠️ **In Progress.** Still in very early stages, kind of a long shot. Most 3D Vision Ready games don't have internal stereo rendering, they just make their shaders and UI more compatible with Nvidia's stereo injector. We will aim to get 3DV shaders and UI working with iZ3D as the injector instead.
+* **Nvidia 3D Vision 'Ready':** ✅ **Partially Worikng.** Still in very early stages, only a handful of games working atm, need to expand the wrapper to include more 3D Vision functions like in-game Seperaiton and Convergance sliders. Most 3D Vision Ready games don't have internal stereo rendering, they just have shader compatability toggles and sometimes some 3D toggles and sliders. This isn't using any of 3D Vision's stereoizer, it's relying on iZ3D instead to run 3d vision games.
 
 ---
 
@@ -55,7 +50,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 | Game | API | Bits | Testing | Notes |
 |------|-----|------|--------|-------|
-| Battlefield 3 | DX11 | x86 | ✅ Working | Campaign only. Don't use with Multiplayer due to ban risks. |
+| Battlefield 3 | DX11 | x86 | ✅ MostlyWorking | Campaign only. Strange depth, this issue is on the game side not wiz3D's HD3D wrapper I beleive. |
 | Deus Ex: Human Revolution | DX11 | x86 | ✅ Working | Cursor doubled correctly. Check iZ3D Shader Fix. |
 | Deus Ex: Human Revolution Director's Cut | DX11 | x86 | ✅ Working | Undocumented AMD HD3D support. Skybox at wrong depth, check iZ3D Shader Fix. |
 | DiRT 2 | DX11 | x86 | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`. |
@@ -154,7 +149,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Condemned: Criminal Origins | DX9 | x86 | ✓ | Untested |  |
 | Demigod | DX9 | x86 | ✕ | Untested |  |
 | Damnation | DX9 | x86 | ✓ | Untested |  |
-| Dark Messiah of Might and Magic | DX9 | x86 | ✓ | ✅ Mostly Working | Freezes on Linux. |
+| Dark Messiah of Might and Magic | DX9 | x86 | ✓ | ✅ Working | Might need to use [Mod Launcher](https://steamcommunity.com/sharedfiles/filedetails/?id=3378556750). |
 | Dark Void | DX9 | x86 | ✓ | Untested |  |
 | Dead or Alive 5 Last Round | DX9 | x86 | ✓ | ✅ Working |  |
 | Dead Space | DX9 | x86 | ✓ | Untested |  |
@@ -432,8 +427,8 @@ Several SDKs are excluded from the repository due to licensing or size. Download
 
 | SDK | Path in repo | Where to get it |
 |-----|-------------|-----------------|
-| Immersity LeiaSR SDK — Win64 v1.36.2 + Win32 v1.30.2 | `lib/Simulated Reality/` | https://support.immersity.ai/sdk/ |
-| NVAPI SDK | `lib/NVAPI/` and `lib/nvapi_2026/` | https://developer.nvidia.com/nvapi |
+| Immersity LeiaSR SDK — Win64 v1.36.2 + Win32 v1.30.2 | `lib/Simulated Reality/` | [https://support.immersity.ai/sdk/](https://support.immersity.ai/sdk/) |
+| NVAPI SDK | `lib/NVAPI/` and `lib/nvapi_2026/` | [https://github.com/NVIDIA/nvapi](https://github.com/NVIDIA/nvapi) |
 
 `lib/PerfSDK/` is a deprecated NVIDIA proprietary SDK; all code referencing it is `#if 0`'d out, so you don't need it to build.
 
@@ -454,8 +449,10 @@ The `SimulatedRealityWeaveOutput` project in `OutputMethods/` is standalone and 
 
 1. Build both solutions.
 2. Copy the **contents** of the appropriate `releases/wiz3D_vX.X.X/` subfolder (e.g. `dx9/x86/`) directly into the game's `.exe` folder.
-3. For **Source engine games** (L4D2, Portal, HL2), copy into the `bin/` subfolder instead.
-4. Launch the game — stereo should activate automatically.
+3. Set `wiz_Config.xml` or `HD3D_Config.xml` to match your display specifications
+4. For some games (L4D2, Portal, HL2), copy into the `bin/` subfolder instead.
+5. Launch the game. stereo should activate automatically.
+6. Toggle Stereo on and off using `*`.
 
 ---
 
