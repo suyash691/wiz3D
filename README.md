@@ -195,7 +195,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Ghostbusters: The Video Game | DX9 | x86 | ✓ | Untested |  |
 | Ghostbusters: Sanctum of Slime | DX9 | x86 | ✓ | Untested |  |
 | Google Earth | OpenGL/DX9 | x86 | ✓ | Untested | [Google Earth Pro 7.1.5.1557](https://web.archive.org/web/20171014110844/https://dl.google.com/earth/client/GE7/release_7_1_8/googleearth-win-pro-7.1.8.3036.exe) |
-| Grand Theft Auto: San Andreas | DX9 | x86 | ✓ | Untested |  |
+| Grand Theft Auto: San Andreas | DX9 | x86 | ✓ | ✅ Working |  |
 | GRID | DX9 | x86 | ✓ | Untested |  |
 | Guitar Hero III: Legends of Rock | DX9 | x86 | ✓ | Untested |  |
 | Half-Life 2 | DX9 | x86 | ✓ | ✅ Mostly Working | `steam_legacy` beta branch. Use `-game ` command line argument. Shadows have issues. |
