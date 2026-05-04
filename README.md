@@ -83,7 +83,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|---------|--------|-------|-------|
-| AquaNox | DX8 | x86 | ✕ | ⚠️ Partial |  |
+| AquaNox | DX8 | x86 | ✕ | ✅ Working |  |
 | Ballance | DX8 | x86 | ✓ | Untested |  |
 | Command & Conquer: Generals | DX8/DX9 | x86 | ✓ | ⚠️ Partial | Single player only. Partially works on DX9 with Tiberian Technologies patch, but needs shaderfix. |
 | Command & Conquer: Renegade | DX8 | x86 | ✓ | Untested | Single player only. |
