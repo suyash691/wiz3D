@@ -50,31 +50,31 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 | Game | API | Bits | Testing | Notes |
 |------|-----|------|--------|-------|
-| Battlefield 3 | DX11 | x86 | ✅ MostlyWorking | Campaign only. Strange depth, this issue is on the game side not wiz3D's HD3D wrapper I beleive. |
-| Deus Ex: Human Revolution | DX11 | x86 | ✅ Working | Cursor doubled correctly. Check iZ3D Shader Fix. |
-| Deus Ex: Human Revolution Director's Cut | DX11 | x86 | ✅ Working | Undocumented AMD HD3D support. Skybox at wrong depth, check iZ3D Shader Fix. |
+| Battlefield 3 | DX11 | x86 | ✅ Mostly Working | Campaign only. Strange depth issue in the game not seeming caused by wiz3D. Might need shader fix. |
+| Deus Ex: Human Revolution | DX11 | x86 | ✅ Working | Check iZ3D Shader Fix. |
+| Deus Ex: Human Revolution Director's Cut | DX11 | x86 | ✅ Working | Undocumented AMD HD3D support.<br>Skybox at wrong depth, check iZ3D Shader Fix. |
 | DiRT 2 | DX11 | x86 | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`. |
-| DiRT 3 | DX11 | x86 | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`. Check iZ3D Shader Fix. |
-| DiRT 3 Complete Edition | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS visible. `hardware_settings_config.xml` needs `stereo enabled="true"`. |
-| DiRT Showdown | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS visible. `hardware_settings_config.xml` needs `stereo enabled="true"`. |
-| DiRT Rally | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS visible. `hardware_settings_config.xml` needs `stereo enabled="true"`. |
+| DiRT 3 | DX11 | x86 | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Check iZ3D Shader Fix. |
+| DiRT 3 Complete Edition | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
+| DiRT Showdown | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
+| DiRT Rally | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
 | F1 2010 | DX11 | x86 | Untested |  |
 | F1 2011 | DX11 | x86 | Untested |  |
 | F1 2012 | DX11 | x86 | Untested |  |
 | F1 2013 | DX11 | x86 | Untested |  |
-| GRID 2 | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS visible. `hardware_settings_config.xml` needs `stereo enabled="true"`. |
-| GRID Autosport | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS visible. `hardware_settings_config.xml` needs `stereo enabled="true"`. |
-| Hitman: Absolution | DX11 | x86 | ⚠️ Partial | UI,  menus and videos correct, gameplay is the top half of the view-port. |
+| GRID 2 | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
+| GRID Autosport | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
+| Hitman: Absolution | DX11 | x86 | ⚠️ Partial | UI is correct, gameplay is the top half of the view-port. |
 | Sleeping Dogs | DX11 | x86 | ✅ Working |  |
 | Sleeping Dogs: Definitive Edition | DX11 | x64 | ✅ Working | Undocumented AMD HD3D support. |
-| Sniper Elite V2 | DX11 | x86 | ✅ Working | Minor color shifting when seperation increased. |
-| Sniper Elite III | DX11| x86| ✅ Working | `customersupportlogging` beta branch only. Main branch skips HD3D driver loading. |
-| Sniper Elite 4 | DX11/12| x64| ✅ Working | DX11 only. DX12 might be possible in future. |
-| Sniper Elite: Nazi Zombie Army | DX11 | x86 | ✅ Working | Minor color shifting when seperation increased. |
-| Sniper Elite: Nazi Zombie Army 2 | DX11 | x86 | ✅ Working | Minor color shifting when seperation increased. |
-| Zombie Army Trilogy | DX11 | x86 | ✅ Working | Colors appear correct. |
-| Thief (2014) | DX11 | x86/x64| ✅ Working | Both x86 and x64 versions working. |
-| Tomb Raider (2013) | DX11 | x86 | ⚠️ Partial | Only top half of Half SBS. Most stubborn HD3D game to get working. |
+| Sniper Elite V2 | DX11 | x86 | ✅ Working | Color shifting when seperation increased.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Sniper Elite III | DX11| x86| ✅ Working | `customersupportlogging` beta branch only.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Sniper Elite 4 | DX11/12| x64| ✅ Working | DX11 only. DX12 doens't seem to trigger HD3D stereo.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Sniper Elite: Nazi Zombie Army | DX11 | x86 | ✅ Working | Color shifting when seperation increased.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Sniper Elite: Nazi Zombie Army 2 | DX11 | x86 | ✅ Working | Color shifting when seperation increased.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Zombie Army Trilogy | DX11 | x86 | ✅ Working | [Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
+| Thief (2014) | DX11 | x86/x64| ✅ Working | Both x86 and x64 working. |
+| Tomb Raider (2013) | DX11 | x86 | ⚠️ Partial | Only top half view showing. Most stubborn HD3D game. |
 
 - **Excluded (Native SBS/TAB):** *Crysis 2*, *Crysis 3*, *Rise of the Tomb Raider*, *Shadwen*, *Two Worlds II*, *Trine 1*, *Trine 2*, *Trine 3*.
 - **Excluded (Online Ban Risk):** *World of Warcraft*. <sub>(Stereo3D removed in 2018 DX12 update)</sub>
@@ -129,12 +129,13 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Bionic Commando Rearmed | DX9 | x86 | ✓ | Untested |  |
 | Black & White 2 | DX9 | x86 | ✓ | Untested |  |
 | BlazBlue: Calamity Trigger | DX9 | x86 | ✕ | ✅ Mostly Working | Needs sprite depth shader fix, use [Geo-11 Fix instead](https://helixmod.blogspot.com/2026/05/blazblue-calamity-trigger-dx11.html). |
+| Blur | DX9 | x86 | ✕ | ✅ Working | May need shader fix. |
 | Borderlands | DX9 | x86 | ✓ | Untested |  |
 | Brothers in Arms: Road to Hill 30 | DX9 | x86 | ✓ | Untested |  |
 | Brothers in Arms: Earned in Blood | DX9 | x86 | ✓ | Untested |  |
 | Brothers in Arms: Hell's Highway | DX9 | x86 | ✓ | Untested |  |
 | Bulletstorm | DX9 | x86 | ✓ | Untested |  |
-| Burnout Paradise | DX9 | x86 | ✓ | Untested |  |
+| Burnout Paradise | DX9 | x86 | ✓ | ✅ Working |  |
 | Cabela's Big Game Hunter: 10th Anniversary Edition | DX9 | x86 | ✓ | Untested | Not sure which game, profile says "Cabela Big Game Hunter BGH10.exe". |
 | Call of Cthulhu: Dark Corners of the Earth | DX9 | x86 | ✓ | Untested |  |
 | Call of Duty 2 | DX9 | x86 | ✓ | Untested |  |
@@ -152,6 +153,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Dark Messiah of Might and Magic | DX9 | x86 | ✓ | ✅ Working | Might need to use [Mod Launcher](https://steamcommunity.com/sharedfiles/filedetails/?id=3378556750). |
 | Dark Void | DX9 | x86 | ✓ | Untested |  |
 | Dead or Alive 5 Last Round | DX9 | x86 | ✓ | ✅ Working |  |
+| Deadpool | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
 | Dead Space | DX9 | x86 | ✓ | Untested |  |
 | Dead Space 2 | DX9 | x86 | ✓ | ✅ Working |  |
 | Defense Grid: The Awakening | DX9 | x86 | ✓ | Untested |  |
@@ -162,6 +164,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Divinity II: Ego Draconis  | DX9 | x86 | ✓ | Untested |  |
 | Dragon Age: Origins | DX9 | x86 | ✓ | Untested |  |
 | Drakensang: The Dark Eye | DX7/DX9 | x86 | ✓ | Untested |  |
+| Driver: San Francisco | DX9 | x86 | ✕ | ✅ Working |  |
 | Dungeons (2011) | DX9 | x86 | ✕ | Untested |  |
 | Dungeon Siege II | DX9 | x86 | ✓ | Untested |  |
 | Dungeon Siege III | DX9 | x86 | ✓ | Untested |  |
@@ -179,6 +182,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | F.E.A.R. Perseus Mandate | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. 2: Project Origin | DX9 | x86 | ✓ | Untested |  |
 | FIFA 10 | DX9 | x86 | ✕ | Untested |  |
+| FIFA 14 | DX9 | x86 | ✕ | ✅ Working |  |
 | Flashback (2013) | DX9 | x86 | ✕ | ✅ Working | May need shader fix. |
 | FlatOut | DX9 | x86 | ✓ | Untested |  |
 | FlatOut 2 | DX9 | x86 | ✕ | Untested |  |
@@ -210,6 +214,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Lego Star Wars: The Video Game | DX9 | x86 | ✓ | Untested |  |
 | Lego Star Wars III: The Clone Wars | DX9 | x86 | ✓ | Untested |  |
 | Madden NFL 08 | DX9 | x86 | ✓ | Untested |  |
+| Mad Riders | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Majesty 2: The Fantasy Kingdom Sim | DX9 | x86 | ✓ | Untested |  |
 | Mass Effect | DX9 | x86 | ✓ | Untested |  |
 | Mass Effect 2 | DX9 | x86 | ✓ | ✅ Working |  |
@@ -236,7 +241,9 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Painkiller: Overdose | DX9 | x86 | ✓ | Untested |  |
 | Portal | DX9 | x86 | ✓ | ✅ Mostly Working | `steam_legacy` beta branch. Use `-game portal` command line argument. Shadows have issues. |
 | Portal 2 | DX9 | x86 | ✓ | Untested |  |
+| Prince of Persia (2008) | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Prince of Persia: The Forgotten Sands | DX9 | x86 | ✓ | Untested |  |
+| Pro Evolution Soccer 2017 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | ProtoGalaxy | DX9 | x86 | ✓ | Untested |  |
 | RefRain - prism memories - | DX9/DX9 | x86 | ✕ | ❌ Not Working | Fails to boot. |
 | Richard Burns Rally | DX9 | x86 | ✓ | Untested |  |
@@ -300,6 +307,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Two Worlds | DX9 | x86 | ✓ | Untested |  |
 | Unreal Tournament 3 | DX9 | x86 | ✓ | Untested |  |
 | Valkyria Chronicles | DX9 | x86/x64 | ✕ | ⚠️ Partial | Needs UI and shadows shader fix. |
+| Vanquish | DX9 | x86 | ✕ | ❌ Not Working | Crashes on startup. |
 | Virtua Tennis 2009 | DX9 | x86 | ✓ | Untested |  |
 | Virtua Tennis 4 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
 | Wallace & Gromit's Grand Adventures | DX9 | x86 | ✓ | Untested | Episodes 1-4 |
