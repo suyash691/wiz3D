@@ -267,7 +267,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Silent Hunter 5: Battle of the Atlantic | DX9 | x86 | ✓ | Untested |  |
 | Singularity | DX9 | x86 | ✓ | Untested |  |
 | Sins of a Solar Empire | DX9 | x86 | ✓ | ✅ Mostly Working | Background at wrong depth. |
-| Sonic R (2004) | DX9 | x86 | ✕ | ✅ Mostly Working | Needs coin depth shader fix. Use with [Sonic R Updater](https://github.com/cheatfreak47/SRUpdater).  |
+| Sonic R (2004) | DX9 | x86 | ✕ | ✅ Mostly Working | Needs coin depth shader fix. Use with [Sonic R Updater](https://github.com/cheatfreak47/SRUpdater). |
+| Spec Ops: The Line | DX9 | x86 | ✕ | ✅ Working |  |
 | Spore | DX9 | x86 | ✓ | Untested |  |
 | S.T.A.L.K.E.R.: Shadow of Chernobyl | DX9 | x86 | ✓ | ✅ Working |  |
 | Star Trek: Legacy | DX9 | x86 | ✓ | Untested |  |
