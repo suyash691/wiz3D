@@ -143,6 +143,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Call of Duty 4: Modern Warfare (2007) | DX9 | x86 | ✓ | Untested |  |
 | Call of Duty: Modern Warfare 2 | DX9 | x86 | ✓ | Untested |  |
 | Cars | DX9 | x86 | ✓ | Untested |  |
+| Castlevania: Lords of Shadow 2 | DX9 | x86 | ✕ | ✅ Mostly Working | Needs shadow shader fix. |
 | Chromadrome 2 | DX9 | x86 | ✓ | Untested |  |
 | Command & Conquer 3: Tiberium Wars | DX9 | x86 | ✓ | ✅ Working | Place in `/RetailExe/1.10`. Game crashes when changing settings. |
 | Command & Conquer: Red Alert 3 | DX9 | x86 | ✓ | Untested |  |
@@ -156,6 +157,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Deadpool | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
 | Dead Space | DX9 | x86 | ✓ | Untested |  |
 | Dead Space 2 | DX9 | x86 | ✓ | ✅ Working |  |
+| Dead Space 3 | DX9 | x86 | ✕ | ✅ Mostly Working | Needs HUD Shader fix. |
 | Defense Grid: The Awakening | DX9 | x86 | ✓ | Untested |  |
 | Delta Force: Xtreme | DX9 | x86 | ✓ | Untested |  |
 | Devil May Cry 3: Special Edition | DX9 | x86 | ✓ | Untested |  |
@@ -177,7 +179,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Fable Anniversary | DX9 | x86 | ✕ | ⚠️ Partial | Has artifacts, needs shader fix. |
 | Fahrenheit | DX9 | x86 | ✓ | Untested | aka Indigo Prophecy |
 | Fallout 3 | DX9 | x86 | ✓ | Untested |  |
-| Fallout: New Vegas | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
+| Fallout: New Vegas | DX9 | x86 | ✕ | ✅ Mostly Working | Skybox and Pip-Boy UI shaders broken, try using with [HelixMod shader fix](https://helixmod.blogspot.com/2018/06/fallout-new-vegas.html).<br>1. Rename wiz3D's `d3d9.dll` to `wiz3d.dll`<br>2. Install HelixMod with `DX9Settings.ini`<br>3. Set `ProxyLib=wiz3d.dll` in `DX9Settings.ini` |
 | F.E.A.R. | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. Perseus Mandate | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. 2: Project Origin | DX9 | x86 | ✓ | Untested |  |
@@ -224,6 +226,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Mini Ninjas | DX9 | x86 | ✓ | Untested |  |
 | Mirror's Edge | DX9 | x86 | ✓ | ✅ Working |  |
 | Monday Night Combat | DX9 | x86 | ✓ | Untested |  |
+| Mortal Kombat Komplete Edition | DX9 | x86 | ✕ | ✅ Working |  |
 | MTX: Mototrax | DX9 | x86 | ✓ | Untested |  |
 | Mythos | DX9 | x86 | ✓ | Untested | Mythos (2009) maybe? Not sure which game this is. |
 | Need for Speed: ProStreet | DX9 | x86 | ✓ | Untested |  |
@@ -239,14 +242,14 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Overlord II | DX9 | x86 | ✓ | Untested |  |
 | Painkiller | DX9 | x86 | ✓ | Untested |  |
 | Painkiller: Overdose | DX9 | x86 | ✓ | Untested |  |
-| Portal | DX9 | x86 | ✓ | ✅ Mostly Working | `steam_legacy` beta branch. Use `-game portal` command line argument. Shadows have issues. |
+| Portal | DX9 | x86 | ✓ | ✅ Working | Use `-game Portal -dx9` command line argument. Place files in `/portal/bin/` folder, not the root folder. |
 | Portal 2 | DX9 | x86 | ✓ | Untested |  |
 | Prince of Persia (2008) | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Prince of Persia: The Forgotten Sands | DX9 | x86 | ✓ | Untested |  |
 | Pro Evolution Soccer 2017 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | ProtoGalaxy | DX9 | x86 | ✓ | Untested |  |
 | Rayman Legends | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
-| RefRain - prism memories - | DX9/DX9 | x86 | ✕ | ❌ Not Working | Fails to boot. |
+| RefRain - prism memories - | DX9/DX9 | x86 | ✕ | ✅ Partially Working | Play with depth set low. Needs higher depth shader fix and issues with Simulated Reality output. |
 | Richard Burns Rally | DX9 | x86 | ✓ | Untested |  |
 | Rise and Fall: Civilizations at War | DX9 | x86 | ✓ | Untested |  |
 | Rise of Flight | DX9 | x86 | ✓ | Untested |  |
@@ -269,8 +272,10 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Silent Hunter 5: Battle of the Atlantic | DX9 | x86 | ✓ | Untested |  |
 | Singularity | DX9 | x86 | ✓ | Untested |  |
 | Sins of a Solar Empire | DX9 | x86 | ✓ | ✅ Mostly Working | Background at wrong depth. |
+| Sonic & Sega All-Stars Racing | DX9 | x86 | ✕ | ✅ Working |  |
 | Sonic R (2004) | DX9 | x86 | ✕ | ✅ Mostly Working | Needs coin depth shader fix. Use with [Sonic R Updater](https://github.com/cheatfreak47/SRUpdater). |
 | Spec Ops: The Line | DX9 | x86 | ✕ | ✅ Working |  |
+| Split/Second: Velocity | DX9 | x86 | ✕ | ✅ Mostly Working | Needs shader fix. Aka Split/Second. |
 | Spore | DX9 | x86 | ✓ | Untested |  |
 | S.T.A.L.K.E.R.: Shadow of Chernobyl | DX9 | x86 | ✓ | ✅ Working |  |
 | Star Trek: Legacy | DX9 | x86 | ✓ | Untested |  |
@@ -308,7 +313,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Trine (2009) | DX9 | x86 | ✓ | Untested |  |
 | Two Worlds | DX9 | x86 | ✓ | Untested |  |
 | Unreal Tournament 3 | DX9 | x86 | ✓ | Untested |  |
-| Valkyria Chronicles | DX9 | x86/x64 | ✕ | ⚠️ Partial | Needs UI and shadows shader fix. |
+| Valkyria Chronicles | DX9 | x86/x64 | ✕ | ⚠️ Partial | UI, reflections and shadows broken, try using with [HelixMod fix](https://helixmod.blogspot.com/2016/03/valkyria-chronicles.html) to fix.<br>1. Rename wiz3D's `d3d9.dll` to `wiz3d.dll`<br>2. Install HelixMod with `DX9Settings.ini`<br>3. Set `ProxyLib=wiz3d.dll` in `DX9Settings.ini`  |
 | Vanquish | DX9 | x86 | ✕ | ❌ Not Working | Crashes on startup. |
 | Virtua Tennis 2009 | DX9 | x86 | ✓ | Untested |  |
 | Virtua Tennis 4 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
@@ -322,6 +327,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Wings of Prey | DX9 | x86 | ✓ | Untested |  |
 | Wolfenstein (2009) | DX9 | x86 | ✓ | Untested |  |
 | WorldShift | DX9 | x86 | ✓ | Untested |  |
+| X-Men Origins: Wolverine | DX9 | x86 | ✕ | ✅ Working |  |
+| Yaiba: Ninja Gaiden Z | DX9 | x86 | ✕ | ✅ Working |  |
 | Zeno Clash | DX9 | x86 | ✓ | Untested |  |
 
 - **Excluded (Game Not Playable):** *Darkspore*. <sub>(Game not playable til [Resurrection Capsule](https://github.com/vitor251093/resurrection-capsule) project completes.)</sub>
@@ -411,8 +418,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | rFactor 2 | DX9/DX11 | x64 | ✕ | Untested | Use Single-player only. |
 | Roller Coaster Rampage | DX9 | x86 | ✕ | Untested |  |
 | Sid Meier's Civilization V | DX9/DX11 | x86 | ✓ | Untested |  |
-| Super Street Fighter IV Arcade Edition | DX9 | x86 | ✓ | Untested |  |
-| Street Fighter X Tekken | DX9 | x86 | ✕ | Untested |  |
+| Super Street Fighter IV Arcade Edition | DX9 | x86 | ✓ | ✅ Working | Might need to implement more 3D Vison features. |
+| Street Fighter X Tekken | DX9 | x86 | ✕ | ✅ Working | Might need to implement more 3D Vison features and shader fixes. |
 | Tom Clancy's H.A.W.X 2 | DX9/DX11 | x86 | ✓ | Untested |  |
 | The Witcher 2: Assassins of Kings | DX9 | x86 | ✓ | Untested |  |
 
@@ -437,8 +444,10 @@ Several SDKs are excluded from the repository due to licensing or size. Download
 
 | SDK | Path in repo | Where to get it |
 |-----|-------------|-----------------|
-| Immersity LeiaSR SDK — Win64 v1.36.2 + Win32 v1.30.2 | `lib/Simulated Reality/` | [https://support.immersity.ai/sdk/](https://support.immersity.ai/sdk/) |
+| Immersity LeiaSR SDK Win64 v1.36.2 + Win32 v1.34.10 | `lib/Simulated Reality/` | [https://support.immersity.ai/sdk/](https://support.immersity.ai/sdk/) and [Samsung Odyssey 3D Hub Installer](https://www.samsung.com/uk/support/model/LS27FG900XUXXU/#downloads) |
 | NVAPI SDK | `lib/NVAPI/` and `lib/nvapi_2026/` | [https://github.com/NVIDIA/nvapi](https://github.com/NVIDIA/nvapi) |
+| Boost 1.87 | `lib/boost/` | [https://www.boost.org/releases/1.87.0/](https://www.boost.org/releases/1.87.0/) |
+
 
 `lib/PerfSDK/` is a deprecated NVIDIA proprietary SDK; all code referencing it is `#if 0`'d out, so you don't need it to build.
 
