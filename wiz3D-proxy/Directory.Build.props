@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    wiz3D proxy sln: auto-import version stamping into every proxy vcxproj.
+
+    - Runs bin/generate_version.ps1 (shared with the main S3DDriver.sln) before
+      ResourceCompile so bin/temp_version.h is up to date.
+    - Adds version.rc to every project's ResourceCompile list and gives the
+      .rc + proxy_version.h access via the include path.
+  -->
+
+  <PropertyGroup>
+    <_WiZ3DProxyDir>$(MSBuildThisFileDirectory)</_WiZ3DProxyDir>
+    <_WiZ3DRepoBin>$([System.IO.Path]::GetFullPath('$(_WiZ3DProxyDir)..\bin\'))</_WiZ3DRepoBin>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(_WiZ3DProxyDir);$(_WiZ3DRepoBin);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+
+  <ItemGroup>
+    <ResourceCompile Include="$(_WiZ3DProxyDir)version.rc" />
+  </ItemGroup>
+
+  <Target Name="WiZ3DProxyGenerateVersionHeader"
+          BeforeTargets="ResourceCompile;ClCompile">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(_WiZ3DRepoBin)generate_version.ps1&quot;" />
+  </Target>
+</Project>
