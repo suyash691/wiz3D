@@ -197,27 +197,27 @@
     <None Include="ReadMe.txt" />
     <CustomBuild Include="Shaders_dx10.psh">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling shaders</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">call compile_shaders_dx10.bat
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pushd "$(MSBuildProjectDirectory)" &amp;&amp; call ".\compile_shaders_dx10.bat" &amp;&amp; popd
 </Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shaders_dx10\shaderFullScreenQuadVS.h;Shaders_dx10\shaderHorizontalSideBySide.h;Shaders_dx10\shaderVerticalSideBySide.h;%(Outputs)</Outputs>
     </CustomBuild>

@@ -39,10 +39,11 @@ bld/
 !releases/**/
 !releases/**/*.bat
 
-# Track the version-generator script at the repo's bin/ root. Other contents
-# of bin/ stay ignored (build artefacts, unrelated tools).
+# Track wiz3D scripts at the repo's bin/ root. Other contents of bin/ stay
+# ignored (build artefacts, unrelated tools).
 !/bin/
 !/bin/generate_version.ps1
+!/bin/deploy_to_releases.ps1
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

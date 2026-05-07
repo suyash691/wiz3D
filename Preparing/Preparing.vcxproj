@@ -111,16 +111,13 @@
       </Message>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"
-pushd "$(SolutionDir)bin"
-call copy_profiles.bat "$(Configuration)" &gt; NUL
-popd</Command>
+      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>needed files generation</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(SolutionDir)\bin\temp_version.h;$(SolutionDir)\bin\temp_version.cs;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\bin\temp_version.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -140,16 +137,13 @@ popd</Command>
       </Message>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"
-pushd "$(SolutionDir)bin"
-call copy_profiles.bat "$(Configuration)" &gt; NUL
-popd</Command>
+      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>needed files generation</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(SolutionDir)\bin\temp_version.h;$(SolutionDir)\bin\temp_version.cs;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\bin\temp_version.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -173,16 +167,13 @@ popd</Command>
       </Message>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"
-pushd "$(SolutionDir)bin"
-call copy_profiles.bat "$(Configuration)" &gt; NUL
-popd</Command>
+      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>needed files generation</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(SolutionDir)\bin\temp_version.h;$(SolutionDir)\bin\temp_version.cs;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\bin\temp_version.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -206,16 +197,13 @@ popd</Command>
       </Message>
     </PreBuildEvent>
     <CustomBuildStep>
-      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"
-pushd "$(SolutionDir)bin"
-call copy_profiles.bat "$(Configuration)" &gt; NUL
-popd</Command>
+      <Command>powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(SolutionDir)bin\generate_version.ps1"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>needed files generation</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(SolutionDir)\bin\temp_version.h;$(SolutionDir)\bin\temp_version.cs;%(Outputs)</Outputs>
+      <Outputs>$(SolutionDir)\bin\temp_version.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
