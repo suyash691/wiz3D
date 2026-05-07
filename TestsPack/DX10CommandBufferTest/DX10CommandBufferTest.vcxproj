@@ -138,7 +138,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -155,7 +155,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -175,8 +175,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3.lib;d3dcompiler.lib;boost_unit_test_framework.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3.lib;d3dcompiler.lib;boost_unit_test_framework.lib;libMinHook.x86.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
@@ -197,7 +197,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x86\;..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -217,8 +217,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3.lib;d3dcompiler.lib;libMinHook.x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">
@@ -239,7 +239,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zlib.lib;psapi.lib;S3DDevIL.lib;S3Dilu.lib;DxErr.lib;d3dx9.lib;xerces-c_static_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\lib\d3d9\lib\x64\;..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;..\..\lib\minhook\build\VC17\lib\Release\;..\..\lib\zlib\Lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
