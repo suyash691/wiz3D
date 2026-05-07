@@ -1,17 +1,15 @@
 # wiz3D - deploy_to_releases.ps1
 #
-# Copies freshly-built DLLs from bin/Release/<arch>/ into the appropriate
+# Copies freshly-built DLLs from bin/Release/<arch>/ (S3DDriver.sln) and
+# wiz3D-proxy/bin/Release/<arch>/ (wiz3D-proxy.sln) into the appropriate
 # releases/wiz3D/<api>/<arch>/ subfolders so a release is ready to install
-# into a game directory. Run AFTER building S3DDriver.sln.
+# into a game directory. Run AFTER building both solutions.
 #
 # This script does NOT handle:
-# - Proxy DLLs that already auto-deploy via their own vcxproj OutDir:
+# - Vendor-path proxy DLLs that auto-deploy via their own vcxproj OutDir:
 #   atidxx32/64.dll (AmdQbProxy), atiadlxy.dll (AmdAdlProxy),
 #   dxgi.dll (DxgiVendorProxy), d3d12.dll (D3d12VendorProxy x64 only),
-#   nvapi/nvapi64.dll (NvApiProxy)
-# - Wrapper-style proxies that come from the separate wiz3D-proxy.sln:
-#   d3d9.dll, ddraw.dll, d3d8.dll, d3d10.dll, d3d11.dll, opengl32.dll
-#   Build that solution separately and copy its outputs by hand for now.
+#   nvapi/nvapi64.dll (NvApiProxy) -- these go into releases/wiz3D/hd3d/.
 #
 # Usage:
 #   .\bin\deploy_to_releases.ps1                # both Win32 + x64
@@ -49,7 +47,8 @@ function Copy-Files {
         [Parameter(Mandatory)] [string] $SrcDir,
         [Parameter(Mandatory)] [string] $DstDir,
         [Parameter(Mandatory)] [string[]] $Files,
-        [Parameter(Mandatory)] [string] $Tag
+        [Parameter(Mandatory)] [string] $Tag,
+        [string[]] $FallbackDirs = @()
     )
     if (-not (Test-Path $DstDir)) {
         New-Item -ItemType Directory -Path $DstDir -Force | Out-Null
@@ -58,6 +57,12 @@ function Copy-Files {
     $missing = @()
     foreach ($file in $Files) {
         $src = Join-Path $SrcDir $file
+        if (-not (Test-Path $src)) {
+            foreach ($fb in $FallbackDirs) {
+                $cand = Join-Path $fb $file
+                if (Test-Path $cand) { $src = $cand; break }
+            }
+        }
         $dst = Join-Path $DstDir $file
         if (Test-Path $src) {
             Copy-Item -Path $src -Destination $dst -Force
@@ -74,8 +79,13 @@ function Copy-Files {
 
 foreach ($archName in $archs) {
     $archAlias = if ($archName -eq 'Win32') { 'x86' } else { 'x64' }
-    $binDir    = Join-Path $repoRoot "bin\Release\$archName"
+    $outDirName = if ($archName -eq 'Win32') { 'Win32' } else { 'Win64' }
+    $binDir    = Join-Path $repoRoot "bin\Release\$outDirName"
     $omSrcDir  = Join-Path $binDir   'OutputMethods'
+    # Vendored upstream DevIL artifacts (S3DDevIL.dll, S3Dilu.dll) — not built by sln
+    $devilFallback = Join-Path $repoRoot "lib\DevIL\lib\$archAlias"
+    # wiz3D-proxy.sln output (entry-point DLLs games actually load: d3d9.dll, etc)
+    $proxyBinDir = Join-Path $repoRoot "wiz3D-proxy\bin\Release\$archName"
 
     if (-not (Test-Path $binDir)) {
         Write-Warning "Skipping ${archName}: $binDir not found (build first?)"
@@ -93,6 +103,9 @@ foreach ($archName in $archs) {
                    -Tag   'dx7 wrappers+deps'
         Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
                    -Files $standardOMs -Tag 'dx7 OutputMethods'
+        Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+                   -Files @('d3d9.dll', 'ddraw.dll')                         `
+                   -Tag   'dx7 proxies'
     }
 
     # --- dx8 (32-bit only) ---
@@ -103,23 +116,34 @@ foreach ($archName in $archs) {
                    -Tag   'dx8 wrappers+deps'
         Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
                    -Files $standardOMs -Tag 'dx8 OutputMethods'
+        Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+                   -Files @('d3d8.dll', 'd3d9.dll')                          `
+                   -Tag   'dx8 proxies'
     }
 
     # --- dx9 (both archs) ---
     $dst = Join-Path $repoRoot "releases\wiz3D\dx9\$archAlias"
     Copy-Files -SrcDir $binDir   -DstDir $dst                          `
                -Files (@('S3DWrapperD3D9.dll') + $commonDeps)          `
-               -Tag   "dx9/$archAlias wrappers+deps"
+               -Tag   "dx9/$archAlias wrappers+deps"                   `
+               -FallbackDirs @($devilFallback)
     Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
                -Files $standardOMs -Tag "dx9/$archAlias OutputMethods"
+    Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+               -Files @('d3d9.dll')                                       `
+               -Tag   "dx9/$archAlias proxies"
 
     # --- dx10-11 (both archs) ---
     $dst = Join-Path $repoRoot "releases\wiz3D\dx10-11\$archAlias"
     Copy-Files -SrcDir $binDir   -DstDir $dst                                          `
                -Files (@('S3DWrapperD3D10.dll') + $commonDeps + $dx10ExtraDeps)        `
-               -Tag   "dx10-11/$archAlias wrappers+deps"
+               -Tag   "dx10-11/$archAlias wrappers+deps"                               `
+               -FallbackDirs @($devilFallback)
     Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods')              `
                -Files $standardOMs -Tag "dx10-11/$archAlias OutputMethods"
+    Copy-Files -SrcDir $proxyBinDir -DstDir $dst                                       `
+               -Files @('d3d10.dll', 'd3d11.dll', 'dxgi.dll')                          `
+               -Tag   "dx10-11/$archAlias proxies"
 
     # --- opengl (both archs) ---
     $dst = Join-Path $repoRoot "releases\wiz3D\opengl\$archAlias"
@@ -128,13 +152,57 @@ foreach ($archName in $archs) {
                -Tag   "opengl/$archAlias wrappers+deps"
     Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
                -Files $openglOMs -Tag "opengl/$archAlias OutputMethods"
+    Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+               -Files @('opengl32.dll')                                   `
+               -Tag   "opengl/$archAlias proxies"
 
-    # hd3d/* not handled here — those proxy DLLs auto-deploy via vcxproj OutDir.
+    # --- dx12 stereo proxy (both archs; no wrapper sln output yet) ---
+    $dst = Join-Path $repoRoot "releases\wiz3D\dx12\$archAlias"
+    Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+               -Files @('d3d12.dll')                                      `
+               -Tag   "dx12/$archAlias proxy"
+
+    # --- vulkan stereo proxy (both archs; no wrapper sln output yet) ---
+    $dst = Join-Path $repoRoot "releases\wiz3D\vulkan\$archAlias"
+    Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
+               -Files @('vulkan-1.dll')                                   `
+               -Tag   "vulkan/$archAlias proxy"
+
+    # hd3d/* not handled here — those vendor proxy DLLs auto-deploy via vcxproj OutDir.
+}
+
+# --- Spread auto-deployed shared DLLs across all api subfolders ---
+# NvApiProxy auto-deploys to releases/wiz3D/dx9/<arch>/ via its vcxproj OutDir,
+# but games using other render APIs need their own copy. Mirror them here.
+# (Other OutputMethods incl. SimulatedRealityWeaveOutput build to the standard
+#  bin/Release/<arch>/OutputMethods/ and are distributed by the loops above.)
+function Spread-File {
+    param(
+        [Parameter(Mandatory)] [string] $SrcPath,
+        [Parameter(Mandatory)] [string[]] $DstDirs,
+        [Parameter(Mandatory)] [string] $Tag
+    )
+    if (-not (Test-Path $SrcPath)) {
+        Write-Host ("  {0,-30}  SOURCE MISSING: {1}" -f $Tag, $SrcPath) -ForegroundColor Yellow
+        return
+    }
+    foreach ($d in $DstDirs) {
+        if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null }
+        Copy-Item -Path $SrcPath -Destination $d -Force
+    }
+    Write-Host ("  {0,-30}  spread to {1} dirs" -f $Tag, $DstDirs.Count)
+}
+
+Write-Host ""
+Write-Host "=== Spreading shared DLLs ===" -ForegroundColor Cyan
+$relRoot = Join-Path $repoRoot 'releases\wiz3D'
+foreach ($archAlias in $archs | ForEach-Object { if ($_ -eq 'Win32') { 'x86' } else { 'x64' } }) {
+    $nvapiName = if ($archAlias -eq 'x86') { 'nvapi.dll' } else { 'nvapi64.dll' }
+    $srcNvapi  = Join-Path $relRoot "dx9\$archAlias\$nvapiName"
+    Spread-File -SrcPath $srcNvapi `
+        -DstDirs @("$relRoot\dx10-11\$archAlias", "$relRoot\opengl\$archAlias", "$relRoot\3dvision\$archAlias") `
+        -Tag "$nvapiName ($archAlias)"
 }
 
 Write-Host ""
 Write-Host "Deploy complete." -ForegroundColor Green
-Write-Host "Reminder: d3d9.dll, ddraw.dll, d3d8.dll, d3d10.dll, d3d11.dll, and"
-Write-Host "opengl32.dll come from the separate wiz3D-proxy/wiz3D-proxy.sln."
-Write-Host "Build that solution and copy those outputs into the matching release"
-Write-Host "subfolder by hand."

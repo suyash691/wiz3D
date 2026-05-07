@@ -44,6 +44,7 @@ bld/
 !/bin/
 !/bin/generate_version.ps1
 !/bin/deploy_to_releases.ps1
+!/bin/build_and_deploy.ps1
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
