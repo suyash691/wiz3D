@@ -88,6 +88,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Command & Conquer: Renegade | DX8 | x86 | ✓ | Untested | Single player only. |
 | Deus Ex | OpenGL/DX7 | x86 | ✕ | ❌ Not Working | listed for DX7 testing. |
 | Deus Ex: Invisible War | DX8 | x86 | ✕ | ⚠️ Partial | Startsup, gets into menu on Linux. |
+| Duke Nukem: Manhattan Project | OpenGL/DX8 | x86 | ✕ | ✅ Working | May need convergance and seperation adjusting for best settings. |
 | FATE | DX8 | x86 | ✕ | Untested |  |
 | Mega Man X8 | DX8 | x86 | ✓ | Untested |  |
 | Mercedes-Benz World Racing | DX8 | x86 | ✓ | Untested |  |
@@ -154,7 +155,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Dark Void | DX9 | x86 | ✓ | Untested |  |
 | Dead or Alive 5 Last Round | DX9 | x86 | ✓ | ✅ Working |  |
 | Deadpool | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
-| Dead Space | DX9 | x86 | ✓ | Untested |  |
+| Dead Space | DX9 | x86 | ✓ | ⚠️ Partial | Crashes past Main Menu. |
 | Dead Space 2 | DX9 | x86 | ✓ | ✅ Working |  |
 | Dead Space 3 | DX9 | x86 | ✕ | ✅ Mostly Working | Needs HUD Shader fix. |
 | Defense Grid: The Awakening | DX9 | x86 | ✓ | Untested |  |
@@ -178,7 +179,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Fable Anniversary | DX9 | x86 | ✕ | ⚠️ Partial | Has artifacts, needs shader fix. |
 | Fahrenheit | DX9 | x86 | ✓ | Untested | aka Indigo Prophecy |
 | Fallout 3 | DX9 | x86 | ✓ | Untested |  |
-| Fallout: New Vegas | DX9 | x86 | ✕ | ✅ Mostly Working | Skybox and Pip-Boy UI shaders broken, try using with [HelixMod shader fix](https://helixmod.blogspot.com/2018/06/fallout-new-vegas.html).<br>1. Rename wiz3D's `d3d9.dll` to `wiz3d.dll`<br>2. Install HelixMod with `DX9Settings.ini`<br>3. Set `ProxyLib=wiz3d.dll` in `DX9Settings.ini` |
+| Fallout: New Vegas | DX9 | x86 | ✕ | ✅ Mostly Working | Needs Skybox & Pip-Boy UI shader fix |
 | F.E.A.R. | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. Perseus Mandate | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. 2: Project Origin | DX9 | x86 | ✓ | Untested |  |
@@ -205,6 +206,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Hitman: Blood Money | DX9 | x86 | ✓ | Untested |  |
 | Hunted: The Demon's Forge | DX9 | x86 | ✓ | Untested |  |
 | Injustice: Gods Among Us | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
+| Insane 2 | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Jet Set Radio | DX9 | x86 | ✕ | ❌ Not Working | Only works in mono. |
 | Kane & Lynch 2: Dog Days | DX9 | x86 | ✓ | Untested |  |
 | Killing Floor | DX8/DX9 | x86 | ✓ | Untested |  |
@@ -247,6 +249,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Prince of Persia: The Forgotten Sands | DX9 | x86 | ✓ | Untested |  |
 | Pro Evolution Soccer 2017 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | ProtoGalaxy | DX9 | x86 | ✓ | Untested |  |
+| Prototype 2 | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Rayman Legends | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | RefRain - prism memories - | DX9/DX9 | x86 | ✕ | ✅ Partially Working | Play with depth set low. Needs higher depth shader fix and issues with Simulated Reality output. |
 | Richard Burns Rally | DX9 | x86 | ✓ | Untested |  |
@@ -269,8 +272,10 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Silent Hunter 3 | DX9 | x86 | ✓ | Untested |  |
 | Silent Hunter 4: Wolves of the Pacific | DX9 | x86 | ✓ | Untested |  |
 | Silent Hunter 5: Battle of the Atlantic | DX9 | x86 | ✓ | Untested |  |
+| Sine Mora EX | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Singularity | DX9 | x86 | ✓ | Untested |  |
 | Sins of a Solar Empire | DX9 | x86 | ✓ | ✅ Mostly Working | Background at wrong depth. |
+| SkyDrift | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Sonic & Sega All-Stars Racing | DX9 | x86 | ✕ | ✅ Working |  |
 | Sonic R (2004) | DX9 | x86 | ✕ | ✅ Mostly Working | Needs coin depth shader fix. Use with [Sonic R Updater](https://github.com/cheatfreak47/SRUpdater). |
 | Spec Ops: The Line | DX9 | x86 | ✕ | ✅ Working |  |
@@ -281,6 +286,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Star Wars: Battlefront (2004) | DX9 | x86 | ✓ | Untested |  |
 | Star Wars: Battlefront II (2005) | DX9 | x86 | ✓ | Untested |  |
 | Star Wars: Episode I - Racer | DX6/DX9 | x86 | ✕ | ❌ Not Working | Crashes on startup. |
+| Star Wars: The Force Unleashed II | DX9 | x86 | ✕ | ⚠️ Partial | Needs shader fix. |
 | Starship Troopers | DX9 | x86 | ✓ | Untested |  |
 | Street Fighter IV | DX9 | x86 | ✓ | Untested |  |
 | Supreme Commander | DX9 | x86 | ✓ | Untested |  |
@@ -312,7 +318,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Trine (2009) | DX9 | x86 | ✓ | Untested |  |
 | Two Worlds | DX9 | x86 | ✓ | Untested |  |
 | Unreal Tournament 3 | DX9 | x86 | ✓ | Untested |  |
-| Valkyria Chronicles | DX9 | x86/x64 | ✕ | ⚠️ Partial | UI, reflections and shadows broken, try using with [HelixMod fix](https://helixmod.blogspot.com/2016/03/valkyria-chronicles.html) to fix.<br>1. Rename wiz3D's `d3d9.dll` to `wiz3d.dll`<br>2. Install HelixMod with `DX9Settings.ini`<br>3. Set `ProxyLib=wiz3d.dll` in `DX9Settings.ini`  |
+| Valkyria Chronicles | DX9 | x86/x64 | ✕ | ⚠️ Partial | Needs UI, reflections and shadow shader fix |
 | Vanquish | DX9 | x86 | ✕ | ❌ Not Working | Crashes on startup. |
 | Virtua Tennis 2009 | DX9 | x86 | ✓ | Untested |  |
 | Virtua Tennis 4 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix |
@@ -339,7 +345,9 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 |------|-----|---------|--------|-------|-------|
 | Chess Titans | DX9 | x86/x64 | ✕ | Untested |  |
 | Far Cry | DX9 | x86/x64 | ✓ | Untested |  |
+| Pro Evolution Soccer 2016 | DX9 | x64 | ✕ | ✅ Working |  |
 | REFLEX XTR² | DX9 | x86/x64 | ✓ | Untested |  |
+| Ultimate Marvel vs. Capcom 3 | DX9 | x64 | ✕ | ❌ Not Working |  |
 | Unreal Tournament 2004 | DX9 | x64 | ✓ | ✅ Working |  |
 
 - **Excluded (VAC Ban Risk):** *Counter-Strike: Source*, *Day of Defeat: Source*, *Half-Life 2: Deathmatch*.
@@ -374,6 +382,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | S.T.A.L.K.E.R.: Call of Pripyat | DX9/DX10/DX11 | x86/x64 | ✓ | Untested |  |
 | Serious Sam HD: The First Encounter | DX9/DX11/DX12 | x86 | ✓ | Untested |  |
 | Tom Clancy's H.A.W.X | DX9/DX10 | x86 | ✓ | Untested |  |
+| Tom Clancy's Splinter Cell: Blacklist | DX9/DX11 | x86 | ✕ | ❌ Not Working | DX9 not working. |
 | World in Conflict | DX9/DX10 | x86 | ✓ | Untested |  |
 
 - **Excluded (Online Ban Risk):** *Age of Conan: Unchained*, *Champions Online*, *DC Universe Online*, *Entropia Universe*, *Final Fantasy 14*, *TERA Online*, *The Lord of the Rings Online*, *Warcraft III: Reign of Chaos*, *World of Tanks*.
