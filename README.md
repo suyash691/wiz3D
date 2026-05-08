@@ -174,7 +174,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Enemy Engaged 2 | DX9 | x86 | ✕ | Untested |  |
 | Eragon | DX9 | x86 | ✓ | Untested |  |
 | Evolution GT | DX9 | x86 | ✕ | Untested |  |
-| Fable: The Lost Chapters | DX9 | x86 | ✓ | ⚠️ Untested | Not working on `v0.1.2`, needs testing on `v1.0.3` which fixes the `Config.xml` conflict. |
+| Fable: The Lost Chapters | DX9 | x86 | ✓ | ⚠️ Partial | Has artifacts, needs shader fix. |
 | Fable III | DX9 | x86 | ✓ | Untested |  |
 | Fable Anniversary | DX9 | x86 | ✕ | ⚠️ Partial | Has artifacts, needs shader fix. |
 | Fahrenheit | DX9 | x86 | ✓ | Untested | aka Indigo Prophecy |
@@ -208,7 +208,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Injustice: Gods Among Us | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Insane 2 | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Jet Set Radio | DX9 | x86 | ✕ | ❌ Not Working | Only works in mono. |
-| Kane & Lynch 2: Dog Days | DX9 | x86 | ✓ | Untested |  |
+| Kane & Lynch 2: Dog Days | DX9 | x86 | ✓ | ✅ Working |  |
 | Killing Floor | DX8/DX9 | x86 | ✓ | Untested |  |
 | King Arthur: The Role-Playing Wargame | DX9 | x86 | ✓ | Untested | Specifies 'King Arthur: The Druids' expansion pack |
 | King's Bounty: The Legend | DX9 | x86 | ✓ | Untested |  |
@@ -345,8 +345,10 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 |------|-----|---------|--------|-------|-------|
 | Chess Titans | DX9 | x86/x64 | ✕ | Untested |  |
 | Far Cry | DX9 | x86/x64 | ✓ | Untested |  |
+| Final Fantasy IX | DX9 | x64 | ✕ | ❌ Not Working | Crashes on startup. |
 | Pro Evolution Soccer 2016 | DX9 | x64 | ✕ | ✅ Working |  |
 | REFLEX XTR² | DX9 | x86/x64 | ✓ | Untested |  |
+| Tales of Berseria | DX9 | x64 | ✕ | ❌ Not Working | Crashes on startup. |
 | Ultimate Marvel vs. Capcom 3 | DX9 | x64 | ✕ | ❌ Not Working |  |
 | Unreal Tournament 2004 | DX9 | x64 | ✓ | ✅ Working |  |
 
@@ -415,13 +417,13 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | L.A. Noire | DX9/DX11 | x86 | ✕ | Untested |  |
 | Lost Planet 2 | DX9/DX11 | x86 | ✓ | Untested | `Stereo=ON` in `config.ini`. |
 | Mafia II | DX9 | x86 | ✓ | Untested |  |
-| Max Payne 3 | DX9/DX11 | x86 | ✕ | Untested | `3D Vision` in `Graphics` menu. `-stereo 1` command line argument. |
+| Max Payne 3 | DX9/DX11 | x86 | ✕ | ⚠️ Partial | Needs 3D Vision shader fixes. `3D Vision` not showing in `Graphics` menu. `-stereo 1` command line argument. |
 | Medal of Honor (2010) | DX9/DX11 | x86 | ✓ | Untested | Use Single Player only. |
 | Metro 2033 | DX9/DX11 | x86 | ✓ | ✅ Mostly Working | Can't see weapon in hand. |
 | Metro: Last Light | DX9/DX11 | x86 | ✕ | Untested | Lists 3D Vision support in [Official PC Requirements](https://www.reddit.com/r/Games/comments/1cjh4l/metro_last_light_official_pc_requirements/). |
 | Oil Rush | OpenGL/DX9/DX11 | x86 | ✕ | Untested |  |
 | [Orbiter Space Flight Simulator](https://github.com/orbitersim/orbiter) | DX9 | x64 | ✕ | Untested | `Stereoscopic 3D` in settings. |
-| Resident Evil 5 | DX9/DX10 | x86 | ✓ | Untested |  |
+| Resident Evil 5 | DX9/DX10 | x86 | ✓ | ❌ Not Working | `Stereo=ON` in `config.ini`.<br>DX9 only on Steam. Crashes on Startup. |
 | Resident Evil 6 | DX9 | x86 | ✕ | Untested | `Stereo=ON` in `config.ini`. |
 | rFactor 2 | DX9/DX11 | x64 | ✕ | Untested | Use Single-player only. |
 | Roller Coaster Rampage | DX9 | x86 | ✕ | Untested |  |
