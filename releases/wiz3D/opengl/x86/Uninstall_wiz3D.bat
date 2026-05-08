@@ -25,6 +25,8 @@ echo Removing wiz3D runtime files...
 if exist "Statistic.xml" del /f /q "Statistic.xml"
 if exist "wiz3D_proxy.log" del /f /q "wiz3D_proxy.log"
 if exist "wiz3D_opengl32_proxy.log" del /f /q "wiz3D_opengl32_proxy.log"
+if exist "wiz3D_ogl_crash.dmp" del /f /q "wiz3D_ogl_crash.dmp"
+if exist "wiz3d.dll" del /f /q "wiz3d.dll"
 if exist "NvApiProxy.log" del /f /q "NvApiProxy.log"
 if exist "wiz3D_crash.dmp" del /f /q "wiz3D_crash.dmp"
 
