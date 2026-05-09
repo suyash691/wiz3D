@@ -99,50 +99,60 @@ void SwapChainProxy::ReleaseEyeFrames()
 
 void SwapChainProxy::EnsureEyeFrames()
 {
-    if (m_leftEyeFrame && m_rightEyeFrame) return;
-    if (!m_shadowBB || !m_parent || m_logicalW == 0 || m_logicalH == 0) return;
-
-    ID3D11Device* dev = m_parent->GetReal();
-    if (!dev) return;
-
-    D3D11_TEXTURE2D_DESC td = {};
-    td.Width            = m_logicalW;
-    td.Height           = m_logicalH;
-    td.MipLevels        = 1;
-    td.ArraySize        = 1;
-    td.Format           = m_shadowFormat;
-    td.SampleDesc.Count = 1;
-    td.Usage            = D3D11_USAGE_DEFAULT;
-    td.BindFlags        = D3D11_BIND_SHADER_RESOURCE;  // sampled later by composite
-
-    if (!m_leftEyeFrame)
-        dev->CreateTexture2D(&td, nullptr, &m_leftEyeFrame);
-    if (!m_rightEyeFrame)
-        dev->CreateTexture2D(&td, nullptr, &m_rightEyeFrame);
-    LOG_VERBOSE("  EnsureEyeFrames: leftEye=%p  rightEye=%p (%ux%u fmt=%d)\n",
-                m_leftEyeFrame, m_rightEyeFrame, m_logicalW, m_logicalH, (int)m_shadowFormat);
+    // Stage 4 v1.1: this function is now a no-op intentionally — eye
+    // frames are allocated lazily *per eye* in CaptureEye(). Eager-
+    // allocating both meant null != never-captured (it meant null !=
+    // never-allocated), so a SwapEyes=1 display would end up copying
+    // an empty-but-allocated right-eye texture to the real BB and
+    // showing a black screen until the right-eye actually got captured.
 }
 
 void SwapChainProxy::CaptureEye(int eyeBeingLeft)
 {
     if (!m_shadowBB || !m_parent) return;
-    EnsureEyeFrames();
-    ID3D11Texture2D* dst = nullptr;
-    if      (eyeBeingLeft == NvDirectMode::kEyeLeft)  dst = m_leftEyeFrame;
-    else if (eyeBeingLeft == NvDirectMode::kEyeRight) dst = m_rightEyeFrame;
+
+    ID3D11Texture2D** slot = nullptr;
+    if      (eyeBeingLeft == NvDirectMode::kEyeLeft)  slot = &m_leftEyeFrame;
+    else if (eyeBeingLeft == NvDirectMode::kEyeRight) slot = &m_rightEyeFrame;
     else return; // MONO transitions don't need capturing — first real eye render starts fresh
 
-    if (!dst) return;
+    // Lazy per-eye allocation: only create this eye's texture on its
+    // first capture. Means a non-null slot pointer means "this eye has
+    // actual game-rendered content in it", which the display logic
+    // relies on.
+    if (!*slot)
+    {
+        ID3D11Device* dev = m_parent->GetReal();
+        if (!dev) return;
+        D3D11_TEXTURE2D_DESC td = {};
+        td.Width            = m_logicalW;
+        td.Height           = m_logicalH;
+        td.MipLevels        = 1;
+        td.ArraySize        = 1;
+        td.Format           = m_shadowFormat;
+        td.SampleDesc.Count = 1;
+        td.Usage            = D3D11_USAGE_DEFAULT;
+        td.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+        HRESULT hr = dev->CreateTexture2D(&td, nullptr, slot);
+        if (FAILED(hr) || !*slot)
+        {
+            LOG_VERBOSE("  CaptureEye(%d): per-eye CreateTexture2D FAILED hr=0x%08lX\n",
+                        eyeBeingLeft, hr);
+            return;
+        }
+        LOG_VERBOSE("  CaptureEye(%d): allocated eye texture=%p (%ux%u fmt=%d)\n",
+                    eyeBeingLeft, *slot, m_logicalW, m_logicalH, (int)m_shadowFormat);
+    }
 
     ID3D11DeviceContext* ctx = nullptr;
     if (m_parent->GetReal()) m_parent->GetReal()->GetImmediateContext(&ctx);
     if (ctx)
     {
-        ctx->CopyResource(dst, m_shadowBB);
+        ctx->CopyResource(*slot, m_shadowBB);
         ctx->Release();
     }
     NVDM_TRACE_FIRST_N(8, "  CaptureEye(eye=%d): copied shadow=%p -> eyeFrame=%p\n",
-                       eyeBeingLeft, m_shadowBB, dst);
+                       eyeBeingLeft, m_shadowBB, *slot);
 }
 
 void SwapChainProxy::EnsureShadowBB()
@@ -259,8 +269,7 @@ void SwapChainProxy::CaptureAndPresentBlit()
     int currentEye = NvDirectMode::GetActiveEye();
     if (currentEye == NvDirectMode::kEyeLeft || currentEye == NvDirectMode::kEyeRight)
     {
-        EnsureEyeFrames();
-        CaptureEye(currentEye);
+        CaptureEye(currentEye);   // self-allocates the slot on first call
         m_lastSeenEye = currentEye;
     }
 
