@@ -58,7 +58,7 @@ public:
     HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent) override                                          { return m_real0->GetParent(riid, ppParent); }
 
     // IDXGIFactory
-    HRESULT STDMETHODCALLTYPE EnumAdapters(UINT Adapter, IDXGIAdapter** ppAdapter) override                            { return m_real0->EnumAdapters(Adapter, ppAdapter); }
+    HRESULT STDMETHODCALLTYPE EnumAdapters(UINT Adapter, IDXGIAdapter** ppAdapter) override;
     HRESULT STDMETHODCALLTYPE MakeWindowAssociation(HWND WindowHandle, UINT Flags) override                            { return m_real0->MakeWindowAssociation(WindowHandle, Flags); }
     HRESULT STDMETHODCALLTYPE GetWindowAssociation(HWND* pWindowHandle) override                                        { return m_real0->GetWindowAssociation(pWindowHandle); }
     HRESULT STDMETHODCALLTYPE CreateSwapChain(IUnknown* pDevice,
@@ -67,7 +67,7 @@ public:
     HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter(HMODULE Module, IDXGIAdapter** ppAdapter) override                  { return m_real0->CreateSoftwareAdapter(Module, ppAdapter); }
 
     // IDXGIFactory1
-    HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT Adapter, IDXGIAdapter1** ppAdapter) override                          { return m_real1 ? m_real1->EnumAdapters1(Adapter, ppAdapter) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT Adapter, IDXGIAdapter1** ppAdapter) override;
     BOOL    STDMETHODCALLTYPE IsCurrent() override                                                                      { return m_real1 ? m_real1->IsCurrent() : FALSE; }
 
     // IDXGIFactory2

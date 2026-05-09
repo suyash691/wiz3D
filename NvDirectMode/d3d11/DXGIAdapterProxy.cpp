@@ -1,5 +1,9 @@
 #include "DXGIAdapterProxy.h"
+#include "../spoof_identity.h"
 #include "log.h"
+
+#include <string.h>
+#include <wchar.h>
 
 #pragma comment(lib, "dxguid.lib")
 
@@ -77,6 +81,71 @@ HRESULT STDMETHODCALLTYPE DXGIAdapterProxy::QueryInterface(REFIID riid, void** p
     NVDM_TRACE_FIRST_N(8, "  DXGIAdapterProxy::QI(unknown/higher IID) -> E_NOINTERFACE\n");
     *ppvObj = nullptr;
     return E_NOINTERFACE;
+}
+
+// ---------------------------------------------------------------------------
+// Vendor spoof: rewrite DXGI_ADAPTER_DESC{,1} so games querying
+// "what GPU is this?" via DXGI see the same NVIDIA RTX 2080 Ti identity
+// NvApiProxy reports. Without this, games on AMD/Intel hardware see
+// non-NVIDIA vendor IDs and skip loading nvapi.dll → stereo path never
+// activates. Memory sizes / LUID / Flags are kept from the real adapter
+// so other queries that don't matter for stereo (memory budget, etc.)
+// stay accurate.
+// ---------------------------------------------------------------------------
+namespace {
+    void ApplySpoofToDesc(DXGI_ADAPTER_DESC* d)
+    {
+        if (!d) return;
+        // wcsncpy_s copies + null-terminates within the fixed-size buffer
+        wcsncpy_s(d->Description,
+                  sizeof(d->Description) / sizeof(WCHAR),
+                  NvDirectMode::kSpoofGpuNameW,
+                  _TRUNCATE);
+        d->VendorId   = NvDirectMode::kSpoofPciVendor;
+        d->DeviceId   = NvDirectMode::kSpoofPciDevice;
+        d->SubSysId   = NvDirectMode::kSpoofSubSysId;
+        d->Revision   = NvDirectMode::kSpoofRevision;
+    }
+    void ApplySpoofToDesc1(DXGI_ADAPTER_DESC1* d)
+    {
+        if (!d) return;
+        wcsncpy_s(d->Description,
+                  sizeof(d->Description) / sizeof(WCHAR),
+                  NvDirectMode::kSpoofGpuNameW,
+                  _TRUNCATE);
+        d->VendorId = NvDirectMode::kSpoofPciVendor;
+        d->DeviceId = NvDirectMode::kSpoofPciDevice;
+        d->SubSysId = NvDirectMode::kSpoofSubSysId;
+        d->Revision = NvDirectMode::kSpoofRevision;
+        // Leave d->Flags alone (e.g. DXGI_ADAPTER_FLAG_SOFTWARE matters
+        // for WARP detection — game might bail if we lie that a real
+        // adapter is software).
+    }
+}
+
+HRESULT STDMETHODCALLTYPE DXGIAdapterProxy::GetDesc(DXGI_ADAPTER_DESC* pDesc)
+{
+    HRESULT hr = m_real0->GetDesc(pDesc);
+    if (SUCCEEDED(hr) && pDesc)
+    {
+        ApplySpoofToDesc(pDesc);
+        NVDM_TRACE_FIRST_N(2, "  DXGIAdapterProxy::GetDesc: spoofed as NVIDIA RTX 2080 Ti (vendor=0x%04X)\n",
+                           pDesc->VendorId);
+    }
+    return hr;
+}
+
+HRESULT STDMETHODCALLTYPE DXGIAdapterProxy::GetDesc1(DXGI_ADAPTER_DESC1* pDesc)
+{
+    if (!m_real1) return E_NOINTERFACE;
+    HRESULT hr = m_real1->GetDesc1(pDesc);
+    if (SUCCEEDED(hr) && pDesc)
+    {
+        ApplySpoofToDesc1(pDesc);
+        NVDM_TRACE_FIRST_N(2, "  DXGIAdapterProxy::GetDesc1: spoofed as NVIDIA RTX 2080 Ti (vendor=0x%04X)\n",
+                           pDesc->VendorId);
+    }
+    return hr;
 }
 
 HRESULT STDMETHODCALLTYPE DXGIAdapterProxy::GetParent(REFIID riid, void** ppParent)

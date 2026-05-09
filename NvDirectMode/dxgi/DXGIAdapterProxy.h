@@ -1,31 +1,15 @@
-/* NvDirectMode - IDXGIAdapter / IDXGIAdapter1 proxy
+/* NvDirectMode/dxgi - IDXGIAdapter / IDXGIAdapter1 proxy
  *
- * Stage-after-4 fix for HD3D-style games (Dirt Rally, Hitman Absolution,
- * etc.) whose swap chain creation never went through our wrap. Logs
- * showed games getting wrapped Device11Proxy + DXGIDeviceProxy + wrapped
- * factory, but no IDXGIFactory::CreateSwapChain ever fired on us — the
- * games walk a different COM chain to reach the factory:
+ * Mirror of d3d11.dll's DXGIAdapterProxy, but lives in dxgi.dll so that
+ * adapters returned by IDXGIFactory::EnumAdapters / EnumAdapters1 can
+ * be wrapped without a cross-DLL bridge call (the d3d11 version is
+ * reached via DXGIDeviceProxy::GetAdapter from a different code path).
  *
- *     device->QI(IDXGIDevice)        // -> our DXGIDeviceProxy
- *     dxgiDev->GetAdapter(&adapter)   // -> currently passthrough = REAL adapter
- *     adapter->GetParent(IDXGIFactory)// -> REAL factory (unwrapped)
- *     realFactory->CreateSwapChain    // bypasses our hooks entirely
+ * Both copies share the same vendor-spoof identity (NvDirectMode/spoof_identity.h)
+ * so games querying via either path see the same NVIDIA RTX 2080 Ti.
  *
- * DXGIAdapterProxy plugs the second step. DXGIDeviceProxy::GetAdapter
- * (and ::GetParent for IDXGIAdapter*) now return a wrapped adapter; the
- * adapter's GetParent(IDXGIFactory*) calls back into dxgi.dll's
- * NvDM_DXGI_WrapFactory bridge so the game's CreateSwapChain* lands on
- * our DXGIFactoryProxy. With both ends of the COM walk wrapped, a game
- * that walks Device → IDXGIDevice → Adapter → Factory ends up at our
- * factory regardless of which path it takes.
- *
- * If dxgi.dll proxy isn't loaded in this process (e.g. game ships
- * without it), GetParent falls back to handing the unwrapped real
- * factory to the game (same as before this proxy existed).
- *
- * QI policy mirrors DXGIDeviceProxy: claim IDXGIAdapter / IDXGIAdapter1
- * ourselves, return E_NOINTERFACE for IDXGIAdapter2+ so games fall back
- * to a level we wrap rather than escaping with an unwrapped pointer.
+ * GetParent(IDXGIFactory*) wraps locally via DXGIFactoryProxy (no cross-
+ * DLL call needed since both classes are in the same DLL).
  */
 
 #pragma once
@@ -44,7 +28,6 @@ public:
     DXGIAdapterProxy(IDXGIAdapter* r0, IDXGIAdapter1* r1);
     virtual ~DXGIAdapterProxy();
 
-    // IUnknown
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObj) override;
     ULONG   STDMETHODCALLTYPE AddRef() override                                { return InterlockedIncrement(&m_refs); }
     ULONG   STDMETHODCALLTYPE Release() override;
@@ -53,7 +36,7 @@ public:
     HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void* pData) override   { return m_real0->SetPrivateData(Name, DataSize, pData); }
     HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnk) override      { return m_real0->SetPrivateDataInterface(Name, pUnk); }
     HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData) override       { return m_real0->GetPrivateData(Name, pDataSize, pData); }
-    HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent) override;   // wraps if asked for a factory
+    HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent) override;
 
     // IDXGIAdapter
     HRESULT STDMETHODCALLTYPE EnumOutputs(UINT Output, IDXGIOutput** ppOutput) override                 { return m_real0->EnumOutputs(Output, ppOutput); }
@@ -66,8 +49,13 @@ public:
 
 private:
     IDXGIAdapter*  m_real0;
-    IDXGIAdapter1* m_real1;   // null if real doesn't expose IDXGIAdapter1
+    IDXGIAdapter1* m_real1;
     LONG           m_refs;
 };
+
+// Public factory entry: wrap a real IDXGIAdapter in DXGIAdapterProxy
+// (QI'ing for IDXGIAdapter1 if available). Used by DXGIFactoryProxy's
+// EnumAdapters / EnumAdapters1 overrides.
+IDXGIAdapter* WrapRealAdapter(IDXGIAdapter* realAdapter);
 
 } // namespace NvDirectMode
