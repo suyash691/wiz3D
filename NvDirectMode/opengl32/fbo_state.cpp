@@ -30,6 +30,7 @@
 
 // OutputMode flag from dllmain
 extern "C" int NvDM_OutputIsTopBottom();
+extern "C" int NvDM_SwapEyes();
 
 // ---------------------------------------------------------------------------
 // GL constants and types we need that are NOT in <GL/gl.h>'s GL 1.1 set.
@@ -257,27 +258,35 @@ void EyeFbosBlitToDefault()
     const int W = g_fbos.width;
     const int H = g_fbos.height;
     const bool topBottom = NvDM_OutputIsTopBottom() != 0;
+    const bool swap      = NvDM_SwapEyes() != 0;
+
+    // SwapEyes flips which captured eye lands in which display half — game
+    // still rendered LEFT-eye-content into fboLeft (live FBO redirect on
+    // glBindFramebuffer(0)), but at composite time we put RIGHT content
+    // in the LEFT slot and vice versa.
+    GLuint leftSlotFbo  = swap ? g_fbos.fboRight : g_fbos.fboLeft;
+    GLuint rightSlotFbo = swap ? g_fbos.fboLeft  : g_fbos.fboRight;
 
     if (topBottom)
     {
-        // Half T-B: LEFT eye -> top half (0..H/2), RIGHT eye -> bottom half (H/2..H)
-        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, g_fbos.fboLeft);
+        // Half T-B: "left" eye (logical) -> top half, "right" -> bottom half
+        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, leftSlotFbo);
         p_glBlitFramebuffer(0, 0, W, H,
                             0, H / 2, W, H,
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, g_fbos.fboRight);
+        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, rightSlotFbo);
         p_glBlitFramebuffer(0, 0, W, H,
                             0, 0, W, H / 2,
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
     else
     {
-        // Half SBS (default): LEFT eye -> left half (0..W/2), RIGHT eye -> right half (W/2..W)
-        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, g_fbos.fboLeft);
+        // Half SBS (default): "left" -> left half, "right" -> right half
+        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, leftSlotFbo);
         p_glBlitFramebuffer(0, 0, W, H,
                             0, 0, W / 2, H,
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, g_fbos.fboRight);
+        p_glBindFramebuffer(GL_READ_FRAMEBUFFER, rightSlotFbo);
         p_glBlitFramebuffer(0, 0, W, H,
                             W / 2, 0, W, H,
                             GL_COLOR_BUFFER_BIT, GL_NEAREST);
