@@ -28,6 +28,7 @@
 #include <windows.h>
 #include "..\Shared\version.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // ============================================================
@@ -239,6 +240,51 @@ static FakeStereoState g_Stereo = {
     /*createMode*/    NVAPI_STEREO_SURFACECREATEMODE_AUTO,
     /*frustumAdjust*/ 1,
 };
+
+// ============================================================
+// Optional config flag: NvDirectMode's 3DVision_Config.xml lives in the
+// game folder alongside this DLL. We read DisableStereoSpoof at
+// DLL_PROCESS_ATTACH so the spoof can be toggled per-game without
+// recompiling. Default 0 = spoof stereo as enabled (the historical
+// behaviour). Setting 1 makes Stereo_IsEnabled / Stereo_IsActivated
+// report FALSE so the game treats stereo as unavailable — useful as a
+// diagnostic ("does my game work without our wrap claiming stereo?").
+// ============================================================
+static int g_disableStereoSpoof = 0;
+
+static int ReadConfigInt(const char* xml, const char* tag, int defaultValue)
+{
+    char needle[64];
+    _snprintf_s(needle, sizeof(needle), _TRUNCATE, "<%s Value=\"", tag);
+    const char* p = strstr(xml, needle);
+    if (!p) return defaultValue;
+    p += strlen(needle);
+    return atoi(p);
+}
+
+static void LoadConfig(HMODULE hSelf)
+{
+    WCHAR cfgPath[MAX_PATH];
+    if (!GetModuleFileNameW(hSelf, cfgPath, MAX_PATH)) return;
+    WCHAR* pSlash = wcsrchr(cfgPath, L'\\');
+    if (pSlash) *(pSlash + 1) = L'\0';
+    lstrcatW(cfgPath, L"3DVision_Config.xml");
+
+    FILE* f = _wfopen(cfgPath, L"rb");
+    if (!f) return;
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz <= 0 || sz > 16 * 1024) { fclose(f); return; }
+    char* buf = (char*)malloc((size_t)sz + 1);
+    if (!buf) { fclose(f); return; }
+    size_t n = fread(buf, 1, (size_t)sz, f);
+    buf[n] = '\0';
+    fclose(f);
+
+    g_disableStereoSpoof = ReadConfigInt(buf, "DisableStereoSpoof", g_disableStereoSpoof);
+    free(buf);
+}
 
 // ============================================================
 // Live bridge to S3DWrapperD3D9.dll's wiz3D state.
@@ -515,7 +561,7 @@ NVAPI_INTERFACE Spoof_Stereo_IsEnabled(NvU8* p)
 {
     NVAPI_TRACE_FIRST("Stereo_IsEnabled");
     if (!p) return NVAPI_ERROR;
-    *p = 1;
+    *p = g_disableStereoSpoof ? 0 : 1;
     return NVAPI_OK;
 }
 
@@ -548,9 +594,16 @@ NVAPI_INTERFACE Spoof_Stereo_Deactivate(StereoHandle)
 NVAPI_INTERFACE Spoof_Stereo_IsActivated(StereoHandle, NvU8* p)
 {
     if (!p) return NVAPI_ERROR;
-    *p = ResolveWiz3DBridge()
-        ? (NvU8)(g_Wiz3D.GetStereoActive() ? 1 : 0)
-        : g_Stereo.isActive;
+    if (g_disableStereoSpoof)
+    {
+        *p = 0;
+    }
+    else
+    {
+        *p = ResolveWiz3DBridge()
+            ? (NvU8)(g_Wiz3D.GetStereoActive() ? 1 : 0)
+            : g_Stereo.isActive;
+    }
     NVAPI_TRACE_PERIODIC("Stereo_IsActivated", "%d", (int)*p);
     return NVAPI_OK;
 }
@@ -913,7 +966,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID)
     {
         g_hSelf = hModule;
         DisableThreadLibraryCalls(hModule);
-        WriteLog("[NvApiProxy] DLL_PROCESS_ATTACH (wiz3D " DISPLAYED_VERSION ")\n");
+        LoadConfig(hModule);
+        char attachLine[160];
+        _snprintf_s(attachLine, sizeof(attachLine), _TRUNCATE,
+                    "[NvApiProxy] DLL_PROCESS_ATTACH (wiz3D " DISPLAYED_VERSION ") DisableStereoSpoof=%d\n",
+                    g_disableStereoSpoof);
+        WriteLog(attachLine);
     }
     else if (reason == DLL_PROCESS_DETACH)
     {

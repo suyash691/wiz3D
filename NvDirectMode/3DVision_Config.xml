@@ -77,5 +77,17 @@
              Default: 1 (Half SBS) — matches the geometry NvDirectMode has
              been routing into all along. -->
         <OutputMode Value="1"/>
+
+        <!-- DisableStereoSpoof: 0 = NvApiProxy reports stereo as enabled +
+             activated (default — games see "3D Vision available" and try to
+             use it); 1 = NvApiProxy reports stereo as DISABLED. Useful as a
+             diagnostic to see how a game behaves when 3D Vision support is
+             absent — can a game's "3D Vision" option actually toggle off?
+             Does the game crash/render differently without our wrap claiming
+             stereo is on?
+
+             Read by nvapi[64].dll on DLL_PROCESS_ATTACH (same folder as the
+             proxy). Default: 0. -->
+        <DisableStereoSpoof Value="0"/>
     </NvDirectMode>
 </Config>
