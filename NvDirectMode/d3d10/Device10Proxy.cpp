@@ -93,27 +93,14 @@ void STDMETHODCALLTYPE Device10Proxy::OMSetRenderTargets(
     ID3D10DepthStencilView* pDepthStencilView)
 {
     m_real->OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
-    if (NumViews == 0 || !ppRenderTargetViews || !IsBackBufferRTV(ppRenderTargetViews[0])) return;
-    if (m_logicalWidth == 0 || m_logicalHeight == 0) return;
-
-    int eye = GetActiveEye();
-    if (NvDM_SwapEyes())
-    {
-        if      (eye == kEyeLeft)  eye = kEyeRight;
-        else if (eye == kEyeRight) eye = kEyeLeft;
-    }
-    const bool topBottom = NvDM_OutputIsTopBottom() != 0;
-    D3D10_VIEWPORT vp;
-    vp.TopLeftX = (!topBottom && eye == kEyeRight) ? (INT)m_logicalWidth  : 0;
-    vp.TopLeftY = ( topBottom && eye == kEyeRight) ? (INT)m_logicalHeight : 0;
-    vp.Width    = m_logicalWidth;
-    vp.Height   = m_logicalHeight;
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-    m_real->RSSetViewports(1, &vp);
-    NVDM_TRACE_FIRST_N(16, "  Device10Proxy::OMSet eye=%d mode=%s vp=(%u,%u %ux%u) rtv=%p\n",
-                       eye, topBottom ? "T-B" : "SBS",
-                       vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height, ppRenderTargetViews[0]);
+    // Stage 3 v2 / shadow-RT: shadow texture is at logical (1x) size, so
+    // no per-eye viewport clamp needed any more. Game's natural rendering
+    // goes straight into the shadow at the size the game expects. The
+    // BB-RTV identity tracking still happens (for diagnostic logging and
+    // future per-eye texture-region routing if needed).
+    if (NumViews > 0 && ppRenderTargetViews && IsBackBufferRTV(ppRenderTargetViews[0]))
+        NVDM_TRACE_FIRST_N(8, "  Device10Proxy::OMSet BB-RTV bound rtv=%p (no clamp \xe2\x80\x94 shadow is 1x)\n",
+                           ppRenderTargetViews[0]);
 }
 
 } // namespace NvDirectMode
