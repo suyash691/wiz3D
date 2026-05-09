@@ -18,6 +18,7 @@ namespace NvDirectMode
 {
 
 class Context11Proxy;
+class DXGIDeviceProxy;
 
 class Device11Proxy : public ID3D11Device
 {
@@ -105,8 +106,25 @@ public:
     bool IsBackBufferRTV(ID3D11RenderTargetView* rtv) const;
 
 private:
+    // Helper for QueryInterface(IDXGIDevice*) — returns a new ref on the
+    // cached proxy (creating + caching it on first call). Returns nullptr
+    // if the real device doesn't expose any IDXGIDevice (shouldn't happen
+    // for a real D3D11 device).
+    //
+    // Lifetime: the cache holds one strong ref on the proxy until our
+    // own destructor runs. That's what closes the resurrection race —
+    // a thread can't AddRef the cached proxy "after" it was deleted,
+    // because our cache ref keeps it alive as long as the parent device
+    // is alive. When the parent device dies, ~Device11Proxy detaches
+    // the parent pointer (so any outstanding DXGIDeviceProxy refs the
+    // game still holds get E_NOINTERFACE on QI(ID3D11Device)) and then
+    // Releases the cache ref.
+    DXGIDeviceProxy* GetOrCreateDXGIDeviceProxyAddRef();
+
     ID3D11Device*    m_real;
     Context11Proxy*  m_ctxProxy;       // not owned — created in dllmain, freed on Release chain
+    DXGIDeviceProxy* m_dxgiDeviceProxy;// strong ref (released in ~Device11Proxy)
+    CRITICAL_SECTION m_dxgiCacheLock;
     LONG             m_refs;
     UINT             m_logicalWidth;
     UINT             m_logicalHeight;

@@ -149,6 +149,7 @@
     <ClCompile Include="Device11Proxy.cpp" />
     <ClCompile Include="Context11Proxy.cpp" />
     <ClCompile Include="SwapChainProxy.cpp" />
+    <ClCompile Include="DXGIDeviceProxy.cpp" />
     <ClCompile Include="swapchain_helpers.cpp" />
     <ClCompile Include="eye_state.cpp" />
   </ItemGroup>
@@ -157,6 +158,7 @@
     <ClInclude Include="Device11Proxy.h" />
     <ClInclude Include="Context11Proxy.h" />
     <ClInclude Include="SwapChainProxy.h" />
+    <ClInclude Include="DXGIDeviceProxy.h" />
     <ClInclude Include="swapchain_helpers.h" />
     <ClInclude Include="eye_state.h" />
     <ClInclude Include="log.h" />

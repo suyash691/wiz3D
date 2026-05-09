@@ -15,6 +15,7 @@ echo Removing NvDirectMode proxy DLLs...
 if exist "d3d9.dll"      del /f /q "d3d9.dll"
 if exist "d3d10.dll"     del /f /q "d3d10.dll"
 if exist "d3d11.dll"     del /f /q "d3d11.dll"
+if exist "dxgi.dll"      del /f /q "dxgi.dll"
 if exist "opengl32.dll"  del /f /q "opengl32.dll"
 
 echo Removing NvApiProxy DLLs...
