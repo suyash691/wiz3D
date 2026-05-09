@@ -1,5 +1,6 @@
 #include "DXGIDeviceProxy.h"
 #include "Device11Proxy.h"
+#include "DXGIAdapterProxy.h"
 #include "log.h"
 
 #include <d3d11.h>
@@ -89,6 +90,58 @@ HRESULT STDMETHODCALLTYPE DXGIDeviceProxy::QueryInterface(REFIID riid, void** pp
     NVDM_TRACE_FIRST_N(8,
         "  DXGIDeviceProxy::QI(unknown IID) hr=0x%08lX -- bypass risk\n", hr);
     return hr;
+}
+
+// Helper used by GetAdapter and GetParent(IDXGIAdapter*): take a real
+// IDXGIAdapter, QI for the IDXGIAdapter1 face if available, hand both
+// refs to a fresh DXGIAdapterProxy.
+static IDXGIAdapter* WrapRealAdapter(IDXGIAdapter* realAdapter)
+{
+    if (!realAdapter) return nullptr;
+    IDXGIAdapter1* r1 = nullptr;
+    realAdapter->QueryInterface(IID_IDXGIAdapter1, reinterpret_cast<void**>(&r1));
+    auto* proxy = new DXGIAdapterProxy(realAdapter, r1);
+    return static_cast<IDXGIAdapter*>(proxy);
+}
+
+HRESULT STDMETHODCALLTYPE DXGIDeviceProxy::GetAdapter(IDXGIAdapter** ppAdapter)
+{
+    if (!ppAdapter) return E_POINTER;
+    IDXGIAdapter* realAdapter = nullptr;
+    HRESULT hr = m_real0->GetAdapter(&realAdapter);
+    if (FAILED(hr) || !realAdapter) { *ppAdapter = nullptr; return hr; }
+    *ppAdapter = WrapRealAdapter(realAdapter);
+    NVDM_TRACE_FIRST_N(4, "  DXGIDeviceProxy::GetAdapter: wrapped real=%p -> %p\n",
+                       (void*)realAdapter, (void*)*ppAdapter);
+    return S_OK;
+}
+
+HRESULT STDMETHODCALLTYPE DXGIDeviceProxy::GetParent(REFIID riid, void** ppParent)
+{
+    if (!ppParent) return E_POINTER;
+
+    // For adapter queries: route through our DXGIAdapterProxy so that a
+    // game walking device → adapter → factory hits our wrapped factory
+    // when it eventually creates its swap chain.
+    if (riid == IID_IDXGIAdapter || riid == IID_IDXGIAdapter1)
+    {
+        IDXGIAdapter* realAdapter = nullptr;
+        HRESULT hr = m_real0->GetParent(IID_IDXGIAdapter, reinterpret_cast<void**>(&realAdapter));
+        if (FAILED(hr) || !realAdapter) { *ppParent = nullptr; return hr; }
+        IDXGIAdapter* wrapped = WrapRealAdapter(realAdapter);
+        if (riid == IID_IDXGIAdapter1)
+        {
+            // Round-trip via QI to get the IDXGIAdapter1 face with proper
+            // refcount; drop our IDXGIAdapter ref afterwards.
+            HRESULT qiHr = wrapped->QueryInterface(IID_IDXGIAdapter1, ppParent);
+            wrapped->Release();
+            return qiHr;
+        }
+        *ppParent = wrapped;   // transfer our ref to the caller
+        return S_OK;
+    }
+
+    return m_real0->GetParent(riid, ppParent);
 }
 
 } // namespace NvDirectMode

@@ -73,10 +73,10 @@ public:
     HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID Name, UINT DataSize, const void* pData) override   { return m_real0->SetPrivateData(Name, DataSize, pData); }
     HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID Name, const IUnknown* pUnk) override      { return m_real0->SetPrivateDataInterface(Name, pUnk); }
     HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID Name, UINT* pDataSize, void* pData) override       { return m_real0->GetPrivateData(Name, pDataSize, pData); }
-    HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent) override                          { return m_real0->GetParent(riid, ppParent); }
+    HRESULT STDMETHODCALLTYPE GetParent(REFIID riid, void** ppParent) override;          // wraps adapter
 
     // IDXGIDevice
-    HRESULT STDMETHODCALLTYPE GetAdapter(IDXGIAdapter** ppAdapter) override                             { return m_real0->GetAdapter(ppAdapter); }
+    HRESULT STDMETHODCALLTYPE GetAdapter(IDXGIAdapter** ppAdapter) override;             // returns wrapped adapter
     HRESULT STDMETHODCALLTYPE CreateSurface(const DXGI_SURFACE_DESC* pDesc, UINT NumSurfaces,
                                             DXGI_USAGE Usage, const DXGI_SHARED_RESOURCE* pSharedResource,
                                             IDXGISurface** ppSurface) override                          { return m_real0->CreateSurface(pDesc, NumSurfaces, Usage, pSharedResource, ppSurface); }

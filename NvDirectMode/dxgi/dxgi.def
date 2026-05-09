@@ -5,3 +5,6 @@ EXPORTS
     CreateDXGIFactory2              @3
     DXGIDeclareAdapterRemovalSupport @4
     DXGIGetDebugInterface1          @5
+    ; Cross-DLL bridge — d3d11.dll's DXGIAdapterProxy calls this when a
+    ; game walks device → adapter → factory through us. Not a DXGI export.
+    NvDM_DXGI_WrapFactory           @100
