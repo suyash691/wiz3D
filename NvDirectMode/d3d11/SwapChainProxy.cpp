@@ -3,11 +3,97 @@
 #include "eye_state.h"
 #include "log.h"
 
+#include <d3dcommon.h>
+#include <string.h>
+
 #pragma comment(lib, "dxguid.lib")  // for IID_IDXGISwapChain et al
 
 // Output-mode + swap-eyes flags (from dllmain.cpp via the C-linkage bridge).
 extern "C" int NvDM_OutputIsTopBottom();
 extern "C" int NvDM_SwapEyes();
+
+// ---------------------------------------------------------------------------
+// Stage 4b composite pipeline: D3DCompile resolver + HLSL source
+// ---------------------------------------------------------------------------
+namespace {
+
+typedef HRESULT (WINAPI *PFN_D3DCompile)(
+    LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName,
+    const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude,
+    LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2,
+    ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
+
+static PFN_D3DCompile g_pfnD3DCompile = nullptr;
+static volatile LONG g_d3dCompileResolved = 0;
+
+bool EnsureD3DCompile()
+{
+    if (g_pfnD3DCompile) return true;
+    if (InterlockedCompareExchange(&g_d3dCompileResolved, 1, 0) != 0)
+        return g_pfnD3DCompile != nullptr;
+
+    HMODULE h = LoadLibraryW(L"d3dcompiler_47.dll");
+    if (!h) h = LoadLibraryW(L"d3dcompiler_46.dll");
+    if (!h) h = LoadLibraryW(L"d3dcompiler_43.dll");
+    if (!h)
+    {
+        LOG_VERBOSE("  EnsureD3DCompile: no d3dcompiler_*.dll found — composite path disabled\n");
+        return false;
+    }
+    g_pfnD3DCompile = (PFN_D3DCompile)GetProcAddress(h, "D3DCompile");
+    if (!g_pfnD3DCompile)
+        LOG_VERBOSE("  EnsureD3DCompile: GetProcAddress(D3DCompile) failed in %p\n", h);
+    return g_pfnD3DCompile != nullptr;
+}
+
+// Fullscreen-triangle VS — no vertex buffer needed, uses SV_VertexID. id 0
+// gives uv=(0,0), id 1 gives uv=(2,0), id 2 gives uv=(0,2). The triangle
+// covers [-1,1]x[-1,1] in NDC; the half outside the screen is clipped.
+const char kCompositeVS[] =
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "VS_OUT main(uint id : SV_VertexID) {\n"
+    "  VS_OUT o;\n"
+    "  o.uv = float2((id == 1) ? 2.0 : 0.0, (id == 2) ? 2.0 : 0.0);\n"
+    "  o.pos = float4(o.uv * float2(2.0, -2.0) + float2(-1.0, 1.0), 0.0, 1.0);\n"
+    "  return o;\n"
+    "}\n";
+
+const char kCompositePS_SBS[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sLinear : register(s0);\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  if (i.uv.x < 0.5)\n"
+    "    return leftTex.Sample(sLinear, float2(i.uv.x * 2.0, i.uv.y));\n"
+    "  else\n"
+    "    return rightTex.Sample(sLinear, float2((i.uv.x - 0.5) * 2.0, i.uv.y));\n"
+    "}\n";
+
+const char kCompositePS_TB[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sLinear : register(s0);\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  if (i.uv.y < 0.5)\n"
+    "    return leftTex.Sample(sLinear, float2(i.uv.x, i.uv.y * 2.0));\n"
+    "  else\n"
+    "    return rightTex.Sample(sLinear, float2(i.uv.x, (i.uv.y - 0.5) * 2.0));\n"
+    "}\n";
+
+bool CompileShader(const char* src, size_t len, const char* entry, const char* target,
+                   ID3DBlob** out)
+{
+    if (!g_pfnD3DCompile) return false;
+    ID3DBlob* err = nullptr;
+    HRESULT hr = g_pfnD3DCompile(src, len, entry, nullptr, nullptr,
+                                  "main", target, 0, 0, out, &err);
+    if (err) { err->Release(); err = nullptr; }
+    return SUCCEEDED(hr) && *out != nullptr;
+}
+
+} // anonymous namespace
 
 namespace NvDirectMode
 {
@@ -56,6 +142,16 @@ SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device11Proxy* parent)
     , m_leftEyeFrame(nullptr)
     , m_rightEyeFrame(nullptr)
     , m_lastSeenEye(NvDirectMode::kEyeMono)
+    , m_compositeVS(nullptr)
+    , m_compositePS_SBS(nullptr)
+    , m_compositePS_TB(nullptr)
+    , m_compositeSampler(nullptr)
+    , m_compositeRS(nullptr)
+    , m_compositeBlend(nullptr)
+    , m_compositeDSS(nullptr)
+    , m_leftEyeSRV(nullptr)
+    , m_rightEyeSRV(nullptr)
+    , m_realBBRTV(nullptr)
 {
     if (m_real)
         m_real->QueryInterface(IID_IDXGISwapChain1, reinterpret_cast<void**>(&m_real1));
@@ -78,8 +174,23 @@ SwapChainProxy::~SwapChainProxy()
     if (g_primarySwapChain == this) g_primarySwapChain = nullptr;
     LeaveCriticalSection(&g_primaryLock);
 
+    ReleaseCompositePipeline();
     ReleaseEyeFrames();
     ReleaseShadowBB();
+}
+
+void SwapChainProxy::ReleaseCompositePipeline()
+{
+    if (m_realBBRTV)        { m_realBBRTV->Release();        m_realBBRTV = nullptr; }
+    if (m_leftEyeSRV)       { m_leftEyeSRV->Release();       m_leftEyeSRV = nullptr; }
+    if (m_rightEyeSRV)      { m_rightEyeSRV->Release();      m_rightEyeSRV = nullptr; }
+    if (m_compositeDSS)     { m_compositeDSS->Release();     m_compositeDSS = nullptr; }
+    if (m_compositeBlend)   { m_compositeBlend->Release();   m_compositeBlend = nullptr; }
+    if (m_compositeRS)      { m_compositeRS->Release();      m_compositeRS = nullptr; }
+    if (m_compositeSampler) { m_compositeSampler->Release(); m_compositeSampler = nullptr; }
+    if (m_compositePS_TB)   { m_compositePS_TB->Release();   m_compositePS_TB = nullptr; }
+    if (m_compositePS_SBS)  { m_compositePS_SBS->Release();  m_compositePS_SBS = nullptr; }
+    if (m_compositeVS)      { m_compositeVS->Release();      m_compositeVS = nullptr; }
 }
 
 void SwapChainProxy::ReleaseShadowBB()
@@ -92,6 +203,10 @@ void SwapChainProxy::ReleaseShadowBB()
 
 void SwapChainProxy::ReleaseEyeFrames()
 {
+    // SRVs hold a ref on the underlying texture — release them first so
+    // the texture refcount decrements correctly when we Release the slot.
+    if (m_leftEyeSRV)    { m_leftEyeSRV->Release();    m_leftEyeSRV = nullptr; }
+    if (m_rightEyeSRV)   { m_rightEyeSRV->Release();   m_rightEyeSRV = nullptr; }
     if (m_leftEyeFrame)  { m_leftEyeFrame->Release();  m_leftEyeFrame = nullptr; }
     if (m_rightEyeFrame) { m_rightEyeFrame->Release(); m_rightEyeFrame = nullptr; }
     m_lastSeenEye = NvDirectMode::kEyeMono;
@@ -254,18 +369,191 @@ HRESULT STDMETHODCALLTYPE SwapChainProxy::Present1(UINT SyncInterval, UINT Flags
     return m_real1->Present1(SyncInterval, Flags, pPresentParameters);
 }
 
+bool SwapChainProxy::EnsureCompositeShaders()
+{
+    if (!m_parent) return false;
+    if (m_compositeVS && m_compositePS_SBS && m_compositePS_TB &&
+        m_compositeSampler && m_compositeRS && m_compositeBlend && m_compositeDSS)
+        return true;
+
+    if (!EnsureD3DCompile()) return false;
+
+    ID3D11Device* dev = m_parent->GetReal();
+    if (!dev) return false;
+
+    ID3DBlob* vsBlob = nullptr;
+    ID3DBlob* psSbsBlob = nullptr;
+    ID3DBlob* psTbBlob = nullptr;
+    bool ok = true;
+    ok = ok && CompileShader(kCompositeVS,      sizeof(kCompositeVS) - 1,      "vs", "vs_4_0", &vsBlob);
+    ok = ok && CompileShader(kCompositePS_SBS,  sizeof(kCompositePS_SBS) - 1,  "ps", "ps_4_0", &psSbsBlob);
+    ok = ok && CompileShader(kCompositePS_TB,   sizeof(kCompositePS_TB) - 1,   "ps", "ps_4_0", &psTbBlob);
+    if (!ok)
+    {
+        LOG_VERBOSE("  EnsureCompositeShaders: D3DCompile failed (vs=%p sbs=%p tb=%p)\n",
+                    vsBlob, psSbsBlob, psTbBlob);
+        if (vsBlob)    vsBlob->Release();
+        if (psSbsBlob) psSbsBlob->Release();
+        if (psTbBlob)  psTbBlob->Release();
+        return false;
+    }
+
+    HRESULT hr = S_OK;
+    if (!m_compositeVS)
+        hr = dev->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(),
+                                      nullptr, &m_compositeVS);
+    if (SUCCEEDED(hr) && !m_compositePS_SBS)
+        hr = dev->CreatePixelShader(psSbsBlob->GetBufferPointer(), psSbsBlob->GetBufferSize(),
+                                     nullptr, &m_compositePS_SBS);
+    if (SUCCEEDED(hr) && !m_compositePS_TB)
+        hr = dev->CreatePixelShader(psTbBlob->GetBufferPointer(), psTbBlob->GetBufferSize(),
+                                     nullptr, &m_compositePS_TB);
+    vsBlob->Release(); psSbsBlob->Release(); psTbBlob->Release();
+    if (FAILED(hr)) { ReleaseCompositePipeline(); return false; }
+
+    if (!m_compositeSampler)
+    {
+        D3D11_SAMPLER_DESC sd = {};
+        sd.Filter   = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+        sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sd.MinLOD   = 0;
+        sd.MaxLOD   = D3D11_FLOAT32_MAX;
+        dev->CreateSamplerState(&sd, &m_compositeSampler);
+    }
+    if (!m_compositeRS)
+    {
+        D3D11_RASTERIZER_DESC rd = {};
+        rd.FillMode        = D3D11_FILL_SOLID;
+        rd.CullMode        = D3D11_CULL_NONE;
+        rd.DepthClipEnable = TRUE;
+        dev->CreateRasterizerState(&rd, &m_compositeRS);
+    }
+    if (!m_compositeBlend)
+    {
+        D3D11_BLEND_DESC bd = {};
+        bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+        dev->CreateBlendState(&bd, &m_compositeBlend);
+    }
+    if (!m_compositeDSS)
+    {
+        D3D11_DEPTH_STENCIL_DESC dsd = {};
+        dsd.DepthEnable   = FALSE;
+        dsd.StencilEnable = FALSE;
+        dev->CreateDepthStencilState(&dsd, &m_compositeDSS);
+    }
+
+    bool full = m_compositeVS && m_compositePS_SBS && m_compositePS_TB &&
+                m_compositeSampler && m_compositeRS && m_compositeBlend && m_compositeDSS;
+    LOG_VERBOSE("  EnsureCompositeShaders: %s\n", full ? "OK" : "PARTIAL");
+    return full;
+}
+
+bool SwapChainProxy::RunCompositePass()
+{
+    // Need both eyes captured + shaders + RTV available.
+    if (!m_leftEyeFrame || !m_rightEyeFrame) return false;
+    if (!EnsureCompositeShaders()) return false;
+
+    ID3D11Device* dev = m_parent ? m_parent->GetReal() : nullptr;
+    if (!dev) return false;
+
+    // Lazy SRV creation, one per eye texture (texture pointer stable
+    // across captures — CopyResource doesn't change the resource).
+    if (!m_leftEyeSRV)
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC sd = {};
+        sd.Format              = m_shadowFormat;
+        sd.ViewDimension       = D3D11_SRV_DIMENSION_TEXTURE2D;
+        sd.Texture2D.MipLevels = 1;
+        if (FAILED(dev->CreateShaderResourceView(m_leftEyeFrame, &sd, &m_leftEyeSRV)))
+            return false;
+    }
+    if (!m_rightEyeSRV)
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC sd = {};
+        sd.Format              = m_shadowFormat;
+        sd.ViewDimension       = D3D11_SRV_DIMENSION_TEXTURE2D;
+        sd.Texture2D.MipLevels = 1;
+        if (FAILED(dev->CreateShaderResourceView(m_rightEyeFrame, &sd, &m_rightEyeSRV)))
+            return false;
+    }
+
+    // Lazy RTV for the real BB.
+    if (!m_realBBRTV)
+    {
+        ID3D11Texture2D* realBB = nullptr;
+        if (FAILED(m_real->GetBuffer(0, IID_ID3D11Texture2D,
+                                      reinterpret_cast<void**>(&realBB))) || !realBB)
+            return false;
+        HRESULT hr = dev->CreateRenderTargetView(realBB, nullptr, &m_realBBRTV);
+        realBB->Release();
+        if (FAILED(hr) || !m_realBBRTV) return false;
+    }
+
+    ID3D11DeviceContext* ctx = nullptr;
+    dev->GetImmediateContext(&ctx);
+    if (!ctx) return false;
+
+    // SwapEyes flips which captured eye lands in which display half.
+    bool swap = (NvDM_SwapEyes() != 0);
+    ID3D11ShaderResourceView* leftSRV  = swap ? m_rightEyeSRV : m_leftEyeSRV;
+    ID3D11ShaderResourceView* rightSRV = swap ? m_leftEyeSRV  : m_rightEyeSRV;
+    ID3D11ShaderResourceView* srvs[2] = { leftSRV, rightSRV };
+
+    bool topBottom = NvDM_OutputIsTopBottom() != 0;
+    ID3D11PixelShader* ps = topBottom ? m_compositePS_TB : m_compositePS_SBS;
+
+    // Composite pass: write the SBS / T-B framebuffer into the real BB.
+    // We do NOT save/restore the game's pipeline state — game rebinds
+    // everything on its next frame's first render. (Trade-off documented
+    // in the class comment; a save/restore wrapper can be added if a
+    // game proves to depend on state persisting across Present.)
+    D3D11_VIEWPORT vp = {};
+    vp.TopLeftX = 0; vp.TopLeftY = 0;
+    vp.Width  = (FLOAT)m_logicalW;
+    vp.Height = (FLOAT)m_logicalH;
+    vp.MinDepth = 0; vp.MaxDepth = 1;
+
+    ctx->OMSetRenderTargets(1, &m_realBBRTV, nullptr);
+    ctx->RSSetViewports(1, &vp);
+    ctx->RSSetState(m_compositeRS);
+    ctx->OMSetBlendState(m_compositeBlend, nullptr, 0xFFFFFFFF);
+    ctx->OMSetDepthStencilState(m_compositeDSS, 0);
+    ctx->IASetInputLayout(nullptr);
+    ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    ID3D11Buffer* nullVB = nullptr; UINT zero = 0;
+    ctx->IASetVertexBuffers(0, 1, &nullVB, &zero, &zero);
+    ctx->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    ctx->VSSetShader(m_compositeVS, nullptr, 0);
+    ctx->GSSetShader(nullptr, nullptr, 0);
+    ctx->HSSetShader(nullptr, nullptr, 0);
+    ctx->DSSetShader(nullptr, nullptr, 0);
+    ctx->PSSetShader(ps, nullptr, 0);
+    ctx->PSSetShaderResources(0, 2, srvs);
+    ctx->PSSetSamplers(0, 1, &m_compositeSampler);
+    ctx->Draw(3, 0);
+
+    // Drop our SRV bindings so the game's next frame doesn't read from
+    // a stale slot. RTV/blend/DSS will all be replaced by game's first
+    // OMSet/blend/DSS calls so we leave them.
+    ID3D11ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+    ctx->PSSetShaderResources(0, 2, nullSRV);
+
+    ctx->Release();
+    NVDM_TRACE_FIRST_N(2, "  RunCompositePass: %s eyes (swap=%d) -> realBB rtv=%p\n",
+                       topBottom ? "T-B" : "SBS", (int)swap, m_realBBRTV);
+    return true;
+}
+
 void SwapChainProxy::CaptureAndPresentBlit()
 {
     if (!m_shadowBB || !m_real || !m_parent) return;
 
-    ID3D11Texture2D* realBB = nullptr;
-    HRESULT hr = m_real->GetBuffer(0, IID_ID3D11Texture2D,
-                                   reinterpret_cast<void**>(&realBB));
-    if (FAILED(hr) || !realBB) return;
-
     // What's currently in the shadow is the latest-eye render. Capture
-    // it into the appropriate eye slot so the next Present's display
-    // logic can see both eyes.
+    // it into the appropriate eye slot so the composite pass / fallback
+    // blit can see both eyes.
     int currentEye = NvDirectMode::GetActiveEye();
     if (currentEye == NvDirectMode::kEyeLeft || currentEye == NvDirectMode::kEyeRight)
     {
@@ -273,33 +561,38 @@ void SwapChainProxy::CaptureAndPresentBlit()
         m_lastSeenEye = currentEye;
     }
 
+    // Stage 4b: if both eyes are captured AND shaders compile, run the
+    // SBS / T-B composite shader pass writing directly to the real BB.
+    if (RunCompositePass())
+        return;
+
+    // Fallback: only one eye captured (or shaders unavailable). Blit
+    // the single-eye captured frame, falling back through SwapEyes
+    // preference and finally the shadow itself for fully-mono games.
+    ID3D11Texture2D* fallbackBB = nullptr;
+    if (FAILED(m_real->GetBuffer(0, IID_ID3D11Texture2D,
+                                  reinterpret_cast<void**>(&fallbackBB))) || !fallbackBB)
+        return;
+
     ID3D11DeviceContext* ctx = nullptr;
     if (m_parent->GetReal()) m_parent->GetReal()->GetImmediateContext(&ctx);
-    if (!ctx) { realBB->Release(); return; }
+    if (!ctx) { fallbackBB->Release(); return; }
 
-    // Apply config swap-eyes flip, mapping LEFT<->RIGHT for the *display*
-    // copy below. The capture above stores into the actual eye the game
-    // believes it rendered.
-    int swap = NvDM_SwapEyes() != 0;
-
-    // Pick display source. For now (stage 4 v1): always show LEFT-eye
-    // frame if available, else RIGHT-eye, else fall back to current
-    // shadow (mono / pre-stereo games). Stage 4b will replace this with
-    // a shader-based composite that puts both eyes side-by-side.
+    bool swap = NvDM_SwapEyes() != 0;
     ID3D11Texture2D* leftSrc  = swap ? m_rightEyeFrame : m_leftEyeFrame;
     ID3D11Texture2D* rightSrc = swap ? m_leftEyeFrame  : m_rightEyeFrame;
     ID3D11Texture2D* displaySrc = leftSrc ? leftSrc : (rightSrc ? rightSrc : m_shadowBB);
 
-    ctx->CopyResource(realBB, displaySrc);
+    ctx->CopyResource(fallbackBB, displaySrc);
     ctx->Release();
 
-    NVDM_TRACE_FIRST_N(4, "  CaptureAndPresentBlit: currentEye=%d displaySrc=%s (%p) -> realBB=%p\n",
+    NVDM_TRACE_FIRST_N(4, "  CaptureAndPresentBlit (fallback): currentEye=%d displaySrc=%s (%p) -> realBB=%p\n",
                        currentEye,
                        (displaySrc == m_leftEyeFrame  ? "leftEye"  :
                         displaySrc == m_rightEyeFrame ? "rightEye" : "shadow"),
-                       displaySrc, realBB);
+                       displaySrc, fallbackBB);
 
-    realBB->Release();
+    fallbackBB->Release();
 }
 
 HRESULT STDMETHODCALLTYPE SwapChainProxy::GetBuffer(UINT Buffer, REFIID riid, void** ppSurface)
@@ -343,6 +636,10 @@ HRESULT STDMETHODCALLTYPE SwapChainProxy::ResizeBuffers(
     // it at 2W x H against the new size.
     LOG_VERBOSE("  SwapChainProxy::ResizeBuffers(BufferCount=%u, %ux%u, fmt=%d, flags=0x%X)\n",
                 BufferCount, Width, Height, (int)NewFormat, SwapChainFlags);
+    // Real BB pointer becomes invalid after ResizeBuffers; drop our RTV
+    // and SRVs (eye frames may also need re-allocation if format changed).
+    if (m_realBBRTV) { m_realBBRTV->Release(); m_realBBRTV = nullptr; }
+    ReleaseEyeFrames();
     ReleaseShadowBB();
     return m_real->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
 }

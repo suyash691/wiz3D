@@ -137,6 +137,24 @@ private:
     ID3D11Texture2D* m_leftEyeFrame;
     ID3D11Texture2D* m_rightEyeFrame;
     int              m_lastSeenEye;  // 1=R 2=L 3=MONO; default MONO
+
+    // Stage 4b composite pipeline. Lazy-compiled the first time both
+    // eye frames have content; reused thereafter. Released in dtor /
+    // ResizeBuffers (RTV is invalidated when the real BB changes).
+    ID3D11VertexShader*       m_compositeVS;
+    ID3D11PixelShader*        m_compositePS_SBS;
+    ID3D11PixelShader*        m_compositePS_TB;
+    ID3D11SamplerState*       m_compositeSampler;
+    ID3D11RasterizerState*    m_compositeRS;
+    ID3D11BlendState*         m_compositeBlend;
+    ID3D11DepthStencilState*  m_compositeDSS;
+    ID3D11ShaderResourceView* m_leftEyeSRV;     // view onto m_leftEyeFrame
+    ID3D11ShaderResourceView* m_rightEyeSRV;    // view onto m_rightEyeFrame
+    ID3D11RenderTargetView*   m_realBBRTV;      // RTV for the real DXGI back buffer
+
+    bool EnsureCompositeShaders();
+    void ReleaseCompositePipeline();   // shaders+states+SRVs+RTV
+    bool RunCompositePass();           // returns true if composite ran (and replaces single-eye blit)
 };
 
 } // namespace NvDirectMode
