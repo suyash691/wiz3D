@@ -45,9 +45,22 @@ void SwapChainProxy::EnsureShadowBB()
 {
     if (m_shadowBB || !m_real || !m_parent) return;
 
-    // Pull the real BB's dimensions/format off the swap chain — that's
-    // exactly the size the game asked for (no doubling at desc time
-    // anymore in the stage-3 architecture).
+    // Stage 3 v2: shadow allocated at the *logical* (one-eye) size.
+    // Previous v1 doubled the shadow to provide per-eye viewport routing
+    // inside one texture, but that broke games whose deferred rendering
+    // queries the BB texture's GetDesc and sizes G-buffers / post-process
+    // RTs accordingly — TR's "shaders broken with line down the middle"
+    // was exactly this (game allocated 7680-wide G-buffer but our viewport
+    // clamp restricted draws to the LEFT half, leaving the RIGHT half as
+    // sampled garbage for the post-process pass).
+    //
+    // With a 1x shadow the game sees a normal-sized BB everywhere
+    // (swap chain GetDesc, texture GetDesc, all consistent). For mono
+    // games this Just Works. For genuine Direct Mode games the latest-
+    // rendered eye lands in the shadow each frame and we blit it to the
+    // real BB — a shutter-glasses-style flicker on a 2D display, but it
+    // IS correct stereo output. Per-eye CAPTURE for proper SBS/T-B
+    // composite is stage 4.
     DXGI_SWAP_CHAIN_DESC desc = {};
     if (FAILED(m_real->GetDesc(&desc))) return;
     m_logicalW = desc.BufferDesc.Width;
@@ -60,20 +73,14 @@ void SwapChainProxy::EnsureShadowBB()
         return;
     }
 
-    const bool tb = NvDM_OutputIsTopBottom() != 0;
-    UINT shadowW = tb ? m_logicalW : (m_logicalW * 2);
-    UINT shadowH = tb ? (m_logicalH * 2) : m_logicalH;
-
-    // Push the per-eye dimensions onto the parent device so the OMSet
-    // viewport-clamp logic can pick the correct half.
     m_parent->SetLogicalBackBufferSize(m_logicalW, m_logicalH);
 
     ID3D11Device* dev = m_parent->GetReal();
     if (!dev) return;
 
     D3D11_TEXTURE2D_DESC td = {};
-    td.Width            = shadowW;
-    td.Height           = shadowH;
+    td.Width            = m_logicalW;
+    td.Height           = m_logicalH;
     td.MipLevels        = 1;
     td.ArraySize        = 1;
     td.Format           = m_shadowFormat;
@@ -86,13 +93,12 @@ void SwapChainProxy::EnsureShadowBB()
     if (FAILED(hr) || !m_shadowBB)
     {
         LOG_VERBOSE("  EnsureShadowBB: CreateTexture2D(%ux%u fmt=%d) FAILED hr=0x%08lX\n",
-                    shadowW, shadowH, (int)m_shadowFormat, hr);
+                    m_logicalW, m_logicalH, (int)m_shadowFormat, hr);
         m_shadowBB = nullptr;
         return;
     }
-    LOG_VERBOSE("  EnsureShadowBB: shadow=%p (%ux%u, logical=%ux%u, fmt=%d, mode=%s)\n",
-                m_shadowBB, shadowW, shadowH, m_logicalW, m_logicalH,
-                (int)m_shadowFormat, tb ? "T-B" : "SBS");
+    LOG_VERBOSE("  EnsureShadowBB: shadow=%p (%ux%u 1x logical, fmt=%d)\n",
+                m_shadowBB, m_logicalW, m_logicalH, (int)m_shadowFormat);
 }
 
 HRESULT STDMETHODCALLTYPE SwapChainProxy::QueryInterface(REFIID riid, void** ppvObj)
@@ -136,50 +142,26 @@ HRESULT STDMETHODCALLTYPE SwapChainProxy::Present1(UINT SyncInterval, UINT Flags
 
 void SwapChainProxy::BlitActiveEyeToRealBB()
 {
-    if (!m_shadowBB || !m_real || !m_parent || m_logicalW == 0 || m_logicalH == 0) return;
+    if (!m_shadowBB || !m_real || !m_parent) return;
 
     ID3D11Texture2D* realBB = nullptr;
     HRESULT hr = m_real->GetBuffer(0, IID_ID3D11Texture2D,
                                    reinterpret_cast<void**>(&realBB));
     if (FAILED(hr) || !realBB) return;
 
-    int eye = NvDirectMode::GetActiveEye();
-    if (NvDM_SwapEyes())
-    {
-        if      (eye == NvDirectMode::kEyeLeft)  eye = NvDirectMode::kEyeRight;
-        else if (eye == NvDirectMode::kEyeRight) eye = NvDirectMode::kEyeLeft;
-    }
-    const bool wantRight = (eye == NvDirectMode::kEyeRight);
-    const bool tb        = NvDM_OutputIsTopBottom() != 0;
-
-    D3D11_BOX box = {};
-    box.front = 0;
-    box.back  = 1;
-    if (tb)
-    {
-        box.left   = 0;
-        box.right  = m_logicalW;
-        box.top    = wantRight ? m_logicalH : 0;
-        box.bottom = wantRight ? (m_logicalH * 2) : m_logicalH;
-    }
-    else
-    {
-        box.left   = wantRight ? m_logicalW : 0;
-        box.right  = wantRight ? (m_logicalW * 2) : m_logicalW;
-        box.top    = 0;
-        box.bottom = m_logicalH;
-    }
-
+    // 1x shadow → 1x real BB: full copy. For Direct Mode games the
+    // shadow contains whichever eye was rendered most recently before
+    // Present (game's natural alternation pattern). For mono games it's
+    // just the normal mono frame.
     ID3D11DeviceContext* ctx = nullptr;
     if (m_parent->GetReal()) m_parent->GetReal()->GetImmediateContext(&ctx);
     if (ctx)
     {
-        ctx->CopySubresourceRegion(realBB, 0, 0, 0, 0, m_shadowBB, 0, &box);
+        ctx->CopyResource(realBB, m_shadowBB);
         ctx->Release();
     }
-    NVDM_TRACE_FIRST_N(2, "  BlitActiveEyeToRealBB: eye=%d mode=%s box=(%u,%u,%u,%u)\n",
-                       eye, tb ? "T-B" : "SBS",
-                       box.left, box.top, box.right, box.bottom);
+    NVDM_TRACE_FIRST_N(2, "  BlitActiveEyeToRealBB: full copy shadow=%p -> realBB=%p (%ux%u)\n",
+                       m_shadowBB, realBB, m_logicalW, m_logicalH);
 
     realBB->Release();
 }

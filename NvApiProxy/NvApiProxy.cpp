@@ -234,7 +234,7 @@ static FakeStereoState g_Stereo = {
     /*isActive*/      1,
     /*separation*/    15.0f,
     /*convergence*/   0.5f,
-    /*activeEye*/     NVAPI_STEREO_EYE_LEFT,
+    /*activeEye*/     NVAPI_STEREO_EYE_MONO,    // game hasn't called SetActiveEye — wrapper interprets as mono
     /*driverMode*/    NVAPI_STEREO_DRIVER_MODE_AUTOMATIC,
     /*createMode*/    NVAPI_STEREO_SURFACECREATEMODE_AUTO,
     /*frustumAdjust*/ 1,
