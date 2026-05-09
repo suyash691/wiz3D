@@ -1,6 +1,7 @@
 #include "Device11Proxy.h"
 #include "Context11Proxy.h"
 #include "DXGIDeviceProxy.h"
+#include "proxy_factory.h"   // for IID_NvDM_Device11Proxy
 #include "log.h"
 
 #include <dxgi.h>
@@ -104,6 +105,16 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::QueryInterface(REFIID riid, void** ppvO
     if (riid == IID_IUnknown || riid == IID_ID3D11Device)
     {
         *ppvObj = static_cast<ID3D11Device*>(this);
+        AddRef();
+        return S_OK;
+    }
+
+    // Private IID for cross-DLL identification (dxgi.dll's factory wrap
+    // QIs incoming `pDevice` to detect a Device11Proxy). Returned as an
+    // IUnknown* — the caller is expected to cast back via known type.
+    if (riid == IID_NvDM_Device11Proxy)
+    {
+        *ppvObj = static_cast<IUnknown*>(static_cast<ID3D11Device*>(this));
         AddRef();
         return S_OK;
     }

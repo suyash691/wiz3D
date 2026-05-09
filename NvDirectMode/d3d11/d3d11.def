@@ -2,3 +2,8 @@ LIBRARY d3d11
 EXPORTS
     D3D11CreateDevice              @1
     D3D11CreateDeviceAndSwapChain  @2
+    ; Cross-DLL bridge — resolved by NvDirectMode/dxgi.dll at runtime via
+    ; GetProcAddress. NOT MS-DLL exports the game would ever look for.
+    NvDM_WrapAndRegisterSwapChain  @100
+    NvDM_DoubleSwapChainDesc       @101
+    NvDM_DoubleSwapChainDesc1      @102

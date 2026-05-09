@@ -22,6 +22,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "../proxy_version.h"
+
+// Bridge into DXGIFactoryProxy.cpp via plain void*/IID* — DXGIFactoryProxy.h
+// can't be included here because it pulls dxgi.h which redeclares
+// CreateDXGIFactory* without our __declspec(dllexport) linkage.
+extern "C" void* NvDM_DXGI_WrapFactory(void* realFactoryUnknown, const IID* riidPtr);
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +34,7 @@
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "psapi.lib")
+#pragma comment(lib, "dxguid.lib")
 
 // ---------------------------------------------------------------------------
 // Diagnostic log + 3DVision_Config.xml reader (mirrors d3d11)
@@ -79,6 +85,20 @@ extern "C" int NvDM_VerboseEnabled() { return g_verboseEnabled; }
 extern "C" int NvDM_SwapEyes()       { return g_swapEyes; }
 extern "C" int NvDM_OutputMode()     { return g_outputMode; }
 extern "C" int NvDM_OutputIsTopBottom() { return (g_outputMode == 0 || g_outputMode == 3) ? 1 : 0; }
+
+// DXGIFactoryProxy.cpp lives in this DLL but in a different TU; expose a
+// log entry point with C linkage so it can append to the same log file.
+extern "C" void NvDM_DxgiLog(const char* fmt, ...)
+{
+    if (!g_loggingEnabled) return;
+    if (!g_logFile) LogOpen();
+    if (!g_logFile) return;
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(g_logFile, fmt, ap);
+    va_end(ap);
+    fflush(g_logFile);
+}
 
 static int ReadConfigInt(const char* xml, const char* tag, int defaultValue)
 {
@@ -225,12 +245,33 @@ static BOOL LoadRealDXGI(void)
 // ---------------------------------------------------------------------------
 // Exported: CreateDXGIFactory (stage 1 passthrough; stage 2 wraps the factory)
 // ---------------------------------------------------------------------------
+// Wrap the just-returned real factory in our DXGIFactoryProxy. Best-effort:
+// if anything fails we leave *ppFactory pointing at the unwrapped real
+// (passthrough — game still works, but factory CreateSwapChain* paths are
+// missed).
+static void WrapFactoryReturn(REFIID riid, void** ppFactory, HRESULT hr)
+{
+    if (FAILED(hr) || !ppFactory || !*ppFactory) return;
+    void* realFactory = *ppFactory;
+    void* wrapped = NvDM_DXGI_WrapFactory(realFactory, &riid);
+    if (wrapped)
+    {
+        *ppFactory = wrapped;
+        Log("  factory wrapped: %p -> %p (riid match)\n", realFactory, wrapped);
+    }
+    else
+    {
+        Log("  factory NOT wrapped (passthrough): real=%p\n", realFactory);
+    }
+}
+
 extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory(REFIID riid, void** ppFactory)
 {
     Log("CreateDXGIFactory called\n");
     if (!LoadRealDXGI() || !g_pfnRealCreateDXGIFactory) return E_FAIL;
     HRESULT hr = g_pfnRealCreateDXGIFactory(riid, ppFactory);
     Log("  real CreateDXGIFactory returned 0x%08lX  factory=%p\n", hr, ppFactory ? *ppFactory : NULL);
+    WrapFactoryReturn(riid, ppFactory, hr);
     return hr;
 }
 
@@ -240,6 +281,7 @@ extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory1(REFIID riid, 
     if (!LoadRealDXGI() || !g_pfnRealCreateDXGIFactory1) return E_FAIL;
     HRESULT hr = g_pfnRealCreateDXGIFactory1(riid, ppFactory);
     Log("  real CreateDXGIFactory1 returned 0x%08lX  factory=%p\n", hr, ppFactory ? *ppFactory : NULL);
+    WrapFactoryReturn(riid, ppFactory, hr);
     return hr;
 }
 
@@ -249,6 +291,7 @@ extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory2(UINT Flags, R
     if (!LoadRealDXGI() || !g_pfnRealCreateDXGIFactory2) return E_FAIL;
     HRESULT hr = g_pfnRealCreateDXGIFactory2(Flags, riid, ppFactory);
     Log("  real CreateDXGIFactory2 returned 0x%08lX  factory=%p\n", hr, ppFactory ? *ppFactory : NULL);
+    WrapFactoryReturn(riid, ppFactory, hr);
     return hr;
 }
 
@@ -280,7 +323,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved)
         {
             WCHAR exePath[MAX_PATH];
             GetModuleFileNameW(NULL, exePath, MAX_PATH);
-            Log("=== NvDirectMode " DISPLAYED_VERSION " - dxgi proxy loaded (stage 1: passthrough) ===\n");
+            Log("=== NvDirectMode " DISPLAYED_VERSION " - dxgi proxy loaded (stage 2: factory wrap) ===\n");
             Log("Game exe: %ls\n", exePath);
             WCHAR proxyPath[MAX_PATH];
             GetModuleFileNameW(hModule, proxyPath, MAX_PATH);

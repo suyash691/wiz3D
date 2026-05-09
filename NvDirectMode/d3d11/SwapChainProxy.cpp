@@ -9,9 +9,14 @@ namespace NvDirectMode
 
 SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device11Proxy* parent)
     : m_real(real)
+    , m_real1(nullptr)
     , m_parent(parent)
     , m_refs(1)
 {
+    // QI for IDXGISwapChain1 best-effort. On Win10+ DXGI swap chains
+    // always expose this; on Win7 without platform update it may fail.
+    if (m_real)
+        m_real->QueryInterface(IID_IDXGISwapChain1, reinterpret_cast<void**>(&m_real1));
 }
 
 SwapChainProxy::~SwapChainProxy() = default;
@@ -19,24 +24,43 @@ SwapChainProxy::~SwapChainProxy() = default;
 HRESULT STDMETHODCALLTYPE SwapChainProxy::QueryInterface(REFIID riid, void** ppvObj)
 {
     if (!ppvObj) return E_POINTER;
-    if (riid == IID_IUnknown || riid == IID_IDXGIObject ||
-        riid == IID_IDXGIDeviceSubObject || riid == IID_IDXGISwapChain)
+    if (riid == IID_IUnknown ||
+        riid == IID_IDXGIObject ||
+        riid == IID_IDXGIDeviceSubObject ||
+        riid == IID_IDXGISwapChain)
     {
         *ppvObj = static_cast<IDXGISwapChain*>(this);
         AddRef();
         return S_OK;
     }
-    // SwapChain1/2/3 etc. — pass through to real for now. If a game
-    // bypasses our wrapper this way, the active-eye routing won't engage.
-    HRESULT hr = m_real->QueryInterface(riid, ppvObj);
-    NVDM_TRACE_FIRST_N(8, "  SwapChainProxy::QI(unknown IID) hr=0x%08lX  -- game may bypass wrapper here\n", hr);
-    return hr;
+    if (riid == IID_IDXGISwapChain1 && m_real1)
+    {
+        *ppvObj = static_cast<IDXGISwapChain1*>(this);
+        AddRef();
+        return S_OK;
+    }
+    // SwapChain2/3/4 etc. — return E_NOINTERFACE so the game falls back
+    // to one of the levels we wrap. Passing through unwrapped pointers
+    // for higher versions opens a COM-identity escape: game would call
+    // CreateRenderTargetView from the unwrapped handle, bypassing our
+    // back-buffer registration on Device11Proxy.
+    NVDM_TRACE_FIRST_N(8, "  SwapChainProxy::QI(unknown/higher IID) -> E_NOINTERFACE\n");
+    *ppvObj = nullptr;
+    return E_NOINTERFACE;
 }
 
 HRESULT STDMETHODCALLTYPE SwapChainProxy::Present(UINT SyncInterval, UINT Flags)
 {
     NVDM_TRACE_FIRST_N(4, "  SwapChainProxy::Present(SyncInterval=%u, Flags=0x%X)\n", SyncInterval, Flags);
     return m_real->Present(SyncInterval, Flags);
+}
+
+HRESULT STDMETHODCALLTYPE SwapChainProxy::Present1(UINT SyncInterval, UINT Flags,
+                                                   const DXGI_PRESENT_PARAMETERS* pPresentParameters)
+{
+    NVDM_TRACE_FIRST_N(4, "  SwapChainProxy::Present1(SyncInterval=%u, Flags=0x%X)\n", SyncInterval, Flags);
+    if (!m_real1) return E_NOINTERFACE;
+    return m_real1->Present1(SyncInterval, Flags, pPresentParameters);
 }
 
 HRESULT STDMETHODCALLTYPE SwapChainProxy::GetBuffer(UINT Buffer, REFIID riid, void** ppSurface)

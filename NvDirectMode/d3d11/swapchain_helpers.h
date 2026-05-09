@@ -32,4 +32,15 @@ namespace NvDirectMode
     const void* MakeDoubledSwapChainDesc(const void* pSwapChainDesc,
                                          unsigned int* outLogicalW,
                                          unsigned int* outLogicalH);
+
+    // Variant for DXGI_SWAP_CHAIN_DESC1 (no BufferDesc nesting; Width/Height
+    // live at the top level). Used by IDXGIFactory2's CreateSwapChainForHwnd
+    // / CreateSwapChainForCoreWindow / CreateSwapChainForComposition. Falls
+    // back to a 1x1 sentinel when both Width and Height are zero on input
+    // since we can't resolve from a window in that case (Hwnd vs CoreWindow
+    // vs composition surface paths all differ); production games always
+    // specify explicit dimensions.
+    const void* MakeDoubledSwapChainDesc1(const void* pSwapChainDesc1,
+                                          unsigned int* outLogicalW,
+                                          unsigned int* outLogicalH);
 }

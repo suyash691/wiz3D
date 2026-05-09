@@ -145,6 +145,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="DXGIFactoryProxy.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DXGIFactoryProxy.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="dxgi.def" />

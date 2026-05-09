@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
 
 // Output-mode flag from dllmain (avoids dragging log.h's d3d11 deps in here).
 extern "C" int NvDM_OutputIsTopBottom();
@@ -56,6 +57,34 @@ const void* MakeDoubledSwapChainDesc(const void* pSwapChainDesc,
     }
 
     return &tlsDesc;
+}
+
+const void* MakeDoubledSwapChainDesc1(const void* pSwapChainDesc1,
+                                      unsigned int* outLogicalW,
+                                      unsigned int* outLogicalH)
+{
+    if (outLogicalW) *outLogicalW = 0;
+    if (outLogicalH) *outLogicalH = 0;
+    if (!pSwapChainDesc1) return nullptr;
+
+    static thread_local DXGI_SWAP_CHAIN_DESC1 tlsDesc1;
+    tlsDesc1 = *(const DXGI_SWAP_CHAIN_DESC1*)pSwapChainDesc1;
+
+    // DESC1 doesn't carry an HWND so we can't resolve 0x0 against a
+    // window's client rect. Production games always specify explicit
+    // Width/Height for ForHwnd/ForCoreWindow/ForComposition paths.
+    if (outLogicalW) *outLogicalW = (unsigned int)tlsDesc1.Width;
+    if (outLogicalH) *outLogicalH = (unsigned int)tlsDesc1.Height;
+
+    if (NvDM_OutputIsTopBottom())
+    {
+        if (tlsDesc1.Height > 0) tlsDesc1.Height *= 2;
+    }
+    else
+    {
+        if (tlsDesc1.Width > 0)  tlsDesc1.Width  *= 2;
+    }
+    return &tlsDesc1;
 }
 
 } // namespace NvDirectMode

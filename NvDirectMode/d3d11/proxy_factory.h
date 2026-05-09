@@ -6,6 +6,15 @@
 
 #pragma once
 
+#include <guiddef.h>
+
+// Private IID claimed by NvDirectMode's Device11Proxy. The dxgi.dll proxy
+// (separate DLL) QIs incoming devices for this IID to detect whether a
+// CreateSwapChain*-time `pDevice` is one of our wrapped Device11Proxy
+// instances. Match-on-equality (no shared symbol resolution) — the dxgi
+// proxy declares its own const GUID with the same value.
+EXTERN_C const GUID IID_NvDM_Device11Proxy;
+
 namespace NvDirectMode
 {
     // Wraps the device + (optional) immediate context that the system
