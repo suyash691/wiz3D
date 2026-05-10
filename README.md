@@ -397,8 +397,6 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 - **Excluded (Online Ban Risk):** *Age of Conan: Unchained*, *Champions Online*, *DC Universe Online*, *Entropia Universe*, *Final Fantasy 14*, *TERA Online*, *The Lord of the Rings Online*, *Warcraft III: Reign of Chaos*, *World of Tanks*.
 
-
-
 ## OpenGL Games (Testing Release)
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
@@ -406,13 +404,15 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | American McGee's Alice (2011) | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
 | Dyad | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
 
-### Nvidia 3D Vision "Direct Mode" Games (games that render Stereoscipic 3D themselves and then display that via 3D Vision's 'Direct Mode').
+### Nvidia 3D Vision "Direct Mode" Games 
+Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'Direct Mode'.
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|------|--------|-------|-------|
-| Tomb Raider (2013) | DX11 | x86 | Untested | Game supports 3D Vision Direct Mode and HD3D. |
+| Tomb Raider (2013) | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
 
-### Nvidia 3D Vision "Ready" Games (games that "Automatic Mode" stereo injection but communicate with 3D vision with a ingame toggle, or built-in shader fixes.).
+### Nvidia 3D Vision "Ready" Games 
+Games that use 3D Vision "Automatic Mode" stereo injection, but communicate with 3D vision with a ingame toggle, or built-in shader fixes. For our release, these use wiz3D's stereo injector instead, with the aim of making any shaders fixes they enable for 3D Vision compatible with our injector in the future.
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|------|--------|-------|-------|
@@ -431,7 +431,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Devil May Cry 4 Special Edition | DX9 | x86 | ✓ | Untested | `Stereo=ON` in `config.ini`. |
 | Dragon's Dogma: Dark Arisen | DX9 | x86 | ✕ | Untested | `Stereo=ON` in `config.ini`. |
 | Duke Nukem Forever | DX9/DX10 | x86 | ✕ | Untested |  |
-| Grand Theft Auto IV | DX9 | x32 | ✓ | Untested | `-stereo` command line argument in 1.0.1.0. |
+| Grand Theft Auto IV | DX9 | x32 | ✓ | Untested | `-stereo` command line argument. |
 | Grand Theft Auto V (Legacy) | DX11 | x64 | ✕ | Untested | `Stereo 3D` option in `Graphics` menu. |
 | GT Legends | DX9 | x86 | ✕ | Untested |  |
 | Hard Reset | DX9 | x86 | ✕ | Untested |  |
