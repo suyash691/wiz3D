@@ -106,6 +106,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Antichamber | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | A.R.E.S.: Extinction Agenda | DX9 | x86 | ✓ | Untested |  |
 | AaAaAA!!! A Reckless Disregard for Gravity | DX9 | x86 | ✓ | Untested |  |
+| Alan Wake | DX9 | x86 | ✕ | ❌ Not Working | Crashes on title screen. |
 | Alien Breed 2: Assault | DX9 | x86 | ✓ | Untested |  |
 | Alien Swarm | DX9 | x86 | ✓ | Untested |  |
 | Aliens Versus Predator | DX6/DX9 | x86 | ✕ | ❌ Not Working | Crashes on level load. |
@@ -126,9 +127,10 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Bet on Soldier | DX9 | x86 | ✓ | Untested |  |
 | Beyond Good & Evil | DX9 | x86 | ✓ | ✅ Mostly Working | Artifacts when paused. |
 | Bayonetta | DX9 | x86 | ✕ | ✅ Working | Performance issues. Might need shader fix. |
-| Bionic Commando (2009) | DX9 | x86 | ✕ | ✅ Mostly Working | Needs  HUD and shadow shader fix. |
+| Bionic Commando (2009) | DX9 | x86 | ✕ | ✅ Partially Working | Needs HUD and shadow shader fix, fullscreen exclusive, crashes on AMD. |
 | Bionic Commando Rearmed | DX9 | x86 | ✓ | Untested |  |
 | Black & White 2 | DX9 | x86 | ✓ | Untested |  |
+| Black Mesa | DX9 | x86 | ✕ |  ❌ Not Working | Crashing. |
 | BlazBlue: Calamity Trigger | DX9 | x86 | ✕ | ✅ Mostly Working | Needs sprite depth shader fix, use [Geo-11 Fix instead](https://helixmod.blogspot.com/2026/05/blazblue-calamity-trigger-dx11.html). |
 | Blur | DX9 | x86 | ✕ | ✅ Working | May need shader fix. |
 | Borderlands | DX9 | x86 | ✓ | Untested |  |
@@ -147,7 +149,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Castlevania: Lords of Shadow 2 | DX9 | x86 | ✕ | ✅ Mostly Working | Needs shadow shader fix. |
 | Chromadrome 2 | DX9 | x86 | ✓ | Untested |  |
 | Command & Conquer 3: Tiberium Wars | DX9 | x86 | ✓ | ✅ Working | Place in `/RetailExe/1.10`. Game crashes when changing settings. |
-| Command & Conquer: Red Alert 3 | DX9 | x86 | ✓ | Untested |  |
+| Command & Conquer: Red Alert 3 | DX9 | x86 | ✓ | ✅ Working | Pleace in `/Data/` folder. |
 | Command & Conquer 4: Tiberian Twilight | DX9 | x86 | ✓ | Untested |  |
 | Condemned: Criminal Origins | DX9 | x86 | ✓ | Untested |  |
 | Demigod | DX9 | x86 | ✕ | Untested |  |
@@ -179,9 +181,9 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Fable III | DX9 | x86 | ✓ | Untested |  |
 | Fable Anniversary | DX9 | x86 | ✕ | ⚠️ Partial | Has artifacts, needs shader fix. |
 | Fahrenheit | DX9 | x86 | ✓ | Untested | aka Indigo Prophecy |
-| Fallout 3 | DX9 | x86 | ✓ | Untested |  |
+| Fallout 3 | DX9 | x86 | ✓ | ✅ Working |  |
 | Fallout: New Vegas | DX9 | x86 | ✕ | ✅ Mostly Working | Needs Skybox & Pip-Boy UI shader fix |
-| F.E.A.R. | DX9 | x86 | ✓ | Untested |  |
+| F.E.A.R. | DX9 | x86 | ✓ | ❌ Not Working | Crashes on launch. |
 | F.E.A.R. Perseus Mandate | DX9 | x86 | ✓ | Untested |  |
 | F.E.A.R. 2: Project Origin | DX9 | x86 | ✓ | Untested |  |
 | FIFA 10 | DX9 | x86 | ✕ | Untested |  |
@@ -199,12 +201,14 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Ghostbusters: The Video Game | DX9 | x86 | ✓ | Untested |  |
 | Ghostbusters: Sanctum of Slime | DX9 | x86 | ✓ | Untested |  |
 | Google Earth | OpenGL/DX9 | x86 | ✓ | Untested | [Google Earth Pro 7.1.5.1557](https://web.archive.org/web/20171014110844/https://dl.google.com/earth/client/GE7/release_7_1_8/googleearth-win-pro-7.1.8.3036.exe) |
+| Gothic 3 | DX9 | x86 | ✕ | ✅ Mostly Working | Sky at screen depth, needs shader fix. |
 | Grand Theft Auto: San Andreas | DX9 | x86 | ✓ | ✅ Working |  |
 | GRID | DX9 | x86 | ✓ | Untested |  |
 | Guitar Hero III: Legends of Rock | DX9 | x86 | ✓ | Untested |  |
 | Half-Life 2 | DX9 | x86 | ✓ | ✅ Mostly Working | `steam_legacy` beta branch. Use `-game ` command line argument. Shadows have issues. |
+| Halo: Combat Evolved | DX9 | x86 | ✕ | ❌ Not Working | Crashes on load. |
 | Heroes of Might and Magic V | DX9 | x86 | ✓ | Untested |  |
-| Hitman: Blood Money | DX9 | x86 | ✓ | Untested |  |
+| Hitman: Blood Money | DX9 | x86 | ✓ | ✅ Working | Needs shadow and water shader fix |
 | Hunted: The Demon's Forge | DX9 | x86 | ✓ | Untested |  |
 | Injustice: Gods Among Us | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Insane 2 | DX9 | x86 | ✕ | ❌ Not Working |  |
@@ -215,6 +219,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | King's Bounty: The Legend | DX9 | x86 | ✓ | Untested |  |
 | Left 4 Dead | DX9 | x86 | ✓ | ✅ Working | Only tested single player. Use `-insecure` command line argument to avoid VAC ban. |
 | Left 4 Dead 2 | DX9 | x86 | ✓ | ✅ Working | Only tested single player. Use `-insecure` command line argument to avoid VAC ban. |
+| Legacy of Kain: Defiance | DX9 | x86 | ✕ | ✅ Working | Needs shadow shader fix |
 | Lego Star Wars: The Video Game | DX9 | x86 | ✓ | Untested |  |
 | Lego Star Wars III: The Clone Wars | DX9 | x86 | ✓ | Untested |  |
 | Madden NFL 08 | DX9 | x86 | ✓ | Untested |  |
@@ -237,15 +242,15 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Need for Speed: Shift | DX9 | x86 | ✓ | Untested |  |
 | Need for Speed: Shift 2 Unleashed | DX9 | x86 | ✓ | ✅ Working |  |
 | Ninja Blade | DX9 | x86 | ✓ | ❌ Not Working | Black screen on AMD. |
-| Oddworld: New 'n' Tasty! | DX9 | x86 | ✕ | ⚠️ Partial | Has artifacts, needs shader fix. |
+| Oddworld: New 'n' Tasty! | DX9 | x86 | ✕ | ⚠️ Partial | Heavy artifacts, needs shader fix. |
 | Operation Flashpoint: Dragon Rising | DX9 | x86 | ✓ | Untested |  |
 | OutRun 2006: Coast 2 Coast | DX9 | x86 | ✓ | Untested |  |
 | Overlord | DX9 | x86 | ✓ | Untested |  |
 | Overlord II | DX9 | x86 | ✓ | Untested |  |
 | Painkiller | DX9 | x86 | ✓ | Untested |  |
 | Painkiller: Overdose | DX9 | x86 | ✓ | Untested |  |
-| Portal | DX9 | x86 | ✓ | ✅ Working | Use `-game Portal -dx9` command line argument. Place files in `/portal/bin/` folder, not the root folder. |
-| Portal 2 | DX9 | x86 | ✓ | Untested |  |
+| Portal | DX9 | x86 | ✓ | ✅ Working | Use `-game Portal -dx9` command line argument. Place files in `/portal/bin/` folder. |
+| Portal 2 | DX9 | x86 | ✓ | ✅ Mostly Working | Place files in `/Portal 2/bin/` folder. Seperation initially too high, needs wall display shader mod. |
 | Prince of Persia (2008) | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Prince of Persia: The Forgotten Sands | DX9 | x86 | ✓ | Untested |  |
 | Pro Evolution Soccer 2017 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
@@ -271,7 +276,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Sid Meier's Civilization IV | DX9 | x86 | ✓ | Untested |  |
 | Sid Meier's Railroads! | DX9 | x86 | ✓ | Untested |  |
 | Silent Hunter 3 | DX9 | x86 | ✓ | Untested |  |
-| Silent Hunter 4: Wolves of the Pacific | DX9 | x86 | ✓ | Untested |  |
+| Silent Hunter 4: Wolves of the Pacific | DX9 | x86 | ✓ | ❌ Not Working | Crashes on startup. |
 | Silent Hunter 5: Battle of the Atlantic | DX9 | x86 | ✓ | Untested |  |
 | Sine Mora EX | DX9 | x86 | ✕ | ❌ Not Working |  |
 | Singularity | DX9 | x86 | ✓ | Untested |  |
@@ -290,28 +295,30 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Star Wars: The Force Unleashed II | DX9 | x86 | ✕ | ⚠️ Partial | Needs shader fix. |
 | Starship Troopers | DX9 | x86 | ✓ | Untested |  |
 | Street Fighter IV | DX9 | x86 | ✓ | Untested |  |
-| Supreme Commander | DX9 | x86 | ✓ | Untested |  |
+| Supreme Commander | DX9 | x86 | ✓ | ✅ Working |  |
 | Supreme Commander: Forged Alliance | DX9 | x86 | ✓ | Untested |  |
 | Supreme Commander 2 | DX9 | x86 | ✓ | Untested |  |
 | Test Drive Unlimited | DX9 | x86 | ✓ | Untested |  |
 | The Ball | DX9 | x86 | ✕ | ✅ Mostly Working | Ball shadow diffrent in both eyes. |
 | The Chronicles of Narnia: The Lion, the Witch and the Wardrobe | DX9 | x86 | ✓ | Untested | (Guess based on 'Narnia' and 'Narnia.exe') |
-| The Elder Scrolls IV: Oblivion | DX9 | x86 | ✓ | Untested |  |
+| The Elder Scrolls IV: Oblivion | DX9 | x86 | ✓ | ✅ Working |  |
+| The Elder Scrolls V: Skyrim | DX9 | x86 | ✕ | ❌ Not Working | Enters main menu, freezes on level load. |
+| The Lord of the Rings: The Battle for Middle-earth | DX9 | x86 | ✕ | ✅ Mostly Working | Needs UI shader fix. |
 | The Movies (2005) | DX9 | x86 | ✓ | Untested |  |
 | The Settlers II: 10th Anniversary | DX9 | x86 | ✓ | Untested |  |
 | The Sims 2: University | DX9 | x86 | ✓ | Untested | Targets "Sims2EP1.exe", might just be expansion pack or all of The Sims 2. |
 | The Sims 3 | DX9 | x86 | ✓ | Untested |  |
 | The Sims Medieval | DX9 | x86 | ✓ | Untested |  |
-| The Witcher | DX9 | x86 | ✓ | Untested |  |
+| The Witcher | DX9 | x86 | ✓ | ✅ Working | Place files in `/System/` folder. |
 | TimeShift | DX9 | x86 | ✓ | Untested |  |
-| Titan Quest | DX9 | x86 | ✓ | Untested |  |
+| Titan Quest | DX9 | x86 | ✓ | ✅ Mostly Working | Needs shadow shader fix. |
 | TOCA Race Driver 3 | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Ghost Recon Advanced Warfighter 2 | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Rainbow Six: Vegas | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Rainbow Six: Vegas 2 | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Splinter Cell: Double Agent | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Splinter Cell: Conviction | DX9 | x86 | ✓ | Untested |  |
-| Tomb Raider: Legend | DX9 | x86 | ✓ | Untested |  |
+| Tomb Raider: Legend | DX9 | x86 | ✓ | ✅ Mostly Working | Needs shadow shader fix. |
 | Tomb Raider: Anniversary | DX9 | x86 | ✓ | ✅ Working |  |
 | Tomb Raider: Underworld | DX9 | x86 | ✓ | ✅ Working |  |
 | Torchlight | DX9 | x86 | ✓ | Untested |  |
@@ -344,8 +351,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|---------|--------|-------|-------|
-| Chess Titans | DX9 | x86/x64 | ✕ | Untested |  |
-| Far Cry | DX9 | x86/x64 | ✓ | Untested |  |
+| Chess Titans | DX9 | x86/x64 | ✕ | Untested | Freezes on level load. |
+| Far Cry | DX9 | x86/x64 | ✓ | ❌ Not Working | Crashes on startup. |
 | Final Fantasy IX | DX9 | x64 | ✕ | ❌ Not Working | Crashes on startup. |
 | Pro Evolution Soccer 2016 | DX9 | x64 | ✕ | ✅ Working |  |
 | REFLEX XTR² | DX9 | x86/x64 | ✓ | Untested |  |
@@ -356,7 +363,7 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 - **Excluded (VAC Ban Risk):** *Counter-Strike: Source*, *Day of Defeat: Source*, *Half-Life 2: Deathmatch*.
 - **Excluded (Online Ban Risk):** *Dungeons & Dragons Online*, *EVE Online*, *EverQuest*, *EverQuest 2*, *Flyff (Fly For Fun)*, *RIFT*, *Starcraft II*.
 
-## DirectX 10/11 Games (Not Released Yet)
+## DirectX 10/11 Games (Testing Release)
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|---------|--------|-------|-------|
@@ -390,7 +397,22 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 - **Excluded (Online Ban Risk):** *Age of Conan: Unchained*, *Champions Online*, *DC Universe Online*, *Entropia Universe*, *Final Fantasy 14*, *TERA Online*, *The Lord of the Rings Online*, *Warcraft III: Reign of Chaos*, *World of Tanks*.
 
-### Nvidia 3D Vision "Ready" Games (games that referance 3DV inside their settings or files).
+
+
+## OpenGL Games (Testing Release)
+
+| Game | API | Bits | iZ3D Profile | Testing | Notes |
+|------|-----|---------|--------|-------|-------|
+| American McGee's Alice (2011) | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
+| Dyad | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
+
+### Nvidia 3D Vision "Direct Mode" Games (games that render Stereoscipic 3D themselves and then display that via 3D Vision's 'Direct Mode').
+
+| Game | API | Bits | iZ3D Profile | Testing | Notes |
+|------|-----|------|--------|-------|-------|
+| Tomb Raider (2013) | DX11 | x86 | Untested | Game supports 3D Vision Direct Mode and HD3D. |
+
+### Nvidia 3D Vision "Ready" Games (games that "Automatic Mode" stereo injection but communicate with 3D vision with a ingame toggle, or built-in shader fixes.).
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|------|--------|-------|-------|
@@ -458,7 +480,6 @@ Several SDKs are excluded from the repository due to licensing or size. Download
 | Immersity LeiaSR SDK Win64 v1.36.2 + Win32 v1.34.10 | `lib/Simulated Reality/` | [https://support.immersity.ai/sdk/](https://support.immersity.ai/sdk/) and [Samsung Odyssey 3D Hub Installer](https://www.samsung.com/uk/support/model/LS27FG900XUXXU/#downloads) |
 | NVAPI SDK | `lib/NVAPI/` and `lib/nvapi_2026/` | [https://github.com/NVIDIA/nvapi](https://github.com/NVIDIA/nvapi) |
 | Boost 1.87 | `lib/boost/` | [https://www.boost.org/releases/1.87.0/](https://www.boost.org/releases/1.87.0/) |
-
 
 `lib/PerfSDK/` is a deprecated NVIDIA proprietary SDK; all code referencing it is `#if 0`'d out, so you don't need it to build.
 
