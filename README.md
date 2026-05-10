@@ -422,6 +422,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | GRID Autosport | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
 | Hard Reset | DX9 | x86 | ✕ | Untested |  |
 | Hitman: Absolution | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
+| Oil Rush | OpenGL/DX9/DX11 | x86 | ✕ | Untested |  |
 | Tomb Raider (2013) | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
 
 ### Nvidia 3D Vision "Ready" Games 
@@ -449,14 +450,13 @@ Games that use 3D Vision "Automatic Mode" stereo injection, but communicate with
 | GT Legends | DX9 | x86 | ✕ | Untested |  |
 | Inversion | DX9/DX11 | x86 | ✕ | ⚠️ Partial | Might need to implement more 3D Vison features or shader fix. |
 | Just Cause 2 | DX10 | x86 | ✓ | Untested |  |
-| L.A. Noire | DX9/DX11 | x86 | ✕ | Untested |  |
+| L.A. Noire | DX9/DX11 | x86 | ✕ | Untested | Game tells Automatic Mode what depth to use per frame. |
 | Lost Planet 2 | DX9/DX11 | x86 | ✓ | Untested | `Stereo=ON` in `config.ini`. |
 | Mafia II | DX9 | x86 | ✓ | Untested |  |
 | Max Payne 3 | DX9/DX11 | x86 | ✕ | ⚠️ Partial | Needs 3D Vision shader fixes. `3D Vision` not showing in `Graphics` menu. `-stereo 1` command line argument. |
 | Medal of Honor (2010) | DX9/DX11 | x86 | ✓ | Untested | Use Single Player only. |
 | Metro 2033 | DX9/DX11 | x86 | ✓ | ✅ Mostly Working | Can't see weapon in hand. |
 | Metro: Last Light | DX9/DX11 | x86 | ✕ | Untested | Lists 3D Vision support in [Official PC Requirements](https://www.reddit.com/r/Games/comments/1cjh4l/metro_last_light_official_pc_requirements/). |
-| Oil Rush | OpenGL/DX9/DX11 | x86 | ✕ | Untested |  |
 | [Orbiter Space Flight Simulator](https://github.com/orbitersim/orbiter) | DX9 | x64 | ✕ | Untested | `Stereoscopic 3D` in settings. |
 | Resident Evil 5 | DX9/DX10 | x86 | ✓ | ❌ Not Working | `Stereo=ON` in `config.ini`.<br>DX9 only on Steam. Crashes on Startup. |
 | Resident Evil 6 | DX9 | x86 | ✕ | Untested | `Stereo=ON` in `config.ini`. |
