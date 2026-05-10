@@ -7,3 +7,4 @@ EXPORTS
     NvDM_WrapAndRegisterSwapChain  @100
     NvDM_DoubleSwapChainDesc       @101
     NvDM_DoubleSwapChainDesc1      @102
+    NvDM_GetRealDevice             @103

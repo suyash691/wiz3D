@@ -21,9 +21,26 @@ typedef const void* (WINAPI *pfnNvDM_DoubleSwapChainDesc)(
 typedef const void* (WINAPI *pfnNvDM_DoubleSwapChainDesc1)(
     const void* pDesc1, unsigned int* outLogicalW, unsigned int* outLogicalH);
 
+typedef void* (WINAPI *pfnNvDM_GetRealDevice)(void* maybeWrapped);
+
 static pfnNvDM_WrapAndRegisterSwapChain g_pfnWrap = nullptr;
 static pfnNvDM_DoubleSwapChainDesc      g_pfnDoubleDesc  = nullptr;
 static pfnNvDM_DoubleSwapChainDesc1     g_pfnDoubleDesc1 = nullptr;
+static pfnNvDM_GetRealDevice            g_pfnGetReal     = nullptr;
+
+// Helper: try to unwrap the device passed to factory CreateSwapChain*
+// before handing it to system DXGI (which crashes when it walks our
+// wrapped Device11Proxy's struct internals). Returns the real device
+// pointer with a fresh ref if unwrapped, or the input pointer if not
+// (and outOwnsRef = false).
+static IUnknown* UnwrapDeviceForRealCall(IUnknown* pDeviceIn, bool& outOwnsRef)
+{
+    outOwnsRef = false;
+    if (!g_pfnGetReal || !pDeviceIn) return pDeviceIn;
+    IUnknown* real = static_cast<IUnknown*>(g_pfnGetReal(pDeviceIn));
+    if (real) { outOwnsRef = true; return real; }
+    return pDeviceIn;
+}
 static volatile LONG                    g_bridgeProbed   = 0;
 
 static void EnsureBridgeLoaded()
@@ -34,8 +51,10 @@ static void EnsureBridgeLoaded()
     g_pfnWrap        = (pfnNvDM_WrapAndRegisterSwapChain) GetProcAddress(h, "NvDM_WrapAndRegisterSwapChain");
     g_pfnDoubleDesc  = (pfnNvDM_DoubleSwapChainDesc)      GetProcAddress(h, "NvDM_DoubleSwapChainDesc");
     g_pfnDoubleDesc1 = (pfnNvDM_DoubleSwapChainDesc1)     GetProcAddress(h, "NvDM_DoubleSwapChainDesc1");
-    NvDM_DxgiLog("  bridge: d3d11.dll handle=%p  Wrap=%p  Double=%p  Double1=%p\n",
-                 h, (void*)g_pfnWrap, (void*)g_pfnDoubleDesc, (void*)g_pfnDoubleDesc1);
+    g_pfnGetReal     = (pfnNvDM_GetRealDevice)            GetProcAddress(h, "NvDM_GetRealDevice");
+    NvDM_DxgiLog("  bridge: d3d11.dll handle=%p  Wrap=%p  Double=%p  Double1=%p  GetReal=%p\n",
+                 h, (void*)g_pfnWrap, (void*)g_pfnDoubleDesc, (void*)g_pfnDoubleDesc1,
+                 (void*)g_pfnGetReal);
 }
 
 // ---------------------------------------------------------------------------
@@ -118,11 +137,16 @@ HRESULT STDMETHODCALLTYPE DXGIFactoryProxy::CreateSwapChain(
         if (doubled) useDesc = static_cast<const DXGI_SWAP_CHAIN_DESC*>(doubled);
     }
 
-    HRESULT hr = m_real0->CreateSwapChain(pDevice,
+    // Pass REAL device to system DXGI — system walks the device's struct
+    // internals and crashes on our Device11Proxy layout.
+    bool ownsRealRef = false;
+    IUnknown* realDevice = UnwrapDeviceForRealCall(pDevice, ownsRealRef);
+    HRESULT hr = m_real0->CreateSwapChain(realDevice,
                                            const_cast<DXGI_SWAP_CHAIN_DESC*>(useDesc),
                                            ppSwapChain);
-    NvDM_DxgiLog("    real CreateSwapChain hr=0x%08lX  realSC=%p  logical=%ux%u\n",
-                 hr, ppSwapChain ? (void*)*ppSwapChain : nullptr, logicalW, logicalH);
+    if (ownsRealRef && realDevice) realDevice->Release();
+    NvDM_DxgiLog("    real CreateSwapChain hr=0x%08lX  realSC=%p  logical=%ux%u  unwrapped=%d\n",
+                 hr, ppSwapChain ? (void*)*ppSwapChain : nullptr, logicalW, logicalH, (int)ownsRealRef);
     if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain && g_pfnWrap)
     {
         void* wrapped = g_pfnWrap(pDevice, *ppSwapChain, logicalW, logicalH);
@@ -160,11 +184,14 @@ HRESULT STDMETHODCALLTYPE DXGIFactoryProxy::CreateSwapChainForHwnd(
         if (doubled) useDesc = static_cast<const DXGI_SWAP_CHAIN_DESC1*>(doubled);
     }
 
-    HRESULT hr = m_real2->CreateSwapChainForHwnd(pDevice, hWnd,
+    bool ownsRealRef = false;
+    IUnknown* realDevice = UnwrapDeviceForRealCall(pDevice, ownsRealRef);
+    HRESULT hr = m_real2->CreateSwapChainForHwnd(realDevice, hWnd,
                                                   useDesc, pFullscreenDesc,
                                                   pRestrictToOutput, ppSwapChain);
-    NvDM_DxgiLog("    real CreateSwapChainForHwnd hr=0x%08lX  realSC=%p  logical=%ux%u\n",
-                 hr, ppSwapChain ? (void*)*ppSwapChain : nullptr, logicalW, logicalH);
+    if (ownsRealRef && realDevice) realDevice->Release();
+    NvDM_DxgiLog("    real CreateSwapChainForHwnd hr=0x%08lX  realSC=%p  logical=%ux%u  unwrapped=%d\n",
+                 hr, ppSwapChain ? (void*)*ppSwapChain : nullptr, logicalW, logicalH, (int)ownsRealRef);
     if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain && g_pfnWrap)
     {
         void* wrapped = g_pfnWrap(pDevice, *ppSwapChain, logicalW, logicalH);
@@ -200,8 +227,11 @@ HRESULT STDMETHODCALLTYPE DXGIFactoryProxy::CreateSwapChainForCoreWindow(
         if (doubled) useDesc = static_cast<const DXGI_SWAP_CHAIN_DESC1*>(doubled);
     }
 
-    HRESULT hr = m_real2->CreateSwapChainForCoreWindow(pDevice, pWindow,
+    bool ownsRealRef = false;
+    IUnknown* realDevice = UnwrapDeviceForRealCall(pDevice, ownsRealRef);
+    HRESULT hr = m_real2->CreateSwapChainForCoreWindow(realDevice, pWindow,
                                                         useDesc, pRestrictToOutput, ppSwapChain);
+    if (ownsRealRef && realDevice) realDevice->Release();
     if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain && g_pfnWrap)
     {
         void* wrapped = g_pfnWrap(pDevice, *ppSwapChain, logicalW, logicalH);
@@ -233,8 +263,11 @@ HRESULT STDMETHODCALLTYPE DXGIFactoryProxy::CreateSwapChainForComposition(
         if (doubled) useDesc = static_cast<const DXGI_SWAP_CHAIN_DESC1*>(doubled);
     }
 
-    HRESULT hr = m_real2->CreateSwapChainForComposition(pDevice, useDesc,
+    bool ownsRealRef = false;
+    IUnknown* realDevice = UnwrapDeviceForRealCall(pDevice, ownsRealRef);
+    HRESULT hr = m_real2->CreateSwapChainForComposition(realDevice, useDesc,
                                                          pRestrictToOutput, ppSwapChain);
+    if (ownsRealRef && realDevice) realDevice->Release();
     if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain && g_pfnWrap)
     {
         void* wrapped = g_pfnWrap(pDevice, *ppSwapChain, logicalW, logicalH);

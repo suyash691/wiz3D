@@ -118,6 +118,32 @@ NvDM_WrapAndRegisterSwapChain(void* deviceOrCommandQueue,
     return static_cast<IDXGISwapChain*>(scProxy);
 }
 
+// Cross-DLL device unwrap. dxgi.dll's CreateSwapChain* path needs the
+// REAL ID3D11Device* to pass to the system DXGI CreateSwapChain — system
+// DXGI walks into the device's struct internals (past the COM vtable)
+// during swap-chain creation and crashes on our Device11Proxy layout.
+// We use the wrapped device for our own registration, but pass real to
+// system DXGI.
+//
+// Returns: AddRef'd real ID3D11Device* if `maybeWrapped` is one of our
+// Device11Proxy instances (caller must Release after use). Returns null
+// if not wrapped — caller passes the input pointer as-is to system DXGI.
+extern "C" __declspec(dllexport) void* WINAPI
+NvDM_GetRealDevice(void* maybeWrapped)
+{
+    if (!maybeWrapped) return nullptr;
+    auto* dev = static_cast<IUnknown*>(maybeWrapped);
+    IUnknown* probe = nullptr;
+    if (FAILED(dev->QueryInterface(IID_NvDM_Device11Proxy,
+                                    reinterpret_cast<void**>(&probe))) || !probe)
+        return nullptr;
+    auto* dp = reinterpret_cast<NvDirectMode::Device11Proxy*>(probe);
+    ID3D11Device* real = dp->GetReal();
+    if (real) real->AddRef();
+    probe->Release();
+    return real;
+}
+
 // Doubled-desc helper exposed cross-DLL — same logic as
 // swapchain_helpers' MakeDoubledSwapChainDesc, but exported so dxgi.dll
 // shares one canonical implementation.
