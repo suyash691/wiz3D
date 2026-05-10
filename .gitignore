@@ -386,6 +386,13 @@ OutputMethods/*/Shaders_dx10/*.h
 # ----- WiZ3D: build configurations with spaces (don't match [Rr]elease/) -----
 Final Release/
 
+# ----- WiZ3D: local testing artifacts (not for source control) -----
+# Game logs, crash dumps, NvApiProxy traces — large, transient, often game-specific.
+Testing/Logs/
+# Test scaffolding directories under Testing/ may stage 3rd-party sample binaries
+# (e.g. Bo3b's Tutorial07 from lib/3D-Vision-Direct/) — keep them local.
+Testing/Tutorial07-DX9-DM/
+
 # ----- AI assistant files (not for source control) -----
 # Claude Code project folder
 .claude/

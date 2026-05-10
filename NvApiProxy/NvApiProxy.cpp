@@ -533,6 +533,32 @@ NVAPI_INTERFACE Spoof_GPU_GetPCIIdentifiers(NvPhysicalGpuHandle,
     return NVAPI_OK;
 }
 
+// CUDA core count for the spoofed RTX 2080 Ti (TU102 = 4352 cores). Some
+// engines (Max Payne 3, EGO engine games confirmed 2026-05-10) query this
+// to scale shader workloads. On real NVIDIA hardware passthrough handles
+// it; on AMD/Intel without this we'd hit the default OkNoOp arm and games
+// would see 0 cores → potentially disable shader optimizations or bail.
+NVAPI_INTERFACE Spoof_GPU_GetGpuCoreCount(NvPhysicalGpuHandle, NvU32* pCount)
+{
+    NVAPI_TRACE_FIRST("GPU_GetGpuCoreCount");
+    if (!pCount) return NVAPI_ERROR;
+    *pCount = 4352;  // TU102 — matches our spoofed RTX 2080 Ti identity
+    return NVAPI_OK;
+}
+
+// NV depth-bounds-test extension — Tomb Raider 2013 and Hitman Absolution
+// both call this for optimization. AMD GPUs have similar functionality
+// via a different path; the game doesn't know that and just expects this
+// call to "work". Returning OK with no actual hardware action means depth
+// bounds aren't actually applied — purely a perf optimization, not a
+// correctness issue (more pixels get drawn than strictly needed).
+NVAPI_INTERFACE Spoof_D3D11_SetDepthBoundsTest(void* /*pDevice*/, NvU32 /*bEnable*/,
+                                                 float /*fMinDepth*/, float /*fMaxDepth*/)
+{
+    NVAPI_TRACE_FIRST("D3D11_SetDepthBoundsTest");
+    return NVAPI_OK;
+}
+
 // --- stereo -----------------------------------------------------------------
 //
 // Stereo_Enable/Disable are the OS-wide 3D Vision enable toggle (the NVIDIA
@@ -705,7 +731,22 @@ NVAPI_INTERFACE Spoof_Stereo_SetActiveEye(StereoHandle, NV_STEREO_ACTIVE_EYE eye
 }
 NVAPI_INTERFACE Spoof_Stereo_SetDriverMode(NV_STEREO_DRIVER_MODE mode)
 {
-    NVAPI_TRACE_FIRST("Stereo_SetDriverMode");
+    // Log the actual mode value, not just the call. Critical for diagnosing
+    // whether a game is *really* a Direct Mode title (DIRECT=2 — game
+    // renders both eyes itself per Stereo_SetActiveEye) or an Auto Mode
+    // title that's setting the mode pre-emptively (AUTOMATIC=0 — game
+    // expects the driver to project both eyes from a single render). Pure
+    // Auto Mode games typically don't call SetDriverMode at all — the
+    // canonical 3D-Vision-Automatic Tutorial07 sample omits it entirely.
+    {
+        char buf[120];
+        const char* name = (mode == NVAPI_STEREO_DRIVER_MODE_DIRECT)    ? "DIRECT"
+                         : (mode == NVAPI_STEREO_DRIVER_MODE_AUTOMATIC) ? "AUTOMATIC"
+                         : "UNKNOWN";
+        _snprintf_s(buf, sizeof(buf), _TRUNCATE,
+                    "[NvApiProxy] Stereo_SetDriverMode(%d = %s)\n", (int)mode, name);
+        WriteLog(buf);
+    }
     g_Stereo.driverMode = mode;
     return NVAPI_OK;
 }
@@ -768,6 +809,45 @@ NVAPI_INTERFACE Spoof_Stereo_Debug_WasLastDrawStereoized(StereoHandle, NvU8* p)
     return NVAPI_OK;
 }
 
+// Game-profile registry calls. Pre-3D-Vision-discontinuation games (Hard
+// Reset confirmed 2026-05-10) call these to persist their stereo config to
+// the per-game profile under HKLM/HKCU. Modern NVIDIA drivers (post-418.91)
+// removed the entire 3D Vision profile system and answer these with
+// NOT_SUPPORTED — the game then concludes "stereo config can't be saved"
+// and greys out the in-game stereo option even though Stereo_IsActivated
+// reported success. Spoof OK so games proceed; we discard the writes since
+// wiz3D handles stereo settings itself.
+NVAPI_INTERFACE Spoof_Stereo_CreateConfigurationProfileRegistryKey(NvU32 /*regKeyType*/)
+{
+    NVAPI_TRACE_FIRST("Stereo_CreateConfigurationProfileRegistryKey");
+    return NVAPI_OK;
+}
+NVAPI_INTERFACE Spoof_Stereo_DeleteConfigurationProfileRegistryKey(NvU32 /*regKeyType*/)
+{
+    NVAPI_TRACE_FIRST("Stereo_DeleteConfigurationProfileRegistryKey");
+    return NVAPI_OK;
+}
+NVAPI_INTERFACE Spoof_Stereo_SetConfigurationProfileValue(NvU32 /*regKeyType*/, NvU32 /*valIdx*/, void* /*pValue*/)
+{
+    NVAPI_TRACE_FIRST("Stereo_SetConfigurationProfileValue");
+    return NVAPI_OK;
+}
+NVAPI_INTERFACE Spoof_Stereo_DeleteConfigurationProfileValue(NvU32 /*regKeyType*/, NvU32 /*valIdx*/)
+{
+    NVAPI_TRACE_FIRST("Stereo_DeleteConfigurationProfileValue");
+    return NVAPI_OK;
+}
+NVAPI_INTERFACE Spoof_Stereo_CaptureJpegImage(StereoHandle, NvU32 /*quality*/)
+{
+    NVAPI_TRACE_FIRST("Stereo_CaptureJpegImage");
+    return NVAPI_OK;
+}
+NVAPI_INTERFACE Spoof_Stereo_CapturePngImage(StereoHandle)
+{
+    NVAPI_TRACE_FIRST("Stereo_CapturePngImage");
+    return NVAPI_OK;
+}
+
 // Catch-all for IDs we haven't explicitly mapped.  Returning NVAPI_NOT_SUPPORTED
 // causes games to gracefully skip optional features (DLSS, Reflex, telemetry,
 // etc.) without aborting.
@@ -827,9 +907,78 @@ static bool IsStereoFunctionId(NvU32 id)
     case 0xED4416C5: // Stereo_Debug_WasLastDrawStereoized
     case 0x44F0ECD1: // Stereo_SetDefaultProfile
     case 0x624E21C2: // Stereo_GetDefaultProfile
+    case 0xBE7692EC: // Stereo_CreateConfigurationProfileRegistryKey  (Hard Reset)
+    case 0xF117B834: // Stereo_DeleteConfigurationProfileRegistryKey
+    case 0x24409F48: // Stereo_SetConfigurationProfileValue
+    case 0x49BCEECF: // Stereo_DeleteConfigurationProfileValue
+    case 0x932CB140: // Stereo_CaptureJpegImage
+    case 0x8B7E99B5: // Stereo_CapturePngImage
+    // Private NVIDIA function IDs (not in the public 2026 SDK header). 3D
+    // Vision-era games (Hard Reset confirmed) call these BEFORE the named
+    // Stereo_* sequence, then gate their in-game stereo option on the
+    // result. Modern NVIDIA drivers (post-3D-Vision-discontinuation)
+    // answer NOT_SUPPORTED → game greys out the option even though our
+    // named Stereo_* spoofs all succeed afterwards. Forcing these through
+    // our spoof+OkNoOp returns NVAPI_OK so the gate flips open.
+    case 0x33C7358C:
+    case 0x36E39E6B:
+    case 0x593E8644:
+    // Driver version queries — force through our spoof even in passthrough
+    // mode so games see our spoofed 3D-Vision-era driver (426.06, the last
+    // 3D-Vision-aware NVIDIA driver) instead of the real installed driver
+    // (which is always post-425.31 on a modern setup and signals "3D Vision
+    // dropped" to games). Without this forcing, EGO engine games (Dirt
+    // Rally, Grid Autosport, Dirt 3, Dirt Showdown) and Hard Reset complete
+    // the Stereo_* init sequence successfully but skip per-eye view-shift
+    // rendering and hide the in-game stereoscopic 3D menu option, having
+    // detected the modern driver. Our regular spoof returns kSpoofDrvVersion
+    // = 42606 + branch "r426_00-100".
+    case 0x2926AAAD: // SYS_GetDriverAndBranchVersion
+    case 0xF951A4D1: // GetDisplayDriverVersion
         return true;
     default:
         return false;
+    }
+}
+
+// Catch-all per-ID logger. In passthrough mode every non-stereo call goes
+// straight to the real driver without ever hitting our named Spoof_* TRACE
+// macros, so without this we have no visibility into *what* the game is
+// asking the driver. Diagnostic for cases like Hard Reset where Stereo_*
+// answers all succeed but the in-game stereo option is still greyed out —
+// the gating must come from a different NvAPI call we never see.
+//
+// Dedup via a small fixed-size set: 3D Vision-era games query 200+ unique
+// IDs at startup, never reaches the cap. Linear scan is fine; this is called
+// once per unique ID per process, not per frame.
+static CRITICAL_SECTION g_csSeenIds;
+static volatile LONG    g_seenIdsInit = 0;
+static NvU32            g_seenIds[256] = {};
+static int              g_numSeenIds   = 0;
+
+static void LogQueryInterfaceId(NvU32 id, const char* tag)
+{
+    if (InterlockedCompareExchange(&g_seenIdsInit, 1, 0) == 0)
+        InitializeCriticalSection(&g_csSeenIds);
+
+    bool isNew = false;
+    EnterCriticalSection(&g_csSeenIds);
+    bool found = false;
+    for (int i = 0; i < g_numSeenIds; ++i)
+        if (g_seenIds[i] == id) { found = true; break; }
+    if (!found && g_numSeenIds < (int)(sizeof(g_seenIds) / sizeof(g_seenIds[0])))
+    {
+        g_seenIds[g_numSeenIds++] = id;
+        isNew = true;
+    }
+    LeaveCriticalSection(&g_csSeenIds);
+
+    if (isNew)
+    {
+        char buf[96];
+        _snprintf_s(buf, sizeof(buf), _TRUNCATE,
+                    "[NvApiProxy] QI %s id=0x%08X\n", tag, id);
+        WriteLog(buf);
     }
 }
 
@@ -842,7 +991,10 @@ extern "C" __declspec(dllexport) void* __cdecl nvapi_QueryInterface(NvU32 id)
     const bool forceSpoof = IsStereoFunctionId(id);
 
     if (g_bPassthrough && !forceSpoof)
+    {
+        LogQueryInterfaceId(id, "passthrough");
         return g_pfnRealQI(id);
+    }
 
     switch (id)
     {
@@ -863,18 +1015,45 @@ extern "C" __declspec(dllexport) void* __cdecl nvapi_QueryInterface(NvU32 id)
         case 0x35C29134: return (void*)&Spoof_GetAssociatedNvidiaDisplayHandle;
         case 0xD995937E: return (void*)&Spoof_GetAssociatedDisplayOutputId;
 
-        // Observed-in-the-wild IDs not in the public 2026 SDK header (likely
-        // private NVAPI functions that 3D Vision-era games still call).  Return
+        // Observed-in-the-wild IDs not in the public 2026 SDK header (private
+        // NVAPI functions that 3D Vision-era games still call). We return
         // NVAPI_OK so the game proceeds rather than bailing on NOT_SUPPORTED.
         // If a game ends up needing real output values from these, we'll need
         // to identify the actual function and implement it.
+        //
+        // Logged callers (2026-05-10):
+        //   0x33C7358C  — Hard Reset (post-Initialize, pre-Stereo)
+        //   0x36E39E6B  — historical (preserved)
+        //   0x593E8644  — Hard Reset (post-Initialize, pre-Stereo)
+        //   0x1EA54A3B  — Max Payne 3 (Auto Mode title; pre-stereo enum)
+        //   0x774AA982  — Max Payne 3, GTA IV (both gate stereo somewhere
+        //                 we can't see; OkNoOp doesn't unblock either)
+        //   0x6A16D3A0  — Civilization V, Lost Planet 2 (both Auto Mode).
+        //                 Speculation: UI/HUD-flatness hint — Auto Mode
+        //                 games keep their UI screen-locked outside the
+        //                 stereo projection by tagging surfaces. Both
+        //                 callers are heavy-UI Auto Mode titles. Spoofing
+        //                 OK on AMD/Intel where real driver isn't there.
+        //
+        // The 0x33C7358C / 0x593E8644 pair fire BEFORE Stereo_SetDriverMode
+        // in Hard Reset, suggesting "is 3D Vision available on this driver?"
+        // probes. Forcing them through OkNoOp didn't ungray Hard Reset's
+        // option (gating turned out to be non-NvAPI), but they still need
+        // explicit OK on AMD/Intel where the default NOT_SUPPORTED would
+        // make the games bail entirely.
         case 0x33C7358C: return (void*)&Spoof_OkNoOp;
         case 0x36E39E6B: return (void*)&Spoof_OkNoOp;
+        case 0x593E8644: return (void*)&Spoof_OkNoOp;
+        case 0x1EA54A3B: return (void*)&Spoof_OkNoOp;
+        case 0x774AA982: return (void*)&Spoof_OkNoOp;
+        case 0x6A16D3A0: return (void*)&Spoof_OkNoOp;
 
         case 0xCEEE8E9F: return (void*)&Spoof_GPU_GetFullName;
         case 0xBAAABFCC: return (void*)&Spoof_GPU_GetSystemType;
         case 0xC33BAEB1: return (void*)&Spoof_GPU_GetGPUType;
         case 0x2DDFB66E: return (void*)&Spoof_GPU_GetPCIIdentifiers;
+        case 0xC7026A87: return (void*)&Spoof_GPU_GetGpuCoreCount;       // MP3, EGO games, Hitman
+        case 0x7AAF7A04: return (void*)&Spoof_D3D11_SetDepthBoundsTest;  // TR 2013, Hitman
 
         // stereo
         case 0x239C4545: return (void*)&Spoof_Stereo_Enable;
@@ -909,6 +1088,12 @@ extern "C" __declspec(dllexport) void* __cdecl nvapi_QueryInterface(NvU32 id)
         case 0xED4416C5: return (void*)&Spoof_Stereo_Debug_WasLastDrawStereoized;
         case 0x44F0ECD1: return (void*)&Spoof_Stereo_SetDefaultProfile;
         case 0x624E21C2: return (void*)&Spoof_Stereo_GetDefaultProfile;
+        case 0xBE7692EC: return (void*)&Spoof_Stereo_CreateConfigurationProfileRegistryKey;
+        case 0xF117B834: return (void*)&Spoof_Stereo_DeleteConfigurationProfileRegistryKey;
+        case 0x24409F48: return (void*)&Spoof_Stereo_SetConfigurationProfileValue;
+        case 0x49BCEECF: return (void*)&Spoof_Stereo_DeleteConfigurationProfileValue;
+        case 0x932CB140: return (void*)&Spoof_Stereo_CaptureJpegImage;
+        case 0x8B7E99B5: return (void*)&Spoof_Stereo_CapturePngImage;
 
         default:
         {
