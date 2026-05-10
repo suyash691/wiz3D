@@ -1,5 +1,5 @@
 #include "DXGIFactoryProxy.h"
-#include "DXGIAdapterProxy.h"
+#include "adapter_vtable_hooks.h"
 
 #include <stdio.h>
 #pragma comment(lib, "dxguid.lib")
@@ -275,6 +275,13 @@ IUnknown* WrapRealFactoryAsRequested(IUnknown* realFactory, REFIID riid)
     realFactory->Release();
 
     auto* proxy = new DXGIFactoryProxy(r0, r1, r2);
+
+    // Task #66: hot-patch the IDXGIAdapter / IDXGIAdapter1 vtables so the
+    // GetDesc / GetDesc1 vendor spoof fires on real adapter pointers
+    // (preserving struct layout — the previous wrap-the-adapter approach
+    // crashed system d3d11.dll's internal device-creation walk). Idempotent
+    // — only the first factory wrap actually patches.
+    InstallAdapterVtablePatch(r0);
 
     // Cast as requested IID for return.
     if (riid == IID_IDXGIFactory2 && r2) return static_cast<IDXGIFactory2*>(proxy);

@@ -57,12 +57,17 @@ public:
 
     // IDXGIAdapter
     HRESULT STDMETHODCALLTYPE EnumOutputs(UINT Output, IDXGIOutput** ppOutput) override                 { return m_real0->EnumOutputs(Output, ppOutput); }
-    HRESULT STDMETHODCALLTYPE GetDesc(DXGI_ADAPTER_DESC* pDesc) override;
+    // GetDesc / GetDesc1 are passthrough — the spoof now lives in the
+    // dxgi.dll vtable hot-patch (adapter_vtable_hooks.cpp). Vtable patch
+    // catches the EnumAdapters path which previously crashed system
+    // d3d11.dll when wrapped, AND catches this device→adapter path
+    // automatically since both go through the same adapter vtable.
+    HRESULT STDMETHODCALLTYPE GetDesc(DXGI_ADAPTER_DESC* pDesc) override                                { return m_real0->GetDesc(pDesc); }
     HRESULT STDMETHODCALLTYPE CheckInterfaceSupport(REFGUID InterfaceName, LARGE_INTEGER* pUMDVersion) override
                                                                                                         { return m_real0->CheckInterfaceSupport(InterfaceName, pUMDVersion); }
 
     // IDXGIAdapter1
-    HRESULT STDMETHODCALLTYPE GetDesc1(DXGI_ADAPTER_DESC1* pDesc) override;
+    HRESULT STDMETHODCALLTYPE GetDesc1(DXGI_ADAPTER_DESC1* pDesc) override                              { return m_real1 ? m_real1->GetDesc1(pDesc) : E_NOINTERFACE; }
 
 private:
     IDXGIAdapter*  m_real0;

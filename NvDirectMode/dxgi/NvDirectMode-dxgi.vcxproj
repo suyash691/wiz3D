@@ -146,11 +146,11 @@
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DXGIFactoryProxy.cpp" />
-    <ClCompile Include="DXGIAdapterProxy.cpp" />
+    <ClCompile Include="adapter_vtable_hooks.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DXGIFactoryProxy.h" />
-    <ClInclude Include="DXGIAdapterProxy.h" />
+    <ClInclude Include="adapter_vtable_hooks.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="dxgi.def" />
