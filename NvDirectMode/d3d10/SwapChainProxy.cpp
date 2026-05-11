@@ -1,8 +1,33 @@
+#ifdef SR_WEAVE_ENABLED
+// d3d10_1.h must be included before d3d10.h (which SwapChainProxy.h pulls
+// in) — the d3d10_1 header has an #error guard against the reverse order.
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <d3d10_1.h>
+#endif
+
 #include "SwapChainProxy.h"
 #include "Device10Proxy.h"
 #include "eye_state.h"
 #include "log.h"
 #include "../anaglyph_matrices.h"
+
+#ifdef SR_WEAVE_ENABLED
+// Leia / Simulated Reality SDK headers (DelayLoad'd via vcxproj — DLLs
+// are only attempted on first weaver create, so non-SR systems pay no
+// cost beyond import-table entries).
+#include "sr/weaver/dx10weaver.h"
+
+// Same OpenCV-free stub as d3d11. The SR header chain references
+// cv::String::deallocate (the destructor helper on SR's Exception class,
+// which has a cv::String message member). Providing an empty body
+// satisfies the linker without forcing us to pull in opencv_world343.lib.
+// See d3d11/SwapChainProxy.cpp for the full rationale.
+void cv::String::deallocate() {}
+#endif
+
+#include <ctype.h>
+#include <stdlib.h>
 
 #include <d3dcommon.h>
 #include <string.h>
@@ -14,6 +39,7 @@ extern "C" int NvDM_SwapEyes();
 extern "C" int NvDM_OutputMode();
 extern "C" int NvDM_AnaglyphColour();
 extern "C" int NvDM_AnaglyphMethod();
+extern "C" int NvDM_ForceSRWeave();
 
 // ---------------------------------------------------------------------------
 // d3dcompiler resolver + composite shader source (same shaders as d3d11;
@@ -198,6 +224,15 @@ SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device10Proxy* parent)
     , m_leftEyeSRV(nullptr)
     , m_rightEyeSRV(nullptr)
     , m_realBBRTV(nullptr)
+    , m_srBlacklistedOrFailed(false)
+    , m_srContextOpaque(nullptr)
+    , m_srWeaverOpaque(nullptr)
+    , m_srSBSTex(nullptr)
+    , m_srSBSRTV(nullptr)
+    , m_srSBSSRV(nullptr)
+    , m_srSBSW(0)
+    , m_srSBSH(0)
+    , m_srSBSFmt(DXGI_FORMAT_UNKNOWN)
 {
     EnsurePrimaryLock();
     EnterCriticalSection(&g_primaryLock);
@@ -213,6 +248,7 @@ SwapChainProxy::~SwapChainProxy()
     if (g_primarySwapChain == this) g_primarySwapChain = nullptr;
     LeaveCriticalSection(&g_primaryLock);
 
+    ReleaseSRPipeline();
     ReleaseCompositePipeline();
     ReleaseEyeFrames();
     ReleaseShadowBB();
@@ -447,6 +483,289 @@ bool SwapChainProxy::EnsureCompositeShaders()
     return full;
 }
 
+#ifdef SR_WEAVE_ENABLED
+
+// SEH-protected wrapper for SR::SRContext::create(). The SR runtime DLLs
+// are delay-loaded; if they're not installed, the call raises
+// VcppException 0xC06D007E (MOD_NOT_FOUND), which C++ try/catch can't
+// intercept. On that failure we set *pDllMissing=true and return nullptr.
+static SR::SRContext* SafeSRContextCreate(bool* pDllMissing)
+{
+    *pDllMissing = false;
+    __try { return SR::SRContext::create(); }
+    __except (GetExceptionCode() == 0xC06D007E ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+    {
+        *pDllMissing = true;
+        return nullptr;
+    }
+}
+
+// Games whose anti-tamper / overlay-injection crashes when SR runtime
+// threads spawn inside their process. Mirror of the d3d11 list — keep
+// the two lists aligned manually.
+static bool IsSRIncompatibleExe()
+{
+    wchar_t exePath[MAX_PATH] = {};
+    if (!GetModuleFileNameW(nullptr, exePath, MAX_PATH)) return false;
+    for (wchar_t* p = exePath; *p; ++p) *p = (wchar_t)towlower(*p);
+    static const wchar_t* const kBlacklist[] = {
+        L"tombraider.exe",   // TR2013 — see d3d11 SwapChainProxy.cpp for rationale
+    };
+    for (auto entry : kBlacklist)
+        if (wcsstr(exePath, entry)) return true;
+    return false;
+}
+
+#endif // SR_WEAVE_ENABLED
+
+void SwapChainProxy::ReleaseSRPipeline()
+{
+#ifdef SR_WEAVE_ENABLED
+    if (m_srSBSSRV) { m_srSBSSRV->Release(); m_srSBSSRV = nullptr; }
+    if (m_srSBSRTV) { m_srSBSRTV->Release(); m_srSBSRTV = nullptr; }
+    if (m_srSBSTex) { m_srSBSTex->Release(); m_srSBSTex = nullptr; }
+    m_srSBSW = 0; m_srSBSH = 0; m_srSBSFmt = DXGI_FORMAT_UNKNOWN;
+
+    if (m_srWeaverOpaque)
+    {
+        SR::IDX10Weaver1* w = static_cast<SR::IDX10Weaver1*>(m_srWeaverOpaque);
+        w->destroy();
+        m_srWeaverOpaque = nullptr;
+    }
+    if (m_srContextOpaque)
+    {
+        SR::SRContext* c = static_cast<SR::SRContext*>(m_srContextOpaque);
+        SR::SRContext::deleteSRContext(c);
+        m_srContextOpaque = nullptr;
+    }
+#endif
+}
+
+bool SwapChainProxy::EnsureSRSBSTexture()
+{
+#ifdef SR_WEAVE_ENABLED
+    if (!m_parent) return false;
+    ID3D10Device* dev = m_parent->GetReal();
+    if (!dev) return false;
+    if (m_logicalW == 0 || m_logicalH == 0) return false;
+
+    UINT wantW = m_logicalW * 2;
+    UINT wantH = m_logicalH;
+    DXGI_FORMAT wantFmt = m_shadowFormat;
+    if (m_srSBSTex && m_srSBSW == wantW && m_srSBSH == wantH && m_srSBSFmt == wantFmt)
+        return true;
+
+    if (m_srSBSSRV) { m_srSBSSRV->Release(); m_srSBSSRV = nullptr; }
+    if (m_srSBSRTV) { m_srSBSRTV->Release(); m_srSBSRTV = nullptr; }
+    if (m_srSBSTex) { m_srSBSTex->Release(); m_srSBSTex = nullptr; }
+
+    D3D10_TEXTURE2D_DESC td = {};
+    td.Width            = wantW;
+    td.Height           = wantH;
+    td.MipLevels        = 1;
+    td.ArraySize        = 1;
+    td.Format           = wantFmt;
+    td.SampleDesc.Count = 1;
+    td.Usage            = D3D10_USAGE_DEFAULT;
+    td.BindFlags        = D3D10_BIND_RENDER_TARGET | D3D10_BIND_SHADER_RESOURCE;
+    if (FAILED(dev->CreateTexture2D(&td, nullptr, &m_srSBSTex))) return false;
+
+    D3D10_RENDER_TARGET_VIEW_DESC rtvd = {};
+    rtvd.Format        = wantFmt;
+    rtvd.ViewDimension = D3D10_RTV_DIMENSION_TEXTURE2D;
+    if (FAILED(dev->CreateRenderTargetView(m_srSBSTex, &rtvd, &m_srSBSRTV))) return false;
+
+    D3D10_SHADER_RESOURCE_VIEW_DESC srvd = {};
+    srvd.Format              = wantFmt;
+    srvd.ViewDimension       = D3D10_SRV_DIMENSION_TEXTURE2D;
+    srvd.Texture2D.MipLevels = 1;
+    if (FAILED(dev->CreateShaderResourceView(m_srSBSTex, &srvd, &m_srSBSSRV))) return false;
+
+    m_srSBSW = wantW; m_srSBSH = wantH; m_srSBSFmt = wantFmt;
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool SwapChainProxy::EnsureSRWeaver()
+{
+#ifdef SR_WEAVE_ENABLED
+    if (m_srBlacklistedOrFailed) return false;
+    if (m_srWeaverOpaque) return true;
+    if (!m_parent || !m_real) return false;
+
+    static bool s_blacklistChecked = false;
+    static bool s_isBlacklisted    = false;
+    if (!s_blacklistChecked)
+    {
+        s_blacklistChecked = true;
+        s_isBlacklisted    = IsSRIncompatibleExe();
+        if (s_isBlacklisted)
+        {
+            if (NvDM_ForceSRWeave())
+            {
+                LOG_VERBOSE("  d3d10 EnsureSRWeaver: exe is SR-blacklisted but ForceSRWeave=1 — attempting anyway (diagnostic)\n");
+                s_isBlacklisted = false;
+            }
+            else
+            {
+                LOG_VERBOSE("  d3d10 EnsureSRWeaver: exe is SR-blacklisted; falling back to SBS (set ForceSRWeave=1 to override)\n");
+            }
+        }
+    }
+    if (s_isBlacklisted) { m_srBlacklistedOrFailed = true; return false; }
+
+    LOG_VERBOSE("  d3d10 EnsureSRWeaver: entering, tid=%lu\n", GetCurrentThreadId());
+
+    bool dllMissing = false;
+    SR::SRContext* ctx = nullptr;
+    try { ctx = SafeSRContextCreate(&dllMissing); }
+    catch (...)
+    {
+        LOG_VERBOSE("  d3d10 EnsureSRWeaver: SRContext::create threw exception (SR Service down or other failure)\n");
+        m_srBlacklistedOrFailed = true;
+        return false;
+    }
+    if (dllMissing)
+    {
+        LOG_VERBOSE("  d3d10 EnsureSRWeaver: SR runtime DLLs not installed; downgrading SR weave -> SBS\n");
+        m_srBlacklistedOrFailed = true;
+        return false;
+    }
+    if (!ctx) { m_srBlacklistedOrFailed = true; return false; }
+
+    DXGI_SWAP_CHAIN_DESC scDesc = {};
+    if (FAILED(m_real->GetDesc(&scDesc)))
+    {
+        SR::SRContext::deleteSRContext(ctx);
+        m_srBlacklistedOrFailed = true;
+        return false;
+    }
+    HWND hWnd = scDesc.OutputWindow;
+
+    ID3D10Device* dev = m_parent->GetReal();
+    if (!dev)
+    {
+        SR::SRContext::deleteSRContext(ctx);
+        m_srBlacklistedOrFailed = true;
+        return false;
+    }
+
+    SR::IDX10Weaver1* weaver = nullptr;
+    WeaverErrorCode res = SR::CreateDX10Weaver(ctx, dev, hWnd, &weaver);
+    if (res != WeaverSuccess || !weaver)
+    {
+        LOG_VERBOSE("  d3d10 EnsureSRWeaver: CreateDX10Weaver failed (err=%d hWnd=%p dev=%p)\n",
+                    (int)res, (void*)hWnd, (void*)dev);
+        SR::SRContext::deleteSRContext(ctx);
+        m_srBlacklistedOrFailed = true;
+        return false;
+    }
+
+    ctx->initialize();
+
+    m_srContextOpaque = ctx;
+    m_srWeaverOpaque  = weaver;
+    LOG_VERBOSE("  d3d10 EnsureSRWeaver: ready (hWnd=%p ctx=%p weaver=%p)\n",
+                (void*)hWnd, (void*)ctx, (void*)weaver);
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool SwapChainProxy::RunSRWeave()
+{
+#ifdef SR_WEAVE_ENABLED
+    NVDM_TRACE_FIRST_N(5, "  d3d10 RunSRWeave: entry tid=%lu shaders=%d leftSRV=%p rightSRV=%p\n",
+                       GetCurrentThreadId(),
+                       (int)EnsureCompositeShaders(),
+                       (void*)m_leftEyeSRV, (void*)m_rightEyeSRV);
+
+    if (!EnsureCompositeShaders()) return false;
+    if (!EnsureSRWeaver())         return false;
+    if (!EnsureSRSBSTexture())     return false;
+    if (!m_leftEyeSRV || !m_rightEyeSRV)
+    {
+        NVDM_TRACE_FIRST_N(5, "  d3d10 RunSRWeave: ABORT — eye SRVs not ready (L=%p R=%p)\n",
+                           (void*)m_leftEyeSRV, (void*)m_rightEyeSRV);
+        return false;
+    }
+
+    ID3D10Device* dev = m_parent ? m_parent->GetReal() : nullptr;
+    if (!dev) return false;
+
+    // Step A: render SBS composite into m_srSBSTex (2W × H) using existing SBS shader.
+    bool swap = (NvDM_SwapEyes() != 0);
+    ID3D10ShaderResourceView* leftSRV  = swap ? m_rightEyeSRV : m_leftEyeSRV;
+    ID3D10ShaderResourceView* rightSRV = swap ? m_leftEyeSRV  : m_rightEyeSRV;
+    ID3D10ShaderResourceView* srvs[2] = { leftSRV, rightSRV };
+
+    D3D10_VIEWPORT vp = {};
+    vp.TopLeftX = 0; vp.TopLeftY = 0;
+    vp.Width    = m_srSBSW;
+    vp.Height   = m_srSBSH;
+    vp.MinDepth = 0; vp.MaxDepth = 1;
+
+    dev->OMSetRenderTargets(1, &m_srSBSRTV, nullptr);
+    dev->RSSetViewports(1, &vp);
+    dev->RSSetState(m_compositeRS);
+    float blendFactor[4] = { 0, 0, 0, 0 };
+    dev->OMSetBlendState(m_compositeBlend, blendFactor, 0xFFFFFFFF);
+    dev->OMSetDepthStencilState(m_compositeDSS, 0);
+    dev->IASetInputLayout(nullptr);
+    dev->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    ID3D10Buffer* nullVB = nullptr; UINT zero = 0;
+    dev->IASetVertexBuffers(0, 1, &nullVB, &zero, &zero);
+    dev->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    dev->VSSetShader(m_compositeVS);
+    dev->GSSetShader(nullptr);
+    dev->PSSetShader(m_compositePS_SBS);
+    dev->PSSetShaderResources(0, 2, srvs);
+    dev->PSSetSamplers(0, 1, &m_compositeSampler);
+    dev->Draw(3, 0);
+
+    ID3D10ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
+    dev->PSSetShaderResources(0, 2, nullSRV);
+
+    // Step B: bind real BB as RT, hand the SBS SRV to the weaver, weave().
+    if (!m_realBBRTV)
+    {
+        ID3D10Texture2D* realBB = nullptr;
+        if (FAILED(m_real->GetBuffer(0, __uuidof(ID3D10Texture2D),
+                                      reinterpret_cast<void**>(&realBB))) || !realBB)
+            return false;
+        HRESULT hr = dev->CreateRenderTargetView(realBB, nullptr, &m_realBBRTV);
+        realBB->Release();
+        if (FAILED(hr) || !m_realBBRTV) return false;
+    }
+    dev->OMSetRenderTargets(1, &m_realBBRTV, nullptr);
+    D3D10_VIEWPORT vpBB = {};
+    vpBB.Width    = m_logicalW;
+    vpBB.Height   = m_logicalH;
+    vpBB.MinDepth = 0; vpBB.MaxDepth = 1;
+    dev->RSSetViewports(1, &vpBB);
+
+    SR::IDX10Weaver1* weaver = static_cast<SR::IDX10Weaver1*>(m_srWeaverOpaque);
+    NVDM_TRACE_FIRST_N(5, "  d3d10 RunSRWeave: weave call - weaver=%p SBS=%ux%u fmt=%d srv=%p rtv=%p tid=%lu\n",
+                       (void*)weaver, m_srSBSW, m_srSBSH, (int)m_srSBSFmt,
+                       (void*)m_srSBSSRV, (void*)m_realBBRTV, GetCurrentThreadId());
+    weaver->setInputViewTexture(m_srSBSSRV, (int)m_srSBSW, (int)m_srSBSH, m_srSBSFmt);
+    weaver->weave();
+    NVDM_TRACE_FIRST_N(5, "  d3d10 RunSRWeave: weave returned OK\n");
+
+    static volatile long s_weaveCount = 0;
+    long n = _InterlockedIncrement(&s_weaveCount);
+    if (n == 60 || n == 180 || n == 600 || n == 1800)
+        NvDM_Log("  d3d10 RunSRWeave: heartbeat #%ld (SR still alive)\n", n);
+
+    return true;
+#else
+    return false;
+#endif
+}
+
 void SwapChainProxy::UpdateAnaglyphCB()
 {
     if (!m_anaglyphCB) return;
@@ -476,6 +795,12 @@ bool SwapChainProxy::RunCompositePass()
 {
     if (!m_leftEyeFrame || !m_rightEyeFrame) return false;
     if (!EnsureCompositeShaders()) return false;
+
+    // Mode 8 = SR weave. Try the LeiaSR pipeline first; if the runtime
+    // is missing, blacklisted, or fails, fall through to the SBS shader
+    // path below (modeTag will report "SBS (SR-fallback)" in that case).
+    if (NvDM_OutputMode() == 8 && RunSRWeave())
+        return true;
 
     ID3D10Device* dev = m_parent ? m_parent->GetReal() : nullptr;
     if (!dev) return false;

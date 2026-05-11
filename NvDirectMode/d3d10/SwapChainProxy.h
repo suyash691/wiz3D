@@ -111,6 +111,32 @@ private:
     ID3D10RenderTargetView*   m_realBBRTV;
 
     void UpdateAnaglyphCB();
+
+    // OutputMode 8 — Simulated Reality weave (Leia / Samsung Odyssey ML displays).
+    // SR runtime DLLs are delay-loaded (vcxproj's DelayLoadDLLs); first call to
+    // EnsureSRWeaver attempts to create the context via SafeSRContextCreate's
+    // SEH-protected wrapper. If the runtime isn't installed (MOD_NOT_FOUND on
+    // delay-load) or no display device responds (ServerNotAvailableException),
+    // the wrap downgrades OutputMode to SBS for the remainder of the session.
+    //
+    // Mirror of the DX11 SR weave pipeline (SwapChainProxy.h in ../d3d11/).
+    // Pipeline: composite SBS-shader writes to m_srSBSTex (2W × H intermediate),
+    // m_srWeaver->setInputViewTexture(m_srSBSSRV) + weave() writes the weaved
+    // frame to the currently-bound RTV (we bind m_realBBRTV first).
+    bool EnsureSRWeaver();
+    bool EnsureSRSBSTexture();
+    void ReleaseSRPipeline();
+    bool RunSRWeave();
+    bool                      m_srBlacklistedOrFailed;
+    void*                     m_srContextOpaque;   // SR::SRContext* (kept void* to avoid SDK
+                                                   // header pollution outside the .cpp)
+    void*                     m_srWeaverOpaque;    // SR::IDX10Weaver1*
+    ID3D10Texture2D*          m_srSBSTex;
+    ID3D10RenderTargetView*   m_srSBSRTV;
+    ID3D10ShaderResourceView* m_srSBSSRV;
+    UINT                      m_srSBSW;            // == m_logicalW * 2
+    UINT                      m_srSBSH;            // == m_logicalH
+    DXGI_FORMAT               m_srSBSFmt;
 };
 
 } // namespace NvDirectMode
