@@ -584,34 +584,58 @@ static void LoadWrapper(void)
     }
 
     // --- Post-load file checks ---
-    // The wrapper expects OutputMethods/<name>.dll in the same folder
+    // The wrapper expects wiz3D_Config.xml + OutputMethods/<name>.dll in the
+    // game folder. If either is missing the wrapper's init paths run with
+    // uninitialised state and dereference NULL deep inside the stereo
+    // pipeline (Ninja Blade signature in user logs).  Treat missing-files as
+    // wrapper-unavailable: free it, NULL the forward pointers, and let
+    // Direct3DCreate9 fall through to the real d3d9.dll. The game then runs
+    // mono — a worse experience than stereo, but better than a crash.
     {
         WCHAR chkPath[MAX_PATH];
-        // Config: prefer wiz3D_Config.xml, accept legacy Config.xml.
         GetProxyDirectory(chkPath, MAX_PATH);
         lstrcatW(chkPath, L"wiz3D_Config.xml");
         DWORD attrNew = GetFileAttributesW(chkPath);
         GetProxyDirectory(chkPath, MAX_PATH);
         lstrcatW(chkPath, L"Config.xml");
-        DWORD attr = GetFileAttributesW(chkPath);
+        DWORD attrLegacy = GetFileAttributesW(chkPath);
+        bool configFound = (attrNew != INVALID_FILE_ATTRIBUTES) ||
+                           (attrLegacy != INVALID_FILE_ATTRIBUTES);
+
         Log("--- Post-load file check ---\n");
         Log("  wiz3D_Config.xml: %s\n", (attrNew != INVALID_FILE_ATTRIBUTES) ? "FOUND" : "missing");
-        Log("  Config.xml (legacy): %s\n", (attr != INVALID_FILE_ATTRIBUTES) ? "FOUND" : "missing");
-        if (attrNew == INVALID_FILE_ATTRIBUTES && attr == INVALID_FILE_ATTRIBUTES)
-            Log("  WARNING: no config file found\n");
+        Log("  Config.xml (legacy): %s\n", (attrLegacy != INVALID_FILE_ATTRIBUTES) ? "FOUND" : "missing");
 
         GetProxyDirectory(chkPath, MAX_PATH);
         lstrcatW(chkPath, L"OutputMethods");
-        attr = GetFileAttributesW(chkPath);
-        Log("  OutputMethods/: %s\n",
-            (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY)) ? "FOUND" : "MISSING!");
+        DWORD omAttr = GetFileAttributesW(chkPath);
+        bool omFound = (omAttr != INVALID_FILE_ATTRIBUTES) &&
+                       (omAttr & FILE_ATTRIBUTE_DIRECTORY);
+        Log("  OutputMethods/: %s\n", omFound ? "FOUND" : "MISSING!");
 
         GetProxyDirectory(chkPath, MAX_PATH);
         lstrcatW(chkPath, L"OutputMethods\\SideBySideOutput.dll");
-        attr = GetFileAttributesW(chkPath);
+        DWORD sbsAttr = GetFileAttributesW(chkPath);
         Log("  OutputMethods/SideBySideOutput.dll: %s\n",
-            (attr != INVALID_FILE_ATTRIBUTES) ? "FOUND" : "MISSING!");
+            (sbsAttr != INVALID_FILE_ATTRIBUTES) ? "FOUND" : "MISSING!");
         Log("--- End post-load check ---\n");
+
+        // Fail-fast: if essential files are absent, disable wrapper routing
+        // and let the proxy fall through to the real d3d9.dll. Game then
+        // runs mono instead of crashing deep inside the wrapper.
+        if (!configFound || !omFound)
+        {
+            Log("FAIL: essential wiz3D files missing (config=%d OutputMethods=%d) — "
+                "disabling wrapper, falling back to mono passthrough.\n",
+                (int)configFound, (int)omFound);
+            g_pfnWrapCreate9   = NULL;
+            g_pfnWrapCreate9Ex = NULL;
+            if (g_hWrapper)
+            {
+                FreeLibrary(g_hWrapper);
+                g_hWrapper = NULL;
+            }
+        }
     }
 }
 

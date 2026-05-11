@@ -161,6 +161,12 @@ PROXYSTDMETHOD_(ULONG,VertexShader_Release)(IDirect3DVertexShader9* This)
 //--- only for D3D9Ex mode ---
 void Proxy_Pitch(IDirect3DSurface9* surface, D3DLOCKED_RECT * pLockedRect, CONST RECT * pRect, DWORD Flags)
 {
+	// Defensive: Texture_LockRect calls GetSurfaceLevel + ignores its HRESULT,
+	// then forwards the surface here. If the level was out of range / a
+	// stereo-doubled face hasn't been allocated yet, `surface` arrives NULL.
+	// Without this guard we deref through vtable and crash at +0x6C on read.
+	// Confirmed via S3DWrapperD3D9.map for the Alan Wake crash signature.
+	if (!surface) return;
 	ProxyPitchData p;
 	DWORD dataSize = sizeof(p);
 	if(SUCCEEDED(surface->GetPrivateData(PitchCorrectionGUID, &p, &dataSize)))
@@ -217,6 +223,11 @@ void Proxy_Pitch(IDirect3DSurface9* surface, D3DLOCKED_RECT * pLockedRect, CONST
 //--- only for D3D9Ex mode ---
 void Proxy_UnPitch(IDirect3DSurface9* surface)
 {
+	// Same null-surface guard as Proxy_Pitch above — Texture_UnlockRect's
+	// GetSurfaceLevel can return failure without us noticing and Proxy_UnPitch
+	// then derefs NULL at +0x6C. This was the Alan Wake "Crashes on title
+	// screen" crash signature in user reports.
+	if (!surface) return;
 	ProxyPitchData p;
 	DWORD dataSize = sizeof(p);
 	if(SUCCEEDED(surface->GetPrivateData(PitchCorrectionGUID, &p, &dataSize)))
