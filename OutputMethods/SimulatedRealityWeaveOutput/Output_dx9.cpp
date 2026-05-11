@@ -87,6 +87,7 @@ SimulatedRealityWeaveOutput::SimulatedRealityWeaveOutput(DWORD mode, DWORD spanM
     , m_WeaverInitialized(false)
     , m_WeavingEnabled(true)
     , m_bSRGB(true)        // Default sRGB on — matches SR SDK directx9_weaving sample (eColorSpace::sRGBHardware) and modern engines (Source, Unreal, Unity)
+    , m_bSRFallbackActive(false)
 {
 }
 
@@ -193,6 +194,10 @@ void SimulatedRealityWeaveOutput::Clear()
 		m_pSBSTexture->Release();
 		m_pSBSTexture = nullptr;
 	}
+	// Reset the SR-fallback decision on Clear so post-device-reset (e.g. windowed↔
+	// fullscreen toggle) we get a fresh chance to detect the SR runtime. If the
+	// user installed the LeiaSR Service mid-session, this is when it gets picked up.
+	m_bSRFallbackActive = false;
 	OutputMethod::Clear();
 }
 
@@ -221,13 +226,22 @@ HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
     if (!m_pd3dDevice)
         return S_OK;
 
-    // Lazy-initialize the weaver on the first Output call (device and window are ready by then)
-    if (!m_WeaverInitialized) {
+    // Lazy-initialize the weaver on the first Output call (device and window are ready by then).
+    // If the LeiaSR runtime isn't installed, the SR Service isn't running, or no SR display is
+    // connected, InitializeWeaver fails — we then sticky-flag the session into SBS fallback mode
+    // so users on non-SR hardware still see a usable stereo image (plain Half SBS) instead of a
+    // black frame, and we don't keep retrying SR every Present.
+    if (!m_WeaverInitialized && !m_bSRFallbackActive) {
         HWND hWnd = pSwapChain->GetAppWindow();
         HRESULT hr = InitializeWeaver(m_pd3dDevice, hWnd, m_ViewWidth, m_ViewHeight);
-        if (FAILED(hr))
-            return S_OK;  // SR Service not available; output passthrough
+        if (FAILED(hr)) {
+            m_bSRFallbackActive = true;
+            OutputDebugStringA("[SimulatedRealityWeaveOutput] SR runtime unavailable — falling back to Half SBS for this session.\n");
+        }
     }
+
+    if (m_bSRFallbackActive)
+        return OutputSBSFallback(pSwapChain);
 
     if (!m_Weaver || !m_pSBSTexture)
         return S_OK;
@@ -262,6 +276,31 @@ HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
     m_Weaver->setOutputSRGBWrite(m_bSRGB);
     m_Weaver->weave();
 
+    return S_OK;
+}
+
+// Plain Half SBS rendering, invoked when SR weave is unavailable. Mirrors the
+// minimum-viable pixel path of SideBySideOutput::Output() (mode 0, no gap, no
+// crosseyed) — left eye into the left half of the primary back buffer, right
+// eye into the right half. Two StretchRect calls, no shaders, no extra state.
+HRESULT SimulatedRealityWeaveOutput::OutputSBSFallback(CBaseSwapChain* pSwapChain)
+{
+    if (!pSwapChain || !m_pd3dDevice) return S_OK;
+    IDirect3DSurface9* primary = pSwapChain->m_pPrimaryBackBuffer;
+    if (!primary) return S_OK;
+
+    IDirect3DSurface9* pLeft  = pSwapChain->GetLeftBackBufferRT();
+    IDirect3DSurface9* pRight = pSwapChain->GetRightBackBufferRT();
+    if (!pLeft || !pRight) return S_OK;
+    RECT* pLeftRect  = pSwapChain->GetLeftBackBufferRect();
+    RECT* pRightRect = pSwapChain->GetRightBackBufferRect();
+
+    D3DSURFACE_DESC desc;
+    primary->GetDesc(&desc);
+    RECT leftHalf  = { 0,                       0, (LONG)(desc.Width / 2), (LONG)desc.Height };
+    RECT rightHalf = { (LONG)(desc.Width / 2),  0, (LONG)desc.Width,       (LONG)desc.Height };
+    m_pd3dDevice->StretchRect(pLeft,  pLeftRect,  primary, &leftHalf,  D3DTEXF_LINEAR);
+    m_pd3dDevice->StretchRect(pRight, pRightRect, primary, &rightHalf, D3DTEXF_LINEAR);
     return S_OK;
 }
 

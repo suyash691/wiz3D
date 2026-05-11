@@ -32,7 +32,13 @@
 		<!-- ifdef ${outputMethodDll} -->
 		<!-- <OutputMethodDll Value="${outputMethodDll}"/> -->
 		<!-- else -->
-		<OutputMethodDll Value="AnaglyphOutput"/>
+		<!-- Default = SR weave. The SimulatedRealityWeaveOutput plugin auto-falls
+		     back to Half SBS when the LeiaSR runtime / SR Service / SR display
+		     isn't available — so users without an SR setup get a usable stereo
+		     image without having to change this. To force pure SBS (or any other
+		     output) regardless of SR availability, set this to "SideBySideOutput"
+		     (or AnaglyphOutput / S3DOutput / etc.). -->
+		<OutputMethodDll Value="SimulatedRealityWeaveOutput"/>
 		<!-- endif -->
 		<OutputMode Value="0"/>
 		<OutputSpanMode Value="0"/>

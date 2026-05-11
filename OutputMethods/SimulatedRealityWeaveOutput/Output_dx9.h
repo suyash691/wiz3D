@@ -39,10 +39,12 @@ private:
     D3DFORMAT          m_ViewFormat;
     bool               m_WeaverInitialized;
     bool               m_WeavingEnabled;
-    bool               m_bSRGB;            // Treat input as sRGB and write sRGB output. Default true (modern games / SR sample default). Override per-game via config.
+    bool               m_bSRGB;             // Treat input as sRGB and write sRGB output. Default true (modern games / SR sample default). Override per-game via config.
+    bool               m_bSRFallbackActive; // Sticky: set to true when InitializeWeaver fails (no LeiaSR runtime / no SR display / SR Service down). Once set, Output() renders plain Half SBS instead of attempting SR weave again.
 
     HRESULT InitializeWeaver(IDirect3DDevice9* pDevice, HWND hWnd, UINT width, UINT height);
     void    CleanupWeaver();
+    HRESULT OutputSBSFallback(CBaseSwapChain* pSwapChain);  // Plain Half SBS (two StretchRects into primary BB) — invoked when SR weave is unavailable
 };
 
 }
