@@ -45,6 +45,19 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 
 *Legend: ✅ **Working** = Stereo output activated and playable. ⚠️ **Partial** = Stereo activated but with issues (crash, wrong settings, shader problems). **Not loading** = Wrapper not activating. **Untested** = I haven't tested yet or don't have access to that game*
 
+### Nvidia 3D Vision "Direct Mode" Games 
+Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'Direct Mode'.
+
+| Game | API | Bits | Testing | Notes |
+|------|-----|------|--------|-------|
+| Hard Reset | DX9 | x86 | Untested | Only DX11 build released as of now. |
+| Hitman: Absolution | DX11 | x86 | ✅ Working | Game supports 3D Vision Direct Mode and HD3D. |
+| Oil Rush | OpenGL/DX9/DX11 | x86 | ✅ Working | DX11 output only. |
+| Tomb Raider (2013) | DX11 | x86 | ✅ Mostly Working | SR weave output not working, other 3D outputs working. Game supports 3D Vision Direct Mode and HD3D. |
+
+- **Excluded (Depth Map not loading, better support on HD3D):** *Battlefield 3*, *DiRT 2*, *DiRT 3*, *DiRT 3 Complete Edition*, *DiRT Showdown*, *DiRT Rally*, *F1 2010*, *F1 2011*, *F1 2012*, *F1 2013*, *GRID 2*, *GRID Autosport*.
+- **Excluded (Works on HD3D and 3D Vision Direct Mode, HD3D reccomended):** *World of Warcraft*. <sub>(Stereo3D removed in 2018 DX12 update)</sub>
+
 ### AMD HD3D Native Games
 
 | Game | API | Bits | Testing | Notes |
@@ -63,7 +76,6 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | F1 2013 | DX11 | x86 | Untested |  |
 | GRID 2 | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
 | GRID Autosport | DX11 | x86 | ⚠️ Partial | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>Only top half of Half SBS visible. |
-| Hitman: Absolution | DX11 | x86 | ⚠️ Partial | UI is correct, gameplay is the top half of the view-port. |
 | Sleeping Dogs | DX11 | x86 | ✅ Working |  |
 | Sleeping Dogs: Definitive Edition | DX11 | x64 | ✅ Working | Undocumented AMD HD3D support. |
 | Sniper Elite V2 | DX11 | x86 | ✅ Working | Color shifting when seperation increased.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
@@ -73,8 +85,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | Sniper Elite: Nazi Zombie Army 2 | DX11 | x86 | ✅ Working | Color shifting when seperation increased.<br>[Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
 | Zombie Army Trilogy | DX11 | x86 | ✅ Working | [Depth Map Reprojection](https://www.pcgamingwiki.com/wiki/Glossary:Native_3D#Depth_Map_Reprojection). |
 | Thief (2014) | DX11 | x86/x64| ✅ Working | Both x86 and x64 working. |
-| Tomb Raider (2013) | DX11 | x86 | ⚠️ Partial | Only top half view showing. Most stubborn HD3D game. |
 
+- **Excluded (Works on 3D Vision Direct Mode):** *Hitman: Absolution*, *Tomb Raider (2013)*.
 - **Excluded (Native SBS/TAB):** *Crysis 2*, *Crysis 3*, *Rise of the Tomb Raider*, *Shadwen*, *Two Worlds II*, *Trine 1*, *Trine 2*, *Trine 3*.
 - **Excluded (Online Ban Risk):** *World of Warcraft*. <sub>(Stereo3D removed in 2018 DX12 update)</sub>
 
@@ -405,29 +417,8 @@ Configure your output mode (Half Side-by-Side, Anaglyph, etc.) and any other set
 | American McGee's Alice (2011) | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
 | Dyad | OpenGL | x86 | ✕ | ❌ Not Working | Game is in mono. |
 
-### Nvidia 3D Vision "Direct Mode" Games 
-Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'Direct Mode'.
-
-| Game | API | Bits | iZ3D Profile | Testing | Notes |
-|------|-----|------|--------|-------|-------|
-| DiRT 2 | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| DiRT 3 | DX11 | x86  | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| DiRT 3 Complete Edition | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| DiRT Showdown | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| DiRT Rally | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| F1 2010 | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-| F1 2011 | DX11 | x86  | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-| F1 2012 | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-| F1 2013 | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-| GRID 2 | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br>O Game supports 3D Vision Direct Mode and HD3D. |
-| GRID Autosport | DX11 | x86 | ✕ | Untested | `hardware_settings_config.xml` needs `stereo enabled="true"`.<br> Game supports 3D Vision Direct Mode and HD3D. |
-| Hard Reset | DX9 | x86 | ✕ | Untested |  |
-| Hitman: Absolution | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-| Oil Rush | OpenGL/DX9/DX11 | x86 | ✕ | Untested |  |
-| Tomb Raider (2013) | DX11 | x86 | ✕ | Untested | Game supports 3D Vision Direct Mode and HD3D. |
-
-### Nvidia 3D Vision "Ready" Games 
-Games that use 3D Vision "Automatic Mode" stereo injection, but communicate with 3D vision with a ingame toggle, or built-in shader fixes. For our release, these use wiz3D's stereo injector instead, with the aim of making any shaders fixes they enable for 3D Vision compatible with our injector in the future.
+### Nvidia 3D Vision "Automatic Mode" Games 
+Games that used 3D Vision "Automatic Mode" driver stereo injection, but communicate with 3D vision with a ingame settings, built-in shader fixes, or config options. For our release, these use wiz3D's stereo injector instead, with the aim of making any shaders fixes and seperationa nd convergance sliders compatible with our injector in the future. Enable/disable settings should work currently.
 
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|------|--------|-------|-------|
