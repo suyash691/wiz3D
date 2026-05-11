@@ -69,6 +69,17 @@ static const wchar_t* const kFalseAlarmModules[] = {
     L"SPFILEQ.dll",
     L"drvstore.dll",
     L"EOSOVH-Win32-Shipping.dll",
+    // DimencoWeaving runs a VMware-backdoor hypervisor probe during SR
+    // runtime init (`IN EAX, DX` to port 0x5658 with EAX="VMXh"). That
+    // raises PRIV_INSTRUCTION which the SR SDK's own __try/__except
+    // catches and uses to decide "we're on bare metal." Sometimes a
+    // wrapping translator promotes it to an ACCESS_VIOLATION going
+    // through this VEH first — whitelist by module so we don't log a
+    // misleading fatal-dump for a working game. (PRIV_INSTRUCTION
+    // itself is already excluded explicitly in the case-statement
+    // above, but covers the AV-translation edge case here.)
+    L"DimencoWeaving32.dll",     // x86
+    L"DimencoWeaving.dll",       // x64
 };
 
 static bool IsKnownFalseAlarmModule(LPCWSTR fullPath)
@@ -96,6 +107,13 @@ static LONG CALLBACK VectoredCrashHandler(EXCEPTION_POINTERS* pExInfo)
     //     modes, xgetbv on older CPUs) for the same SEH-wrapped detection pattern.
     switch (code)
     {
+    // Explicit skip for benign probes — same as falling through to default,
+    // but spelled out so a future edit that adds a case for one of these
+    // codes (e.g. someone diagnosing a real PRIV crash) doesn't accidentally
+    // re-enable logging of the SR-runtime VMware-probe and lock up DllMain.
+    case EXCEPTION_PRIV_INSTRUCTION:        // DimencoWeaving hypervisor probe
+    case EXCEPTION_ILLEGAL_INSTRUCTION:     // CPU-feature probes (cpuid/xgetbv)
+        return EXCEPTION_CONTINUE_SEARCH;
     case EXCEPTION_ACCESS_VIOLATION:
     case EXCEPTION_STACK_OVERFLOW:
     case EXCEPTION_INT_DIVIDE_BY_ZERO:
@@ -105,7 +123,7 @@ static LONG CALLBACK VectoredCrashHandler(EXCEPTION_POINTERS* pExInfo)
     case EXCEPTION_FLT_INVALID_OPERATION:
         break; // log these
     default:
-        return EXCEPTION_CONTINUE_SEARCH; // skip PRIV/ILLEGAL/C++/breakpoints
+        return EXCEPTION_CONTINUE_SEARCH; // skip C++/breakpoints/other benign
     }
 
     // Identify the faulting module FIRST — needed both for the false-alarm
