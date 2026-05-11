@@ -679,11 +679,14 @@ static bool IsSRIncompatibleExe()
     wchar_t exePath[MAX_PATH] = {};
     if (!GetModuleFileNameW(nullptr, exePath, MAX_PATH)) return false;
     for (wchar_t* p = exePath; *p; ++p) *p = (wchar_t)towlower(*p);
+    // Empty — TR2013 used to be here; the two-step weaver init in
+    // EnsureSRWeaver (NULL hWnd at construction + setWindowHandle after)
+    // sidesteps the cohabitation crash that put TR on the list originally.
     static const wchar_t* const kBlacklist[] = {
-        L"tombraider.exe",   // TR2013: SR runtime cohabitation crashes the game
+        nullptr,
     };
     for (auto entry : kBlacklist)
-        if (wcsstr(exePath, entry)) return true;
+        if (entry && wcsstr(exePath, entry)) return true;
     return false;
 }
 
@@ -821,8 +824,13 @@ bool SwapChainProxy::EnsureSRWeaver()
         return false;
     }
 
+    // Two-step weaver init: create with NULL hWnd, then setWindowHandle()
+    // separately. Constructor-time HWND wiring crashes some games where
+    // 3rd-party DLLs (EOSOVH and friends) hook the resulting window-init
+    // path; deferring the HWND wire breaks the chain. Functionally
+    // equivalent to single-step for games that don't trip the issue.
     SR::IDX11Weaver1* weaver = nullptr;
-    WeaverErrorCode res = SR::CreateDX11Weaver(ctx, immCtx, hWnd, &weaver);
+    WeaverErrorCode res = SR::CreateDX11Weaver(ctx, immCtx, nullptr, &weaver);
     immCtx->Release();
     if (res != WeaverSuccess || !weaver)
     {
@@ -832,6 +840,7 @@ bool SwapChainProxy::EnsureSRWeaver()
         m_srBlacklistedOrFailed = true;
         return false;
     }
+    weaver->setWindowHandle(hWnd);
 
     ctx->initialize();
 

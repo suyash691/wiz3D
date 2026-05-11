@@ -508,11 +508,13 @@ static bool IsSRIncompatibleExe()
     wchar_t exePath[MAX_PATH] = {};
     if (!GetModuleFileNameW(nullptr, exePath, MAX_PATH)) return false;
     for (wchar_t* p = exePath; *p; ++p) *p = (wchar_t)towlower(*p);
+    // Empty — kept aligned with d3d11's list. See d3d11 SwapChainProxy.cpp
+    // for the two-step weaver init that obsoletes the TR2013 entry.
     static const wchar_t* const kBlacklist[] = {
-        L"tombraider.exe",   // TR2013 — see d3d11 SwapChainProxy.cpp for rationale
+        nullptr,
     };
     for (auto entry : kBlacklist)
-        if (wcsstr(exePath, entry)) return true;
+        if (entry && wcsstr(exePath, entry)) return true;
     return false;
 }
 
@@ -652,8 +654,9 @@ bool SwapChainProxy::EnsureSRWeaver()
         return false;
     }
 
+    // Two-step weaver init — see d3d11 EnsureSRWeaver for rationale.
     SR::IDX10Weaver1* weaver = nullptr;
-    WeaverErrorCode res = SR::CreateDX10Weaver(ctx, dev, hWnd, &weaver);
+    WeaverErrorCode res = SR::CreateDX10Weaver(ctx, dev, nullptr, &weaver);
     if (res != WeaverSuccess || !weaver)
     {
         LOG_VERBOSE("  d3d10 EnsureSRWeaver: CreateDX10Weaver failed (err=%d hWnd=%p dev=%p)\n",
@@ -662,6 +665,7 @@ bool SwapChainProxy::EnsureSRWeaver()
         m_srBlacklistedOrFailed = true;
         return false;
     }
+    weaver->setWindowHandle(hWnd);
 
     ctx->initialize();
 

@@ -518,11 +518,13 @@ static bool IsSRIncompatibleExe()
     wchar_t exePath[MAX_PATH] = {};
     if (!GetModuleFileNameW(nullptr, exePath, MAX_PATH)) return false;
     for (wchar_t* p = exePath; *p; ++p) *p = (wchar_t)towlower(*p);
+    // Empty — see d3d11 SwapChainProxy.cpp for the two-step weaver init
+    // that obsoletes the previous TR2013 entry.
     static const wchar_t* const kBlacklist[] = {
-        L"tombraider.exe",   // TR2013 (DX9 mode also exists) — see project_tr2013_sr_dead_end memory
+        nullptr,
     };
     for (auto entry : kBlacklist)
-        if (wcsstr(exePath, entry)) return true;
+        if (entry && wcsstr(exePath, entry)) return true;
     return false;
 }
 
@@ -664,8 +666,9 @@ bool Device9Proxy::EnsureSRWeaver()
         }
     }
 
+    // Two-step weaver init — see d3d11 EnsureSRWeaver for rationale.
     SR::IDX9Weaver1* weaver = nullptr;
-    WeaverErrorCode res = SR::CreateDX9Weaver(ctx, m_real, hWnd, &weaver);
+    WeaverErrorCode res = SR::CreateDX9Weaver(ctx, m_real, nullptr, &weaver);
     if (res != WeaverSuccess || !weaver)
     {
         LOG_VERBOSE("  d3d9 EnsureSRWeaver: CreateDX9Weaver failed (err=%d hWnd=%p dev=%p)\n",
@@ -674,6 +677,7 @@ bool Device9Proxy::EnsureSRWeaver()
         m_srBlacklistedOrFailed = true;
         return false;
     }
+    weaver->setWindowHandle(hWnd);
 
     ctx->initialize();
 

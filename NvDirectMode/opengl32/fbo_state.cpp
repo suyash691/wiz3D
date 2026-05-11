@@ -592,10 +592,11 @@ static bool EnsureSRWeaver()
     HDC  hdc  = s_pWglGetCurrentDC ? s_pWglGetCurrentDC() : nullptr;
     HWND hWnd = hdc ? WindowFromDC(hdc) : nullptr;
 
-    SR::IGLWeaver1* weaver = nullptr;
+    // Two-step weaver init — see d3d11 EnsureSRWeaver for rationale.
     // NOTE: CreateGLWeaver takes SRContext by reference, NOT pointer
     // (unlike the DX variants — caught the hard way by mirroring DX10).
-    WeaverErrorCode res = SR::CreateGLWeaver(*ctx, hWnd, &weaver);
+    SR::IGLWeaver1* weaver = nullptr;
+    WeaverErrorCode res = SR::CreateGLWeaver(*ctx, nullptr, &weaver);
     if (res != WeaverSuccess || !weaver)
     {
         NvDM_Log("  opengl32 EnsureSRWeaver: CreateGLWeaver failed (err=%d hWnd=%p)\n",
@@ -604,6 +605,7 @@ static bool EnsureSRWeaver()
         g_sr.blacklistedOrFailed = true;
         return false;
     }
+    weaver->setWindowHandle(hWnd);
 
     ctx->initialize();
 
