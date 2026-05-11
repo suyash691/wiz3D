@@ -193,8 +193,31 @@ private:
     IDirect3DSurface9*   m_leftEyeSurf;
     IDirect3DSurface9*   m_rightEyeSurf;
 
+    // OutputMode 4-7 shader pipeline (Line/Col Interleaved, Checkerboard,
+    // Anaglyph). DX9 doesn't have shader infrastructure on the eye-capture
+    // path natively — we add a parallel set of textures that get populated
+    // from the eye SURFACES via StretchRect right before the shader pass,
+    // then sampled in a fullscreen-quad draw to the real BB.
+    //
+    // Modes 0-3 (SBS/TB) keep using the original StretchRect-only composite —
+    // cheaper, no shader compile dependency, well-tested.
+    IDirect3DTexture9*       m_leftEyeTex;
+    IDirect3DTexture9*       m_rightEyeTex;
+    IDirect3DVertexShader9*  m_compositeVS;
+    IDirect3DPixelShader9*   m_compositePS_Line;
+    IDirect3DPixelShader9*   m_compositePS_Col;
+    IDirect3DPixelShader9*   m_compositePS_Checker;
+    IDirect3DPixelShader9*   m_compositePS_Anaglyph;
+    IDirect3DVertexBuffer9*  m_compositeVB;             // fullscreen-quad VB (3 verts)
+    IDirect3DVertexDeclaration9* m_compositeDecl;       // POSITION + TEX0
+    bool                     m_shadersFailed;           // set to true on first compile/create failure; never retries
+
     void EnsureShadow();
     void ReleaseShadow();
+    void ReleaseShaderPipeline();
+    bool EnsureShaderPipeline();
+    bool RunShaderComposite(int mode);
+    void UpdateAnaglyphConsts();
     void CompositeAndPresent();   // called at Present before forwarding
 };
 

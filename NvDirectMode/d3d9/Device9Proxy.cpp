@@ -10,6 +10,14 @@
 #include "swapchain_helpers.h"
 #include "eye_state.h"
 #include "log.h"
+#include "../anaglyph_matrices.h"
+
+#include <d3dcommon.h>
+#include <string.h>
+
+extern "C" int NvDM_OutputMode();
+extern "C" int NvDM_AnaglyphColour();
+extern "C" int NvDM_AnaglyphMethod();
 
 namespace NvDirectMode
 {
@@ -49,6 +57,16 @@ Device9Proxy::Device9Proxy(IDirect3DDevice9* real, bool isEx)
     , m_shadowBB(nullptr)
     , m_leftEyeSurf(nullptr)
     , m_rightEyeSurf(nullptr)
+    , m_leftEyeTex(nullptr)
+    , m_rightEyeTex(nullptr)
+    , m_compositeVS(nullptr)
+    , m_compositePS_Line(nullptr)
+    , m_compositePS_Col(nullptr)
+    , m_compositePS_Checker(nullptr)
+    , m_compositePS_Anaglyph(nullptr)
+    , m_compositeVB(nullptr)
+    , m_compositeDecl(nullptr)
+    , m_shadersFailed(false)
 {
     EnsurePrimaryLock();
     EnterCriticalSection(&g_primaryLock);
@@ -64,6 +82,7 @@ Device9Proxy::~Device9Proxy()
     if (g_primaryDevice == this) g_primaryDevice = nullptr;
     LeaveCriticalSection(&g_primaryLock);
 
+    ReleaseShaderPipeline();
     ReleaseShadow();
     ReleaseBackBufferReference();
 }
@@ -73,6 +92,19 @@ void Device9Proxy::ReleaseShadow()
     if (m_shadowBB)     { m_shadowBB->Release();     m_shadowBB = nullptr; }
     if (m_leftEyeSurf)  { m_leftEyeSurf->Release();  m_leftEyeSurf = nullptr; }
     if (m_rightEyeSurf) { m_rightEyeSurf->Release(); m_rightEyeSurf = nullptr; }
+    if (m_leftEyeTex)   { m_leftEyeTex->Release();   m_leftEyeTex = nullptr; }
+    if (m_rightEyeTex)  { m_rightEyeTex->Release();  m_rightEyeTex = nullptr; }
+}
+
+void Device9Proxy::ReleaseShaderPipeline()
+{
+    if (m_compositeDecl)        { m_compositeDecl->Release();        m_compositeDecl = nullptr; }
+    if (m_compositeVB)          { m_compositeVB->Release();          m_compositeVB = nullptr; }
+    if (m_compositePS_Anaglyph) { m_compositePS_Anaglyph->Release(); m_compositePS_Anaglyph = nullptr; }
+    if (m_compositePS_Checker)  { m_compositePS_Checker->Release();  m_compositePS_Checker = nullptr; }
+    if (m_compositePS_Col)      { m_compositePS_Col->Release();      m_compositePS_Col = nullptr; }
+    if (m_compositePS_Line)     { m_compositePS_Line->Release();     m_compositePS_Line = nullptr; }
+    if (m_compositeVS)          { m_compositeVS->Release();          m_compositeVS = nullptr; }
 }
 
 void Device9Proxy::EnsureShadow()
@@ -125,6 +157,317 @@ void Device9Proxy::CaptureEye(int eyeBeingLeft)
                        eyeBeingLeft, m_shadowBB, *slot);
 }
 
+// ---------------------------------------------------------------------------
+// OutputMode 4-7 shader pipeline (Line/Col Interleaved, Checkerboard, Anaglyph)
+//
+// DX9 doesn't naturally have a shader composite path on this proxy — the
+// existing modes 0-3 use StretchRect surface→surface, no shaders involved.
+// For modes 4-7 we lazily compile vs_3_0 + ps_3_0 HLSL via D3DCompile from
+// d3dcompiler_47.dll, and run a fullscreen-triangle draw to the real BB
+// sampling each eye texture per-pixel.
+//
+// Eye storage is the same surfaces as before (m_leftEyeSurf etc.) — we
+// allocate matching textures (m_leftEyeTex / m_rightEyeTex) on demand and
+// StretchRect surface→texture-level0 right before the shader pass. Costs
+// one extra GPU copy per eye per frame in shader modes; trivial at the
+// resolutions DX9 games run at.
+//
+// Modes 0-3 fall through to the original StretchRect path below — no
+// shader compile required, no risk of breaking working titles.
+// ---------------------------------------------------------------------------
+namespace
+{
+    typedef HRESULT (WINAPI *PFN_D3DCompile)(
+        LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName,
+        const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude,
+        LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2,
+        ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
+
+    PFN_D3DCompile g_pfnD3DCompile_dx9 = nullptr;
+    volatile LONG  g_compileResolved   = 0;
+
+    bool EnsureD3DCompile()
+    {
+        if (g_pfnD3DCompile_dx9) return true;
+        if (InterlockedCompareExchange(&g_compileResolved, 1, 0) != 0)
+            return g_pfnD3DCompile_dx9 != nullptr;
+        HMODULE h = LoadLibraryW(L"d3dcompiler_47.dll");
+        if (!h) h = LoadLibraryW(L"d3dcompiler_46.dll");
+        if (!h) h = LoadLibraryW(L"d3dcompiler_43.dll");
+        if (!h) return false;
+        g_pfnD3DCompile_dx9 = (PFN_D3DCompile)GetProcAddress(h, "D3DCompile");
+        return g_pfnD3DCompile_dx9 != nullptr;
+    }
+
+    // Vertex shader: writes a fullscreen triangle straight into clip space.
+    // Half-pixel offset (-0.5/W, +0.5/H in clip space ≈ +0.5 pixel) keeps
+    // pixel sample centres aligned with texel centres on DX9's "pixel
+    // origin top-left, sample at top-left" convention.
+    const char kCompositeVS_DX9[] =
+        "struct VSI { float2 pos : POSITION; float2 uv : TEXCOORD0; };\n"
+        "struct VSO { float4 pos : POSITION; float2 uv : TEXCOORD0; };\n"
+        "VSO main(VSI i) { VSO o; o.pos = float4(i.pos, 0, 1); o.uv = i.uv; return o; }\n";
+
+    // PS_3_0 has VPOS register giving screen pixel coords — perfect for
+    // the interleaved/checker patterns. uv comes from VS for texture sampling.
+    const char kCompositePS_Line_DX9[] =
+        "sampler leftS  : register(s0);\n"
+        "sampler rightS : register(s1);\n"
+        "float4 main(float4 vPos : VPOS, float2 uv : TEXCOORD0) : COLOR {\n"
+        "  float4 L = tex2D(leftS,  uv);\n"
+        "  float4 R = tex2D(rightS, uv);\n"
+        "  float ev = fmod(floor(vPos.y), 2);\n"
+        "  return ev < 1 ? L : R;\n"
+        "}\n";
+
+    const char kCompositePS_Col_DX9[] =
+        "sampler leftS  : register(s0);\n"
+        "sampler rightS : register(s1);\n"
+        "float4 main(float4 vPos : VPOS, float2 uv : TEXCOORD0) : COLOR {\n"
+        "  float4 L = tex2D(leftS,  uv);\n"
+        "  float4 R = tex2D(rightS, uv);\n"
+        "  float ev = fmod(floor(vPos.x), 2);\n"
+        "  return ev < 1 ? L : R;\n"
+        "}\n";
+
+    const char kCompositePS_Checker_DX9[] =
+        "sampler leftS  : register(s0);\n"
+        "sampler rightS : register(s1);\n"
+        "float4 main(float4 vPos : VPOS, float2 uv : TEXCOORD0) : COLOR {\n"
+        "  float4 L = tex2D(leftS,  uv);\n"
+        "  float4 R = tex2D(rightS, uv);\n"
+        "  float ev = fmod(floor(vPos.x) + floor(vPos.y), 2);\n"
+        "  return ev < 1 ? L : R;\n"
+        "}\n";
+
+    // Anaglyph: 6 PS constants (c0..c5) carry the colour-method matrix rows
+    // (xyz used; w padded). SetPixelShaderConstantF uploads 6 float4s from
+    // UpdateAnaglyphConsts() at composite time.
+    const char kCompositePS_Anaglyph_DX9[] =
+        "sampler leftS  : register(s0);\n"
+        "sampler rightS : register(s1);\n"
+        "float4 lR : register(c0);\n"
+        "float4 lG : register(c1);\n"
+        "float4 lB : register(c2);\n"
+        "float4 rR : register(c3);\n"
+        "float4 rG : register(c4);\n"
+        "float4 rB : register(c5);\n"
+        "float4 main(float4 vPos : VPOS, float2 uv : TEXCOORD0) : COLOR {\n"
+        "  float3 L = tex2D(leftS,  uv).rgb;\n"
+        "  float3 R = tex2D(rightS, uv).rgb;\n"
+        "  float3 a;\n"
+        "  a.r = dot(lR.xyz, L) + dot(rR.xyz, R);\n"
+        "  a.g = dot(lG.xyz, L) + dot(rG.xyz, R);\n"
+        "  a.b = dot(lB.xyz, L) + dot(rB.xyz, R);\n"
+        "  return float4(saturate(a), 1);\n"
+        "}\n";
+
+    bool CompilePS(const char* src, size_t len, const char* tag,
+                   IDirect3DDevice9* dev, IDirect3DPixelShader9** out)
+    {
+        if (!g_pfnD3DCompile_dx9 || !dev) return false;
+        ID3DBlob* code = nullptr;
+        ID3DBlob* err  = nullptr;
+        HRESULT hr = g_pfnD3DCompile_dx9(src, len, tag, nullptr, nullptr,
+                                         "main", "ps_3_0", 0, 0, &code, &err);
+        if (err) { err->Release(); err = nullptr; }
+        if (FAILED(hr) || !code) { LOG_VERBOSE("  d3d9 CompilePS(%s) FAILED hr=0x%08lX\n", tag, hr); return false; }
+        hr = dev->CreatePixelShader(static_cast<const DWORD*>(code->GetBufferPointer()), out);
+        code->Release();
+        return SUCCEEDED(hr) && *out;
+    }
+} // anonymous namespace
+
+bool Device9Proxy::EnsureShaderPipeline()
+{
+    if (m_shadersFailed) return false;
+    if (m_compositeVS && m_compositePS_Line && m_compositePS_Col &&
+        m_compositePS_Checker && m_compositePS_Anaglyph &&
+        m_compositeVB && m_compositeDecl) return true;
+    if (!m_real || !EnsureD3DCompile()) { m_shadersFailed = true; return false; }
+
+    // Vertex declaration: POSITION (float2) + TEXCOORD0 (float2). 16 bytes.
+    if (!m_compositeDecl)
+    {
+        D3DVERTEXELEMENT9 elems[] = {
+            { 0, 0, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_POSITION,  0 },
+            { 0, 8, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT, D3DDECLUSAGE_TEXCOORD,  0 },
+            D3DDECL_END()
+        };
+        if (FAILED(m_real->CreateVertexDeclaration(elems, &m_compositeDecl)))
+        { m_shadersFailed = true; return false; }
+    }
+
+    if (!m_compositeVB)
+    {
+        // Fullscreen triangle (covers [-1,1]^2 with one extra triangle clipped).
+        // 3 verts × 16 bytes each.
+        struct V { float x, y, u, v; };
+        const V verts[3] = {
+            { -1.0f,  3.0f, 0.0f, -1.0f },   // top-left of an oversized triangle
+            { -1.0f, -1.0f, 0.0f,  1.0f },   // bottom-left
+            {  3.0f, -1.0f, 2.0f,  1.0f },   // bottom-right
+        };
+        if (FAILED(m_real->CreateVertexBuffer(sizeof(verts), 0, 0, D3DPOOL_DEFAULT,
+                                              &m_compositeVB, nullptr)))
+        { m_shadersFailed = true; return false; }
+        void* p = nullptr;
+        if (FAILED(m_compositeVB->Lock(0, sizeof(verts), &p, 0)) || !p)
+        { m_shadersFailed = true; return false; }
+        memcpy(p, verts, sizeof(verts));
+        m_compositeVB->Unlock();
+    }
+
+    if (!m_compositeVS)
+    {
+        ID3DBlob* code = nullptr;
+        ID3DBlob* err  = nullptr;
+        HRESULT hr = g_pfnD3DCompile_dx9(kCompositeVS_DX9, sizeof(kCompositeVS_DX9) - 1,
+                                          "vs", nullptr, nullptr,
+                                          "main", "vs_3_0", 0, 0, &code, &err);
+        if (err) err->Release();
+        if (FAILED(hr) || !code) { m_shadersFailed = true; return false; }
+        hr = m_real->CreateVertexShader(static_cast<const DWORD*>(code->GetBufferPointer()),
+                                         &m_compositeVS);
+        code->Release();
+        if (FAILED(hr)) { m_shadersFailed = true; return false; }
+    }
+
+    bool ok = true;
+    if (!m_compositePS_Line)
+        ok = ok && CompilePS(kCompositePS_Line_DX9,    sizeof(kCompositePS_Line_DX9)    - 1, "ps_line",     m_real, &m_compositePS_Line);
+    if (!m_compositePS_Col)
+        ok = ok && CompilePS(kCompositePS_Col_DX9,     sizeof(kCompositePS_Col_DX9)     - 1, "ps_col",      m_real, &m_compositePS_Col);
+    if (!m_compositePS_Checker)
+        ok = ok && CompilePS(kCompositePS_Checker_DX9, sizeof(kCompositePS_Checker_DX9) - 1, "ps_checker",  m_real, &m_compositePS_Checker);
+    if (!m_compositePS_Anaglyph)
+        ok = ok && CompilePS(kCompositePS_Anaglyph_DX9,sizeof(kCompositePS_Anaglyph_DX9)- 1, "ps_anaglyph", m_real, &m_compositePS_Anaglyph);
+    if (!ok) { m_shadersFailed = true; return false; }
+
+    LOG_VERBOSE("  d3d9 EnsureShaderPipeline: OK\n");
+    return true;
+}
+
+void Device9Proxy::UpdateAnaglyphConsts()
+{
+    if (!m_real) return;
+    int colour = NvDM_AnaglyphColour();
+    int method = NvDM_AnaglyphMethod();
+    if (colour < 0 || colour > 2) colour = 0;
+    if (method < 0 || method > 6) method = 0;
+    const NvDirectMode::AnaglyphMatrix& m = NvDirectMode::kAnaglyphMatrices[colour][method];
+    const float* rows[6] = { m.lR, m.lG, m.lB, m.rR, m.rG, m.rB };
+    float buf[6 * 4];
+    for (int i = 0; i < 6; ++i)
+    {
+        buf[i * 4 + 0] = rows[i][0];
+        buf[i * 4 + 1] = rows[i][1];
+        buf[i * 4 + 2] = rows[i][2];
+        buf[i * 4 + 3] = 0.0f;
+    }
+    m_real->SetPixelShaderConstantF(0, buf, 6);
+}
+
+bool Device9Proxy::RunShaderComposite(int mode)
+{
+    if (!EnsureShaderPipeline()) return false;
+    if (!m_pTrackedBackBuffer || !m_leftEyeSurf || !m_rightEyeSurf) return false;
+
+    // Allocate the eye textures lazily (matching format/size to shadow).
+    D3DSURFACE_DESC bbDesc = {};
+    if (FAILED(m_pTrackedBackBuffer->GetDesc(&bbDesc))) return false;
+    D3DSURFACE_DESC eyeDesc = {};
+    m_leftEyeSurf->GetDesc(&eyeDesc);
+    if (!m_leftEyeTex)
+    {
+        if (FAILED(m_real->CreateTexture(eyeDesc.Width, eyeDesc.Height, 1,
+                                          D3DUSAGE_RENDERTARGET, eyeDesc.Format,
+                                          D3DPOOL_DEFAULT, &m_leftEyeTex, nullptr)))
+            return false;
+    }
+    if (!m_rightEyeTex)
+    {
+        if (FAILED(m_real->CreateTexture(eyeDesc.Width, eyeDesc.Height, 1,
+                                          D3DUSAGE_RENDERTARGET, eyeDesc.Format,
+                                          D3DPOOL_DEFAULT, &m_rightEyeTex, nullptr)))
+            return false;
+    }
+
+    // Stretch each eye SURFACE -> matching TEXTURE level 0 so the shader can
+    // sample. Cheap GPU copy; saves us re-architecting eye storage.
+    bool swap = NvDM_SwapEyes() != 0;
+    IDirect3DSurface9* srcLeft  = swap ? m_rightEyeSurf : m_leftEyeSurf;
+    IDirect3DSurface9* srcRight = swap ? m_leftEyeSurf  : m_rightEyeSurf;
+    IDirect3DSurface9* dstLeft  = nullptr;
+    IDirect3DSurface9* dstRight = nullptr;
+    m_leftEyeTex->GetSurfaceLevel(0, &dstLeft);
+    m_rightEyeTex->GetSurfaceLevel(0, &dstRight);
+    if (!dstLeft || !dstRight)
+    { if (dstLeft) dstLeft->Release(); if (dstRight) dstRight->Release(); return false; }
+    m_real->StretchRect(srcLeft,  nullptr, dstLeft,  nullptr, D3DTEXF_NONE);
+    m_real->StretchRect(srcRight, nullptr, dstRight, nullptr, D3DTEXF_NONE);
+    dstLeft->Release();
+    dstRight->Release();
+
+    // Save-and-restore the game's render state. Game's next frame rebinds
+    // most of its pipeline anyway, but a state block protects against any
+    // sticky state surviving (samplers, vertex decl, render targets).
+    IDirect3DStateBlock9* sb = nullptr;
+    if (FAILED(m_real->CreateStateBlock(D3DSBT_ALL, &sb)) || !sb) return false;
+
+    IDirect3DPixelShader9* ps = m_compositePS_Line;
+    bool needsAnaglyph = false;
+    switch (mode)
+    {
+        case 4: ps = m_compositePS_Line;     break;
+        case 5: ps = m_compositePS_Col;      break;
+        case 6: ps = m_compositePS_Checker;  break;
+        case 7: ps = m_compositePS_Anaglyph; needsAnaglyph = true; break;
+        default: sb->Release(); return false;
+    }
+
+    m_real->SetRenderTarget(0, m_pTrackedBackBuffer);
+    m_real->SetDepthStencilSurface(nullptr);
+
+    // Set viewport to full real BB.
+    D3DVIEWPORT9 vp = { 0, 0, bbDesc.Width, bbDesc.Height, 0.0f, 1.0f };
+    m_real->SetViewport(&vp);
+
+    m_real->SetVertexDeclaration(m_compositeDecl);
+    m_real->SetStreamSource(0, m_compositeVB, 0, sizeof(float) * 4);
+    m_real->SetVertexShader(m_compositeVS);
+    m_real->SetPixelShader(ps);
+    m_real->SetTexture(0, m_leftEyeTex);
+    m_real->SetTexture(1, m_rightEyeTex);
+    // Point sampling for interleaved/checker (avoids row blending);
+    // linear is fine for anaglyph.
+    DWORD samplerFilter = (mode == 7) ? D3DTEXF_LINEAR : D3DTEXF_POINT;
+    m_real->SetSamplerState(0, D3DSAMP_MINFILTER, samplerFilter);
+    m_real->SetSamplerState(0, D3DSAMP_MAGFILTER, samplerFilter);
+    m_real->SetSamplerState(1, D3DSAMP_MINFILTER, samplerFilter);
+    m_real->SetSamplerState(1, D3DSAMP_MAGFILTER, samplerFilter);
+    m_real->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    m_real->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+    m_real->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    m_real->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+    m_real->SetRenderState(D3DRS_ZENABLE,        FALSE);
+    m_real->SetRenderState(D3DRS_ZWRITEENABLE,   FALSE);
+    m_real->SetRenderState(D3DRS_CULLMODE,       D3DCULL_NONE);
+    m_real->SetRenderState(D3DRS_LIGHTING,       FALSE);
+    m_real->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+    m_real->SetRenderState(D3DRS_COLORWRITEENABLE, 0xF);
+
+    if (needsAnaglyph) UpdateAnaglyphConsts();
+
+    m_real->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+
+    sb->Apply();
+    sb->Release();
+    NVDM_TRACE_FIRST_N(2, "  d3d9 RunShaderComposite: mode=%d -> realBB=%p\n",
+                       mode, (void*)m_pTrackedBackBuffer);
+    return true;
+}
+
 void Device9Proxy::CompositeAndPresent()
 {
     if (!m_real || !m_pTrackedBackBuffer) return;
@@ -132,6 +475,14 @@ void Device9Proxy::CompositeAndPresent()
     int currentEye = NvDirectMode::GetActiveEye();
     if (currentEye == NvDirectMode::kEyeLeft || currentEye == NvDirectMode::kEyeRight)
         CaptureEye(currentEye);
+
+    // OutputMode 4-7: shader composite (Line/Col Interleaved, Checker, Anaglyph).
+    // Falls through to the legacy StretchRect path below if shaders aren't
+    // available (no d3dcompiler, runtime compile failure, etc.).
+    int mode = NvDM_OutputMode();
+    if (mode >= 4 && mode <= 7 && m_leftEyeSurf && m_rightEyeSurf &&
+        RunShaderComposite(mode))
+        return;
 
     bool topBottom = NvDM_OutputIsTopBottom() != 0;
     bool swap      = NvDM_SwapEyes() != 0;

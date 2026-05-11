@@ -33,6 +33,8 @@ static int   g_swapEyes       = 0;
 static int   g_wrapDevices    = 1;
 static int   g_outputMode     = 1;
 static int   g_useLayoutStable = 0;   // 0=off  1=IDirect3D9 vtable patch (task #61)  2=+IDirect3DDevice9 vtable patch (task #68)
+static int   g_anaglyphColour  = 0;   // 0=RC (default), 1=GM, 2=AB
+static int   g_anaglyphMethod  = 0;   // 0=Dubois (default), 1=Compromise, 2=Color, 3=HalfColor, 4=Optimised, 5=Grey, 6=True
 
 static void LogOpen(void)
 {
@@ -73,6 +75,8 @@ extern "C" int NvDM_SwapEyes()       { return g_swapEyes; }
 extern "C" int NvDM_OutputMode()     { return g_outputMode; }
 extern "C" int NvDM_OutputIsTopBottom() { return (g_outputMode == 0 || g_outputMode == 3) ? 1 : 0; }
 extern "C" int NvDM_UseLayoutStableLevel() { return g_useLayoutStable; }
+extern "C" int NvDM_AnaglyphColour() { return g_anaglyphColour; }
+extern "C" int NvDM_AnaglyphMethod() { return g_anaglyphMethod; }
 
 static int ReadConfigInt(const char* xml, const char* tag, int defaultValue)
 {
@@ -107,7 +111,9 @@ static void LoadConfig(HMODULE hProxy)
     g_swapEyes       = ReadConfigInt(buf, "SwapEyes",       g_swapEyes);
     g_wrapDevices     = ReadConfigInt(buf, "WrapDevices",         g_wrapDevices);
     g_useLayoutStable = ReadConfigInt(buf, "UseLayoutStableProxy", g_useLayoutStable);
-    g_outputMode     = ReadConfigInt(buf, "OutputMode",     g_outputMode);
+    g_outputMode      = ReadConfigInt(buf, "OutputMode",      g_outputMode);
+    g_anaglyphColour  = ReadConfigInt(buf, "AnaglyphColour",  g_anaglyphColour);
+    g_anaglyphMethod  = ReadConfigInt(buf, "AnaglyphMethod",  g_anaglyphMethod);
     free(buf);
 }
 
