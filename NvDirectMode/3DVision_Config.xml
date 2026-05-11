@@ -78,12 +78,19 @@
                                         AnaglyphMethod below to pick filter
                                         colour and ghosting-suppression style.
              8 = Simulated Reality    — Leia / Samsung Odyssey moving-lightfield
-                                        weave. NOT YET IMPLEMENTED in DX11 wrap;
-                                        currently falls back to mode 1 (SBS).
-                                        Will use the LeiaSR runtime when wired.
+                                        weave. Implemented for DX11; falls back
+                                        to SBS automatically on systems without
+                                        the LeiaSR runtime installed (delay-load
+                                        catches MOD_NOT_FOUND, ServerNot-
+                                        Available exceptions, and per-game SR-
+                                        incompatible exe blacklist). DX9/DX10/
+                                        OpenGL: not yet wired — silently falls
+                                        back to SBS. Tracking the rest in task
+                                        #74 follow-ups.
 
              Default: 1 (Half SBS) — broadly supported, works on all stereo
-             displays we've tested. -->
+             displays we've tested. Change to 8 if you have an SR/Leia/Odyssey
+             3D-screen and want the weave path. -->
         <OutputMode Value="1"/>
 
         <!-- AnaglyphColour: glasses filter colour pair (only used when
