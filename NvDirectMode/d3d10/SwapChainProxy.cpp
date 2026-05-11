@@ -2,6 +2,7 @@
 #include "Device10Proxy.h"
 #include "eye_state.h"
 #include "log.h"
+#include "../anaglyph_matrices.h"
 
 #include <d3dcommon.h>
 #include <string.h>
@@ -10,6 +11,9 @@
 
 extern "C" int NvDM_OutputIsTopBottom();
 extern "C" int NvDM_SwapEyes();
+extern "C" int NvDM_OutputMode();
+extern "C" int NvDM_AnaglyphColour();
+extern "C" int NvDM_AnaglyphMethod();
 
 // ---------------------------------------------------------------------------
 // d3dcompiler resolver + composite shader source (same shaders as d3d11;
@@ -72,6 +76,62 @@ const char kCompositePS_TB[] =
     "    return rightTex.Sample(sLinear, float2(i.uv.x, (i.uv.y - 0.5) * 2.0));\n"
     "}\n";
 
+// OutputMode 4 — Line/Row Interleaved
+const char kCompositePS_LineInterleaved[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sPoint : register(s0);\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  float4 L = leftTex.Sample(sPoint, i.uv);\n"
+    "  float4 R = rightTex.Sample(sPoint, i.uv);\n"
+    "  bool ev = fmod(floor(i.pos.y), 2) < 1;\n"
+    "  return ev ? L : R;\n"
+    "}\n";
+
+// OutputMode 5 — Column Interleaved
+const char kCompositePS_ColInterleaved[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sPoint : register(s0);\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  float4 L = leftTex.Sample(sPoint, i.uv);\n"
+    "  float4 R = rightTex.Sample(sPoint, i.uv);\n"
+    "  bool ev = fmod(floor(i.pos.x), 2) < 1;\n"
+    "  return ev ? L : R;\n"
+    "}\n";
+
+// OutputMode 6 — Checkerboard
+const char kCompositePS_Checkerboard[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sPoint : register(s0);\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  float4 L = leftTex.Sample(sPoint, i.uv);\n"
+    "  float4 R = rightTex.Sample(sPoint, i.uv);\n"
+    "  bool ev = fmod(floor(i.pos.x) + floor(i.pos.y), 2) < 1;\n"
+    "  return ev ? L : R;\n"
+    "}\n";
+
+// OutputMode 7 — Anaglyph (matrix coefficients in CB slot b2)
+const char kCompositePS_Anaglyph[] =
+    "Texture2D leftTex  : register(t0);\n"
+    "Texture2D rightTex : register(t1);\n"
+    "SamplerState sLinear : register(s0);\n"
+    "cbuffer ACB : register(b2) { float4 lR; float4 lG; float4 lB; float4 rR; float4 rG; float4 rB; };\n"
+    "struct VS_OUT { float4 pos : SV_Position; float2 uv : TEXCOORD0; };\n"
+    "float4 main(VS_OUT i) : SV_Target {\n"
+    "  float3 L = leftTex.Sample(sLinear, i.uv).rgb;\n"
+    "  float3 R = rightTex.Sample(sLinear, i.uv).rgb;\n"
+    "  float3 a;\n"
+    "  a.r = dot(lR.xyz, L) + dot(rR.xyz, R);\n"
+    "  a.g = dot(lG.xyz, L) + dot(rG.xyz, R);\n"
+    "  a.b = dot(lB.xyz, L) + dot(rB.xyz, R);\n"
+    "  return float4(saturate(a), 1.0);\n"
+    "}\n";
+
 bool CompileShader(const char* src, size_t len, const char* tag, const char* target, ID3DBlob** out)
 {
     if (!g_pfnD3DCompile) return false;
@@ -125,7 +185,13 @@ SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device10Proxy* parent)
     , m_compositeVS(nullptr)
     , m_compositePS_SBS(nullptr)
     , m_compositePS_TB(nullptr)
+    , m_compositePS_Line(nullptr)
+    , m_compositePS_Col(nullptr)
+    , m_compositePS_Checker(nullptr)
+    , m_compositePS_Anaglyph(nullptr)
+    , m_anaglyphCB(nullptr)
     , m_compositeSampler(nullptr)
+    , m_compositeSamplerPoint(nullptr)
     , m_compositeRS(nullptr)
     , m_compositeBlend(nullptr)
     , m_compositeDSS(nullptr)
@@ -172,16 +238,22 @@ void SwapChainProxy::ReleaseEyeFrames()
 
 void SwapChainProxy::ReleaseCompositePipeline()
 {
-    if (m_realBBRTV)        { m_realBBRTV->Release();        m_realBBRTV = nullptr; }
-    if (m_leftEyeSRV)       { m_leftEyeSRV->Release();       m_leftEyeSRV = nullptr; }
-    if (m_rightEyeSRV)      { m_rightEyeSRV->Release();      m_rightEyeSRV = nullptr; }
-    if (m_compositeDSS)     { m_compositeDSS->Release();     m_compositeDSS = nullptr; }
-    if (m_compositeBlend)   { m_compositeBlend->Release();   m_compositeBlend = nullptr; }
-    if (m_compositeRS)      { m_compositeRS->Release();      m_compositeRS = nullptr; }
-    if (m_compositeSampler) { m_compositeSampler->Release(); m_compositeSampler = nullptr; }
-    if (m_compositePS_TB)   { m_compositePS_TB->Release();   m_compositePS_TB = nullptr; }
-    if (m_compositePS_SBS)  { m_compositePS_SBS->Release();  m_compositePS_SBS = nullptr; }
-    if (m_compositeVS)      { m_compositeVS->Release();      m_compositeVS = nullptr; }
+    if (m_realBBRTV)             { m_realBBRTV->Release();             m_realBBRTV = nullptr; }
+    if (m_leftEyeSRV)            { m_leftEyeSRV->Release();            m_leftEyeSRV = nullptr; }
+    if (m_rightEyeSRV)           { m_rightEyeSRV->Release();           m_rightEyeSRV = nullptr; }
+    if (m_compositeDSS)          { m_compositeDSS->Release();          m_compositeDSS = nullptr; }
+    if (m_compositeBlend)        { m_compositeBlend->Release();        m_compositeBlend = nullptr; }
+    if (m_compositeRS)           { m_compositeRS->Release();           m_compositeRS = nullptr; }
+    if (m_compositeSamplerPoint) { m_compositeSamplerPoint->Release(); m_compositeSamplerPoint = nullptr; }
+    if (m_compositeSampler)      { m_compositeSampler->Release();      m_compositeSampler = nullptr; }
+    if (m_anaglyphCB)            { m_anaglyphCB->Release();            m_anaglyphCB = nullptr; }
+    if (m_compositePS_Anaglyph)  { m_compositePS_Anaglyph->Release();  m_compositePS_Anaglyph = nullptr; }
+    if (m_compositePS_Checker)   { m_compositePS_Checker->Release();   m_compositePS_Checker = nullptr; }
+    if (m_compositePS_Col)       { m_compositePS_Col->Release();       m_compositePS_Col = nullptr; }
+    if (m_compositePS_Line)      { m_compositePS_Line->Release();      m_compositePS_Line = nullptr; }
+    if (m_compositePS_TB)        { m_compositePS_TB->Release();        m_compositePS_TB = nullptr; }
+    if (m_compositePS_SBS)       { m_compositePS_SBS->Release();       m_compositePS_SBS = nullptr; }
+    if (m_compositeVS)           { m_compositeVS->Release();           m_compositeVS = nullptr; }
 }
 
 void SwapChainProxy::EnsureShadowBB()
@@ -259,7 +331,10 @@ bool SwapChainProxy::EnsureCompositeShaders()
 {
     if (!m_parent) return false;
     if (m_compositeVS && m_compositePS_SBS && m_compositePS_TB &&
-        m_compositeSampler && m_compositeRS && m_compositeBlend && m_compositeDSS)
+        m_compositePS_Line && m_compositePS_Col && m_compositePS_Checker &&
+        m_compositePS_Anaglyph && m_anaglyphCB &&
+        m_compositeSampler && m_compositeSamplerPoint &&
+        m_compositeRS && m_compositeBlend && m_compositeDSS)
         return true;
     if (!EnsureD3DCompile()) return false;
 
@@ -269,15 +344,27 @@ bool SwapChainProxy::EnsureCompositeShaders()
     ID3DBlob* vsBlob = nullptr;
     ID3DBlob* psSbsBlob = nullptr;
     ID3DBlob* psTbBlob = nullptr;
+    ID3DBlob* psLineBlob = nullptr;
+    ID3DBlob* psColBlob = nullptr;
+    ID3DBlob* psCheckerBlob = nullptr;
+    ID3DBlob* psAnaglyphBlob = nullptr;
     bool ok = true;
-    ok = ok && CompileShader(kCompositeVS,     sizeof(kCompositeVS) - 1,     "vs",  "vs_4_0", &vsBlob);
-    ok = ok && CompileShader(kCompositePS_SBS, sizeof(kCompositePS_SBS) - 1, "sbs", "ps_4_0", &psSbsBlob);
-    ok = ok && CompileShader(kCompositePS_TB,  sizeof(kCompositePS_TB) - 1,  "tb",  "ps_4_0", &psTbBlob);
+    ok = ok && CompileShader(kCompositeVS,                 sizeof(kCompositeVS) - 1,                 "vs",        "vs_4_0", &vsBlob);
+    ok = ok && CompileShader(kCompositePS_SBS,             sizeof(kCompositePS_SBS) - 1,             "sbs",       "ps_4_0", &psSbsBlob);
+    ok = ok && CompileShader(kCompositePS_TB,              sizeof(kCompositePS_TB) - 1,              "tb",        "ps_4_0", &psTbBlob);
+    ok = ok && CompileShader(kCompositePS_LineInterleaved, sizeof(kCompositePS_LineInterleaved) - 1, "line",      "ps_4_0", &psLineBlob);
+    ok = ok && CompileShader(kCompositePS_ColInterleaved,  sizeof(kCompositePS_ColInterleaved) - 1,  "col",       "ps_4_0", &psColBlob);
+    ok = ok && CompileShader(kCompositePS_Checkerboard,    sizeof(kCompositePS_Checkerboard) - 1,    "checker",   "ps_4_0", &psCheckerBlob);
+    ok = ok && CompileShader(kCompositePS_Anaglyph,        sizeof(kCompositePS_Anaglyph) - 1,        "anaglyph",  "ps_4_0", &psAnaglyphBlob);
     if (!ok)
     {
-        if (vsBlob)    vsBlob->Release();
-        if (psSbsBlob) psSbsBlob->Release();
-        if (psTbBlob)  psTbBlob->Release();
+        if (vsBlob)         vsBlob->Release();
+        if (psSbsBlob)      psSbsBlob->Release();
+        if (psTbBlob)       psTbBlob->Release();
+        if (psLineBlob)     psLineBlob->Release();
+        if (psColBlob)      psColBlob->Release();
+        if (psCheckerBlob)  psCheckerBlob->Release();
+        if (psAnaglyphBlob) psAnaglyphBlob->Release();
         return false;
     }
 
@@ -288,8 +375,27 @@ bool SwapChainProxy::EnsureCompositeShaders()
         hr = dev->CreatePixelShader(psSbsBlob->GetBufferPointer(), psSbsBlob->GetBufferSize(), &m_compositePS_SBS);
     if (SUCCEEDED(hr) && !m_compositePS_TB)
         hr = dev->CreatePixelShader(psTbBlob->GetBufferPointer(), psTbBlob->GetBufferSize(), &m_compositePS_TB);
+    if (SUCCEEDED(hr) && !m_compositePS_Line)
+        hr = dev->CreatePixelShader(psLineBlob->GetBufferPointer(), psLineBlob->GetBufferSize(), &m_compositePS_Line);
+    if (SUCCEEDED(hr) && !m_compositePS_Col)
+        hr = dev->CreatePixelShader(psColBlob->GetBufferPointer(), psColBlob->GetBufferSize(), &m_compositePS_Col);
+    if (SUCCEEDED(hr) && !m_compositePS_Checker)
+        hr = dev->CreatePixelShader(psCheckerBlob->GetBufferPointer(), psCheckerBlob->GetBufferSize(), &m_compositePS_Checker);
+    if (SUCCEEDED(hr) && !m_compositePS_Anaglyph)
+        hr = dev->CreatePixelShader(psAnaglyphBlob->GetBufferPointer(), psAnaglyphBlob->GetBufferSize(), &m_compositePS_Anaglyph);
     vsBlob->Release(); psSbsBlob->Release(); psTbBlob->Release();
+    psLineBlob->Release(); psColBlob->Release(); psCheckerBlob->Release(); psAnaglyphBlob->Release();
     if (FAILED(hr)) { ReleaseCompositePipeline(); return false; }
+
+    if (!m_anaglyphCB)
+    {
+        D3D10_BUFFER_DESC bd = {};
+        bd.ByteWidth      = 6 * 16; // 6 float4 rows
+        bd.Usage          = D3D10_USAGE_DYNAMIC;
+        bd.BindFlags      = D3D10_BIND_CONSTANT_BUFFER;
+        bd.CPUAccessFlags = D3D10_CPU_ACCESS_WRITE;
+        dev->CreateBuffer(&bd, nullptr, &m_anaglyphCB);
+    }
 
     if (!m_compositeSampler)
     {
@@ -300,6 +406,16 @@ bool SwapChainProxy::EnsureCompositeShaders()
         sd.AddressW = D3D10_TEXTURE_ADDRESS_CLAMP;
         sd.MinLOD = 0; sd.MaxLOD = D3D10_FLOAT32_MAX;
         dev->CreateSamplerState(&sd, &m_compositeSampler);
+    }
+    if (!m_compositeSamplerPoint)
+    {
+        D3D10_SAMPLER_DESC sd = {};
+        sd.Filter   = D3D10_FILTER_MIN_MAG_MIP_POINT;
+        sd.AddressU = D3D10_TEXTURE_ADDRESS_CLAMP;
+        sd.AddressV = D3D10_TEXTURE_ADDRESS_CLAMP;
+        sd.AddressW = D3D10_TEXTURE_ADDRESS_CLAMP;
+        sd.MinLOD = 0; sd.MaxLOD = D3D10_FLOAT32_MAX;
+        dev->CreateSamplerState(&sd, &m_compositeSamplerPoint);
     }
     if (!m_compositeRS)
     {
@@ -323,9 +439,37 @@ bool SwapChainProxy::EnsureCompositeShaders()
         dev->CreateDepthStencilState(&dsd, &m_compositeDSS);
     }
     bool full = m_compositeVS && m_compositePS_SBS && m_compositePS_TB &&
-                m_compositeSampler && m_compositeRS && m_compositeBlend && m_compositeDSS;
+                m_compositePS_Line && m_compositePS_Col && m_compositePS_Checker &&
+                m_compositePS_Anaglyph && m_anaglyphCB &&
+                m_compositeSampler && m_compositeSamplerPoint &&
+                m_compositeRS && m_compositeBlend && m_compositeDSS;
     LOG_VERBOSE("  d3d10 EnsureCompositeShaders: %s\n", full ? "OK" : "PARTIAL");
     return full;
+}
+
+void SwapChainProxy::UpdateAnaglyphCB()
+{
+    if (!m_anaglyphCB) return;
+    int colour = NvDM_AnaglyphColour();
+    int method = NvDM_AnaglyphMethod();
+    if (colour < 0 || colour > 2) colour = 0;
+    if (method < 0 || method > 6) method = 0;
+    const NvDirectMode::AnaglyphMatrix& m = NvDirectMode::kAnaglyphMatrices[colour][method];
+    const float* rows[6] = { m.lR, m.lG, m.lB, m.rR, m.rG, m.rB };
+
+    void* pData = nullptr;
+    if (SUCCEEDED(m_anaglyphCB->Map(D3D10_MAP_WRITE_DISCARD, 0, &pData)) && pData)
+    {
+        float* p = static_cast<float*>(pData);
+        for (int i = 0; i < 6; ++i)
+        {
+            p[i * 4 + 0] = rows[i][0];
+            p[i * 4 + 1] = rows[i][1];
+            p[i * 4 + 2] = rows[i][2];
+            p[i * 4 + 3] = 0.0f;
+        }
+        m_anaglyphCB->Unmap();
+    }
 }
 
 bool SwapChainProxy::RunCompositePass()
@@ -368,8 +512,24 @@ bool SwapChainProxy::RunCompositePass()
     ID3D10ShaderResourceView* rightSRV = swap ? m_leftEyeSRV  : m_rightEyeSRV;
     ID3D10ShaderResourceView* srvs[2] = { leftSRV, rightSRV };
 
-    bool topBottom = NvDM_OutputIsTopBottom() != 0;
-    ID3D10PixelShader* ps = topBottom ? m_compositePS_TB : m_compositePS_SBS;
+    int mode = NvDM_OutputMode();
+    ID3D10PixelShader* ps = m_compositePS_SBS;
+    ID3D10SamplerState* sampler = m_compositeSampler;
+    bool needsAnaglyphCB = false;
+    const char* modeTag = "SBS";
+    switch (mode)
+    {
+        case 0: case 3: ps = m_compositePS_TB;        modeTag = "T-B";          break;
+        case 1: case 2: ps = m_compositePS_SBS;       modeTag = "SBS";          break;
+        case 4:         ps = m_compositePS_Line;      modeTag = "LineInterl";   sampler = m_compositeSamplerPoint; break;
+        case 5:         ps = m_compositePS_Col;       modeTag = "ColInterl";    sampler = m_compositeSamplerPoint; break;
+        case 6:         ps = m_compositePS_Checker;   modeTag = "Checkerboard"; sampler = m_compositeSamplerPoint; break;
+        case 7:         ps = m_compositePS_Anaglyph;  modeTag = "Anaglyph";     needsAnaglyphCB = true; break;
+        case 8: /* SR weave NYI */
+                        ps = m_compositePS_SBS;       modeTag = "SBS (SR-fallback)"; break;
+        default:        ps = m_compositePS_SBS;       modeTag = "SBS (fallback)";    break;
+    }
+    if (needsAnaglyphCB) UpdateAnaglyphCB();
 
     D3D10_VIEWPORT vp = {};
     vp.Width  = m_logicalW;
@@ -391,14 +551,20 @@ bool SwapChainProxy::RunCompositePass()
     dev->GSSetShader(nullptr);
     dev->PSSetShader(ps);
     dev->PSSetShaderResources(0, 2, srvs);
-    dev->PSSetSamplers(0, 1, &m_compositeSampler);
+    dev->PSSetSamplers(0, 1, &sampler);
+    if (needsAnaglyphCB) dev->PSSetConstantBuffers(2, 1, &m_anaglyphCB);
     dev->Draw(3, 0);
 
     ID3D10ShaderResourceView* nullSRV[2] = { nullptr, nullptr };
     dev->PSSetShaderResources(0, 2, nullSRV);
+    if (needsAnaglyphCB)
+    {
+        ID3D10Buffer* nullCB = nullptr;
+        dev->PSSetConstantBuffers(2, 1, &nullCB);
+    }
 
-    NVDM_TRACE_FIRST_N(2, "  d3d10 RunCompositePass: %s eyes (swap=%d) -> realBB rtv=%p\n",
-                       topBottom ? "T-B" : "SBS", (int)swap, m_realBBRTV);
+    NVDM_TRACE_FIRST_N(4, "  d3d10 RunCompositePass: %s (mode=%d swap=%d) -> realBB rtv=%p\n",
+                       modeTag, mode, (int)swap, m_realBBRTV);
     return true;
 }
 

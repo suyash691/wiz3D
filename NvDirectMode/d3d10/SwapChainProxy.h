@@ -95,13 +95,22 @@ private:
     ID3D10VertexShader*       m_compositeVS;
     ID3D10PixelShader*        m_compositePS_SBS;
     ID3D10PixelShader*        m_compositePS_TB;
-    ID3D10SamplerState*       m_compositeSampler;
+    // OutputMode 4-7: line/column interleaved, checkerboard, anaglyph
+    ID3D10PixelShader*        m_compositePS_Line;
+    ID3D10PixelShader*        m_compositePS_Col;
+    ID3D10PixelShader*        m_compositePS_Checker;
+    ID3D10PixelShader*        m_compositePS_Anaglyph;
+    ID3D10Buffer*             m_anaglyphCB;
+    ID3D10SamplerState*       m_compositeSampler;       // linear (SBS / TB / anaglyph)
+    ID3D10SamplerState*       m_compositeSamplerPoint;  // point  (interleaved / checker)
     ID3D10RasterizerState*    m_compositeRS;
     ID3D10BlendState*         m_compositeBlend;
     ID3D10DepthStencilState*  m_compositeDSS;
     ID3D10ShaderResourceView* m_leftEyeSRV;
     ID3D10ShaderResourceView* m_rightEyeSRV;
     ID3D10RenderTargetView*   m_realBBRTV;
+
+    void UpdateAnaglyphCB();
 };
 
 } // namespace NvDirectMode
