@@ -45,6 +45,12 @@ private:
     HRESULT InitializeWeaver(IDirect3DDevice9* pDevice, HWND hWnd, UINT width, UINT height);
     void    CleanupWeaver();
     HRESULT OutputSBSFallback(CBaseSwapChain* pSwapChain);  // Plain Half SBS (two StretchRects into primary BB) — invoked when SR weave is unavailable
+    // SEH-protected weaver invocation. Factored out of Output() so __try/__except
+    // doesn't share scope with C++ try/catch elsewhere in the .cpp. Returns
+    // false on access violation; caller treats that as "SR is broken on this
+    // device" and switches to SBS for the rest of the session.
+    static bool SafeWeave(SR::IDX9Weaver1* weaver, IDirect3DTexture9* sbsTexture,
+                          UINT width, UINT height, D3DFORMAT format, bool isSRGB);
 };
 
 }

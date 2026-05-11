@@ -269,27 +269,26 @@ HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
     // Route weaved output to the primary back buffer
     m_pd3dDevice->SetRenderTarget(0, pSwapChain->m_pPrimaryBackBuffer);
 
-    // State-block save/restore around weave(). The Dimenco/LeiaSR DX9 weaver
-    // mutates D3D9 device state (vertex shader, pixel shader, render states,
-    // samplers, vertex declaration, etc.) and does NOT restore it. When the
-    // wrapper's post-Present path then forwards a SetVertexShader through
-    // the proxied device, d3d9.dll dereferences whatever pointer SR left
-    // behind and crashes — symbol-resolved repro: Tales of Berseria x64
-    // crash signature `d3d9.dll +0x258FF` reached via
-    // `ProxyDevice9::SetVertexShader → CBaseStereoRenderer::SetVertexShader →
-    // SimulatedRealityWeaveOutput::Output → CBaseSwapChain::PresentData`.
-    // Capturing a D3DSBT_ALL state block, calling weave(), then Apply()'ing
-    // the block restores the device to the state the wrapper expects, so the
-    // post-weave wrapper code sees the same state it set up.
+    // State-block save/restore: the Dimenco/LeiaSR DX9 weaver mutates D3D9
+    // device state (shaders, samplers, render states, vertex decl) and does
+    // not restore it. Re-applying our D3DSBT_ALL state block after weave()
+    // returns puts the device back to what the wrapper expects, so the
+    // wrapper's post-Present code sees the same state it set up.
     IDirect3DStateBlock9* pSavedState = nullptr;
     HRESULT hrSB = m_pd3dDevice->CreateStateBlock(D3DSBT_ALL, &pSavedState);
 
-    // IDX9Weaver1: supply the SBS texture per-frame, then weave with no size args.
-    // sRGB pairing matches the SR SDK directx9_weaving sample — both flags must agree
-    // or weave-edge interpolation goes non-linear and colours look clipped/banded.
-    m_Weaver->setInputViewTexture(m_pSBSTexture, m_ViewWidth, m_ViewHeight, m_ViewFormat, m_bSRGB);
-    m_Weaver->setOutputSRGBWrite(m_bSRGB);
-    m_Weaver->weave();
+    // SEH safety net around weave(). On Tales of Berseria x64 we see SR's
+    // weave() body call back into our wrapper's SetVertexShader with a
+    // pointer that crashes inside d3d9.dll +0x258FF (READ of -1). With this
+    // crash mid-weave the state-block Apply() never runs, the wrapper sees
+    // the corrupted state on the next frame, and the game dies. Wrapping
+    // the weave call in __try/__except lets us catch the AV here, mark the
+    // session as SR-failed, and fall back to plain Half SBS for the rest of
+    // the session so the game keeps running. The session stays in SBS even
+    // if the next frame's weave() would have succeeded — once SR has shown
+    // it can crash this device, we trust it not at all for the duration.
+    bool weaveOK = SafeWeave(m_Weaver, m_pSBSTexture,
+                             m_ViewWidth, m_ViewHeight, m_ViewFormat, m_bSRGB);
 
     if (SUCCEEDED(hrSB) && pSavedState)
     {
@@ -297,7 +296,39 @@ HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
         pSavedState->Release();
     }
 
+    if (!weaveOK)
+    {
+        OutputDebugStringA("[SimulatedRealityWeaveOutput] weave() raised AV — disabling SR for this session, falling back to Half SBS.\n");
+        m_bSRFallbackActive = true;
+        return OutputSBSFallback(pSwapChain);
+    }
+
     return S_OK;
+}
+
+// SEH-protected weave() invocation. Factored into its own function because
+// __try/__except cannot share scope with C++ try/catch (which the surrounding
+// Output() / InitializeWeaver have elsewhere in this TU). Returns true on
+// success, false if SR's weave() raised an access violation (or any other
+// fatal SEH exception — we treat all of those as "SR is broken on this
+// device, switch to SBS").
+bool SimulatedRealityWeaveOutput::SafeWeave(
+    SR::IDX9Weaver1* weaver,
+    IDirect3DTexture9* sbsTexture,
+    UINT width, UINT height, D3DFORMAT format, bool isSRGB)
+{
+    __try {
+        weaver->setInputViewTexture(sbsTexture, width, height, format, isSRGB);
+        weaver->setOutputSRGBWrite(isSRGB);
+        weaver->weave();
+        return true;
+    }
+    __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION
+                ? EXCEPTION_EXECUTE_HANDLER
+                : EXCEPTION_CONTINUE_SEARCH)
+    {
+        return false;
+    }
 }
 
 // Plain Half SBS rendering, invoked when SR weave is unavailable. Mirrors the
