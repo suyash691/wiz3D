@@ -132,7 +132,11 @@
     <!-- x64 outputs -->
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)bin\$(Configuration)\Win64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Win64\$(Configuration)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(MSBuildProjectDirectory)\..\releases\wiz3D\hd3d\dx12 x64\</OutDir>
+    <!-- HD3D DX12 bundle no longer shipped — leaf was redundant with the
+         dxgi-based HD3D path. Output goes to a neutral bin so the project
+         still builds (kept for code-coverage and potential future revival)
+         but nothing deploys to releases/wiz3D/hd3d/dx12 x64/. -->
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)bin\$(Configuration)\Win64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Win64\$(Configuration)\</IntDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">$(SolutionDir)bin\$(Configuration)\Win64\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">Win64\$(Configuration)\</IntDir>
@@ -206,11 +210,8 @@
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
     </Link>
-    <PostBuildEvent>
-      <Message>Copying AmdQbProxy and AmdAdlProxy to dx12 x64 folder</Message>
-      <Command>copy /Y "$(MSBuildProjectDirectory)\..\releases\wiz3D\hd3d\x64\atidxx64.dll" "$(OutDir)atidxx64.dll"
-copy /Y "$(MSBuildProjectDirectory)\..\releases\wiz3D\hd3d\x64\atiadlxx.dll" "$(OutDir)atiadlxx.dll"</Command>
-    </PostBuildEvent>
+    <!-- PostBuildEvent (was: copy AmdQbProxy + AmdAdlProxy into hd3d\dx12 x64\)
+         removed in v0.2.x — HD3D DX12 bundle isn't shipped any more. -->
   </ItemDefinitionGroup>
   <!-- 3DVision Release|Win32 (not deployed) -->
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='3DVision Release|Win32'">

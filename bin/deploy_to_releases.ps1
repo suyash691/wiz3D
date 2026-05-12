@@ -10,8 +10,9 @@
 # This script does NOT handle:
 # - Vendor-path proxy DLLs that auto-deploy via their own vcxproj OutDir:
 #   atidxx32/64.dll (AmdQbProxy), atiadlxy.dll (AmdAdlProxy),
-#   dxgi.dll (DxgiVendorProxy), d3d12.dll (D3d12VendorProxy x64 only),
-#   nvapi/nvapi64.dll (NvApiProxy) -- these go into releases/wiz3D/hd3d/.
+#   dxgi.dll (DxgiVendorProxy), nvapi/nvapi64.dll (NvApiProxy) — these go
+#   into releases/wiz3D/hd3d/. The DX12 HD3D variant (D3d12VendorProxy) is
+#   no longer deployed; AmdQbProxy covers DX12 games via the dxgi.dll path.
 #
 # Usage:
 #   .\bin\deploy_to_releases.ps1                # both Win32 + x64

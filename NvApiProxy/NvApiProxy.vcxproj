@@ -216,8 +216,12 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <!-- After Release builds, mirror nvapi[64].dll into dx10-11 and opengl release folders.
-       NvApiProxy ships alongside the DX9, DX10/11 and OpenGL main builds. -->
+  <!-- After Release builds, mirror nvapi[64].dll into dx10-11 and
+       opengl-quad-buffer-stereo release folders. NvApiProxy ships alongside
+       the DX9, DX10/11 and OpenGL main builds. Note: deploy_to_releases.ps1
+       also spreads nvapi to the 3d-vision-direct/* leaves — that's handled
+       there, not here, because those leaves don't always exist before this
+       project builds. -->
   <Target Name="MirrorNvApiToOtherReleaseFolders" AfterTargets="Build"
           Condition="'$(Configuration)'=='Release'">
     <PropertyGroup>
@@ -225,12 +229,12 @@
       <_NvApiArchDir Condition="'$(Platform)'=='x64'">x64</_NvApiArchDir>
       <_NvApiReleaseRoot>$(MSBuildProjectDirectory)\..\releases\wiz3D</_NvApiReleaseRoot>
     </PropertyGroup>
-    <MakeDir Directories="$(_NvApiReleaseRoot)\dx10-11\$(_NvApiArchDir);$(_NvApiReleaseRoot)\opengl\$(_NvApiArchDir)" />
+    <MakeDir Directories="$(_NvApiReleaseRoot)\dx10-11\$(_NvApiArchDir);$(_NvApiReleaseRoot)\opengl-quad-buffer-stereo\$(_NvApiArchDir)" />
     <Copy SourceFiles="$(TargetPath)"
           DestinationFolder="$(_NvApiReleaseRoot)\dx10-11\$(_NvApiArchDir)"
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(TargetPath)"
-          DestinationFolder="$(_NvApiReleaseRoot)\opengl\$(_NvApiArchDir)"
+          DestinationFolder="$(_NvApiReleaseRoot)\opengl-quad-buffer-stereo\$(_NvApiArchDir)"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>
