@@ -148,16 +148,20 @@ foreach ($archName in $archs) {
                -Files @('d3d10.dll', 'd3d11.dll', 'dxgi.dll')                          `
                -Tag   "dx10-11/$archAlias proxies"
 
-    # --- opengl (both archs) ---
-    $dst = Join-Path $repoRoot "releases\wiz3D\opengl\$archAlias"
+    # --- opengl quad-buffer stereo (both archs) ---
+    # Folder name spells out the capability: this wrapper captures native
+    # OpenGL quad-buffer stereo (PFD_STEREO / GL_BACK_LEFT/RIGHT) from games
+    # that produce it (id Tech 3/4, CAD apps, sims). It does NOT generate
+    # stereo from mono OpenGL games.
+    $dst = Join-Path $repoRoot "releases\wiz3D\opengl-quad-buffer-stereo\$archAlias"
     Copy-Files -SrcDir $binDir   -DstDir $dst                          `
                -Files (@('S3DWrapperOGL.dll') + $openglDeps)           `
-               -Tag   "opengl/$archAlias wrappers+deps"
+               -Tag   "opengl-qbs/$archAlias wrappers+deps"
     Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
-               -Files $openglOMs -Tag "opengl/$archAlias OutputMethods"
+               -Files $openglOMs -Tag "opengl-qbs/$archAlias OutputMethods"
     Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
                -Files @('opengl32.dll')                                   `
-               -Tag   "opengl/$archAlias proxies"
+               -Tag   "opengl-qbs/$archAlias proxies"
 
     # --- dx12 stereo proxy (both archs; no wrapper sln output yet) ---
     $dst = Join-Path $repoRoot "releases\wiz3D\dx12\$archAlias"
@@ -199,7 +203,12 @@ foreach ($archName in $archs) {
         $dx9Dst    = Join-Path $ndmBase "dx9\$archAlias"
         $dx10Dst   = Join-Path $ndmBase "dx10\$archAlias"
         $dx11Dst   = Join-Path $ndmBase "dx11\$archAlias"
-        $oglDst    = Join-Path $ndmBase "opengl\$archAlias"
+        # NOTE: no NvDirectMode/opengl release leaf. No shipped OpenGL game uses
+        # NvAPI_Stereo_SetActiveEye (Direct Mode is DX-only in practice). OpenGL
+        # games that want 3D Vision stereo go through a DX-bridge wrapper like
+        # Helifax's OGL-3DVision-Wrapper, and our DX9/10/11 magic-header capture
+        # picks that traffic up automatically. The opengl32 proxy stays in source
+        # (NvDirectMode/opengl32/) but isn't deployed.
 
         Copy-Files -SrcDir $nvDirectModeBin -DstDir $dx9Dst   -Files @('d3d9.dll')    -Tag "ndm/dx9/$archAlias"
         Copy-NdmExtras -LeafDir $dx9Dst
@@ -210,8 +219,6 @@ foreach ($archName in $archs) {
         # CreateDXGIFactory -> CreateSwapChain (caught by dxgi.dll).
         Copy-Files -SrcDir $nvDirectModeBin -DstDir $dx11Dst  -Files @('d3d11.dll','dxgi.dll') -Tag "ndm/dx11/$archAlias"
         Copy-NdmExtras -LeafDir $dx11Dst
-        Copy-Files -SrcDir $nvDirectModeBin -DstDir $oglDst   -Files @('opengl32.dll') -Tag "ndm/opengl/$archAlias"
-        Copy-NdmExtras -LeafDir $oglDst
     } else {
         Write-Host ("  ndm/$archAlias            SKIP (NvDirectMode bin not built: $nvDirectModeBin)") -ForegroundColor Yellow
     }
@@ -248,16 +255,16 @@ foreach ($archAlias in $archs | ForEach-Object { if ($_ -eq 'Win32') { 'x86' } e
     $nvapiName = if ($archAlias -eq 'x86') { 'nvapi.dll' } else { 'nvapi64.dll' }
     $srcNvapi  = Join-Path $relRoot "dx9\$archAlias\$nvapiName"
     # nvapi spreads into:
-    #   - regular wiz3D dx10-11 / opengl folders (3D Vision-aware games using passive)
+    #   - regular wiz3D dx10-11 / opengl-quad-buffer-stereo folders (3D Vision-aware
+    #     games using passive)
     #   - all four 3d-vision-direct/<api>/<arch>/ leaves (Direct Mode games need NvApiProxy
     #     beside the NvDirectMode proxy DLL because they call NvAPI_Stereo_SetActiveEye etc.)
     $nvapiTargets = @(
         "$relRoot\dx10-11\$archAlias",
-        "$relRoot\opengl\$archAlias",
+        "$relRoot\opengl-quad-buffer-stereo\$archAlias",
         "$relRoot\3d-vision-direct\dx9\$archAlias",
         "$relRoot\3d-vision-direct\dx10\$archAlias",
-        "$relRoot\3d-vision-direct\dx11\$archAlias",
-        "$relRoot\3d-vision-direct\opengl\$archAlias"
+        "$relRoot\3d-vision-direct\dx11\$archAlias"
     )
     Spread-File -SrcPath $srcNvapi -DstDirs $nvapiTargets -Tag "$nvapiName ($archAlias)"
 }

@@ -30,6 +30,11 @@ public:
     void StashBackBufferReference();
     void ReleaseBackBufferReference();
 
+    // Magic-header capture accessor — OnEyeChange uses this to gate off
+    // the SetActiveEye-driven shadow-capture path once we've detected the
+    // game is using the NV magic-header SBS pipeline instead.
+    bool IsMagicHeaderActive() const { return m_magicHeaderActive; }
+
     // Stage 4 callback target — eye-change handler invokes this to
     // capture the current shadow into the OLD eye's surface before the
     // new eye's render starts overwriting.
@@ -246,6 +251,35 @@ private:
     UINT                  m_srSBSW;            // == m_logicalWidth * 2
     UINT                  m_srSBSH;            // == m_logicalHeight
     D3DFORMAT             m_srSBSFmt;
+
+    // Magic-header SBS capture (NVIDIA "stereo blit defaults" path).
+    // When a game / wrapper produces a (2W × H+1) surface with the
+    // NVSTEREO_IMAGE_SIGNATURE in its last row and StretchRect's it to the
+    // backbuffer, we recognise it, split into per-eye, and feed our normal
+    // OutputMethod composite path. See magic_header_capture.h for details.
+    //
+    // m_magicHeaderActive flips ON the first frame we detect the pattern
+    // and stays on for the session — once a game has shown it's using this
+    // path, every subsequent frame produces another magic-tagged surface.
+    // The eye-state SetActiveEye path is mutually exclusive (a magic-header
+    // game doesn't also call SetActiveEye), so this flag also gates that
+    // path off to avoid double-capture.
+    //
+    // m_magicHeaderSwapEyes mirrors the SIH_SWAP_EYES flag from the most
+    // recently detected header (some producers want logical-left = right-eye).
+    bool                  m_magicHeaderActive;
+    bool                  m_magicHeaderSwapEyes;
+
+    // Best-effort cache: surfaces we've already verified as magic-tagged.
+    // Skips the per-call LockRect probe once we've seen a surface produce
+    // the magic. Surface pointers can be re-used after Release, but the
+    // worst case is a single extra lock-and-check on the recycled pointer.
+    // Bounded to a small set (most games use 1-2 stereo output surfaces).
+    static const size_t   kMaxKnownStereoSurfaces = 16;
+    IDirect3DSurface9*    m_knownStereoSurfaces[kMaxKnownStereoSurfaces];
+    UINT                  m_knownStereoSurfaceCount;
+    bool IsKnownStereoSurface(IDirect3DSurface9* s) const;
+    void MarkKnownStereoSurface(IDirect3DSurface9* s);
 };
 
 } // namespace NvDirectMode

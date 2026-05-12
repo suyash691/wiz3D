@@ -1,5 +1,7 @@
 #include "Context11Proxy.h"
 #include "Device11Proxy.h"
+#include "SwapChainProxy.h"
+#include "magic_header_capture.h"
 #include "eye_state.h"
 #include "log.h"
 
@@ -111,6 +113,103 @@ void STDMETHODCALLTYPE Context11Proxy::GetDevice(ID3D11Device** ppDevice)
         return;
     }
     m_real->GetDevice(ppDevice);
+}
+
+// ---------------------------------------------------------------------------
+// Magic-header SBS capture intercepts. Same pattern as d3d10 — detect
+// (2W × H+1) Texture2D sources tagged with NVSTEREO_IMAGE_SIGNATURE being
+// copied to the swap-chain backbuffer, split them via
+// SwapChainProxy::CaptureMagicHeaderSBS, and skip the real blit.
+// ---------------------------------------------------------------------------
+namespace
+{
+    constexpr size_t kMaxKnownStereoTex = 16;
+    ID3D11Resource* g_knownStereoTex[kMaxKnownStereoTex] = {};
+    UINT            g_knownStereoCount = 0;
+    bool            g_knownStereoSwap  = false;
+
+    bool IsKnown(ID3D11Resource* p)
+    {
+        for (UINT i = 0; i < g_knownStereoCount; ++i)
+            if (g_knownStereoTex[i] == p) return true;
+        return false;
+    }
+    void MarkKnown(ID3D11Resource* p)
+    {
+        if (IsKnown(p)) return;
+        if (g_knownStereoCount < kMaxKnownStereoTex)
+            g_knownStereoTex[g_knownStereoCount++] = p;
+    }
+
+    bool TryMagicHeaderCapture(ID3D11Device* dev, ID3D11DeviceContext* ctx,
+                               Device11Proxy* parent,
+                               ID3D11Resource* dst, ID3D11Resource* src)
+    {
+        if (!parent->IsBackBufferResource(dst)) return false;
+        if (!src) return false;
+
+        SwapChainProxy* sc = SwapChainProxy::GetPrimary();
+        if (!sc) return false;
+
+        UINT eyeW = 0, eyeH = 0;
+        bool swap = false;
+        if (IsKnown(src))
+        {
+            ID3D11Texture2D* t = nullptr;
+            if (FAILED(src->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&t)) || !t)
+                return false;
+            D3D11_TEXTURE2D_DESC d = {};
+            t->GetDesc(&d);
+            t->Release();
+            if (d.Width < 4 || (d.Width & 1) || d.Height < 2) return false;
+            eyeW = d.Width / 2;
+            eyeH = d.Height - 1;
+            swap = g_knownStereoSwap;
+        }
+        else
+        {
+            MagicHeader::DetectResult r = MagicHeader::DetectStereoMagic(dev, ctx, src);
+            if (!r.hasMagic) return false;
+            MarkKnown(src);
+            g_knownStereoSwap = r.swapEyes;
+            eyeW = r.eyeWidth;
+            eyeH = r.eyeHeight;
+            swap = r.swapEyes;
+            LOG_VERBOSE("  d3d11 CopyResource: magic-header SBS detected (src=%p, %ux%u eye)\n",
+                        (void*)src, eyeW, eyeH);
+        }
+
+        sc->CaptureMagicHeaderSBS(ctx, src, eyeW, eyeH, swap);
+        return true;
+    }
+}
+
+void STDMETHODCALLTYPE Context11Proxy::CopyResource(
+    ID3D11Resource* pDstResource, ID3D11Resource* pSrcResource)
+{
+    if (m_parent)
+    {
+        ID3D11Device* dev = m_parent->GetReal();
+        if (dev && TryMagicHeaderCapture(dev, m_real, m_parent, pDstResource, pSrcResource))
+            return;
+    }
+    m_real->CopyResource(pDstResource, pSrcResource);
+}
+
+void STDMETHODCALLTYPE Context11Proxy::CopySubresourceRegion(
+    ID3D11Resource* pDstResource, UINT DstSubresource, UINT DstX, UINT DstY,
+    UINT DstZ, ID3D11Resource* pSrcResource, UINT SrcSubresource,
+    const D3D11_BOX* pSrcBox)
+{
+    if (m_parent && DstSubresource == 0 && DstX == 0 && DstY == 0 && DstZ == 0 &&
+        SrcSubresource == 0 && pSrcBox == nullptr)
+    {
+        ID3D11Device* dev = m_parent->GetReal();
+        if (dev && TryMagicHeaderCapture(dev, m_real, m_parent, pDstResource, pSrcResource))
+            return;
+    }
+    m_real->CopySubresourceRegion(pDstResource, DstSubresource, DstX, DstY, DstZ,
+                                  pSrcResource, SrcSubresource, pSrcBox);
 }
 
 } // namespace NvDirectMode

@@ -1,5 +1,5 @@
 THIRD-PARTY NOTICES
-WiZ3D v0.1.0
+WiZ3D v0.2.x
 ============================================================================
 
 WiZ3D makes use of the following third-party libraries. Their licenses and
@@ -273,26 +273,37 @@ SOFTWARE.
 ============================================================================
 8. OpenGL3DVision (Helifax)
 ============================================================================
-OpenGL OpenGL 3D Vision wrapper — Windows opengl32.dll proxy that adds
-NVIDIA 3D Vision support to OpenGL games via shader injection and FBO-based
-per-eye rendering.
+OpenGL 3D Vision wrapper — Windows opengl32.dll proxy that adds NVIDIA 3D
+Vision support to OpenGL games via shader injection and FBO-based per-eye
+rendering.
 https://github.com/Helifax/OpenGL3DVision
 
-Used in: opengl32.dll (NvDirectMode build, releases/wiz3D/3d-vision-direct/opengl/)
+Used in:
+  (a) NvDirectMode/d3d9, /d3d10, /d3d11 magic-header SBS capture path
+      (NvDirectMode/{d3d9,d3d10,d3d11}/magic_header_capture.{h,cpp})
+  (b) NvDirectMode/opengl32 (source only — not shipped in v0.2.x releases)
 
-NvDirectMode's OpenGL Direct Mode wrapper adapts OpenGL3DVision's two-FBO
-per-eye design (one FBO per eye sharing a depth/stencil renderbuffer) and
-its wglGetProcAddress-based hook strategy for GL extension functions
-(glBindFramebuffer / glBindFramebufferEXT / glBindFramebufferARB). The
-adapted code lives in NvDirectMode/opengl32/fbo_state.cpp and gl_hooks.cpp;
-both files reference this attribution in their header comments.
+(a) Magic-header SBS capture: the NVSTEREOIMAGEHEADER struct + signature
+constant (0x4433564E "NV3D") + flag bits (SIH_SWAP_EYES / SIH_SCALE_TO_FIT)
++ the documented surface convention (W*2 × H+1 stereo blit with the header
+in the last row) come from OpenGL3DVision's src/src/opengl_3dv.cpp. WiZ3D
+implements the *consumer* side of that protocol — detecting these surfaces
+when games (or wrappers like OpenGL3DVision itself) submit them, and
+splitting them per-eye for our own composite pipeline. This is the
+documented NVIDIA 3D Vision SDK "Stereo Blit Defaults" technique; the
+OpenGL3DVision source is the clearest publicly-available reference for it.
 
-Conceptual differences from the upstream wrapper: NvDirectMode performs
-PASSIVE per-eye routing (the game already renders both eyes via NvAPI
-Direct Mode), whereas OpenGL3DVision performs ACTIVE stereoization (it
-analyses and injects vertex shaders to derive a second eye from a single
-mono draw call). NvDirectMode does not redistribute or use OpenGL3DVision's
-shader injection, FPS injection, or DX-OpenGL interop code paths.
+(b) NvDirectMode opengl32 (legacy): the previous OpenGL Direct Mode wrapper
+adapted OpenGL3DVision's two-FBO per-eye design (one FBO per eye sharing a
+depth/stencil renderbuffer) and its wglGetProcAddress-based hook strategy
+for GL extension functions. As of v0.2.1 that opengl32 build is no longer
+shipped — magic-header capture (a) on the DX9/10/11 side picks up
+OpenGL3DVision-driven games via its OpenGL↔DX interop bridge automatically.
+The opengl32 source is kept in the tree (NvDirectMode/opengl32/) but not
+deployed.
+
+Neither path redistributes or uses OpenGL3DVision's shader injection,
+FPS injection, or 3D Vision profile management code.
 
 Copyright (c) 2015 Octavian Mihai Vasilovici aka Helifax.
 

@@ -162,6 +162,7 @@
     <ClCompile Include="SwapChainProxy.cpp" />
     <ClCompile Include="swapchain_helpers.cpp" />
     <ClCompile Include="eye_state.cpp" />
+    <ClCompile Include="magic_header_capture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="proxy_factory.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="SwapChainProxy.h" />
     <ClInclude Include="swapchain_helpers.h" />
     <ClInclude Include="eye_state.h" />
+    <ClInclude Include="magic_header_capture.h" />
     <ClInclude Include="log.h" />
   </ItemGroup>
   <ItemGroup>

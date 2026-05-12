@@ -66,8 +66,11 @@ public:
     void STDMETHODCALLTYPE RSSetState(ID3D10RasterizerState* pRasterizerState) override                                                                                                            { m_real->RSSetState(pRasterizerState); }
     void STDMETHODCALLTYPE RSSetViewports(UINT NumViewports, const D3D10_VIEWPORT* pViewports) override                                                                                            { m_real->RSSetViewports(NumViewports, pViewports); }
     void STDMETHODCALLTYPE RSSetScissorRects(UINT NumRects, const D3D10_RECT* pRects) override                                                                                                     { m_real->RSSetScissorRects(NumRects, pRects); }
-    void STDMETHODCALLTYPE CopySubresourceRegion(ID3D10Resource* pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D10Resource* pSrcResource, UINT SrcSubresource, const D3D10_BOX* pSrcBox) override { m_real->CopySubresourceRegion(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox); }
-    void STDMETHODCALLTYPE CopyResource(ID3D10Resource* pDstResource, ID3D10Resource* pSrcResource) override                                                                                       { m_real->CopyResource(pDstResource, pSrcResource); }
+    // CopyResource/CopySubresourceRegion are intercepted (out-of-line in
+    // Device10Proxy.cpp) so we can detect the NV magic-header SBS pattern
+    // and route per-eye to the swap-chain's eye textures.
+    void STDMETHODCALLTYPE CopySubresourceRegion(ID3D10Resource* pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D10Resource* pSrcResource, UINT SrcSubresource, const D3D10_BOX* pSrcBox) override;
+    void STDMETHODCALLTYPE CopyResource(ID3D10Resource* pDstResource, ID3D10Resource* pSrcResource) override;
     void STDMETHODCALLTYPE UpdateSubresource(ID3D10Resource* pDstResource, UINT DstSubresource, const D3D10_BOX* pDstBox, const void* pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch) override     { m_real->UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch); }
     void STDMETHODCALLTYPE ClearRenderTargetView(ID3D10RenderTargetView* pRenderTargetView, const FLOAT ColorRGBA[4]) override                                                                     { m_real->ClearRenderTargetView(pRenderTargetView, ColorRGBA); }
     void STDMETHODCALLTYPE ClearDepthStencilView(ID3D10DepthStencilView* pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil) override                                                  { m_real->ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil); }

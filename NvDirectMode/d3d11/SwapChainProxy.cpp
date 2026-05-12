@@ -229,10 +229,21 @@ namespace
     {
         EnsurePrimaryLock();
         EnterCriticalSection(&g_primaryLock);
-        if (g_primarySwapChain)
+        // Skip SetActiveEye-driven capture if magic-header SBS path is live —
+        // eye textures are populated from the SBS split there instead.
+        if (g_primarySwapChain && !g_primarySwapChain->IsMagicHeaderActive())
             g_primarySwapChain->CaptureEye(oldEye);
         LeaveCriticalSection(&g_primaryLock);
     }
+}
+
+SwapChainProxy* SwapChainProxy::GetPrimary()
+{
+    EnsurePrimaryLock();
+    EnterCriticalSection(&g_primaryLock);
+    SwapChainProxy* p = g_primarySwapChain;
+    LeaveCriticalSection(&g_primaryLock);
+    return p;
 }
 
 SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device11Proxy* parent)
@@ -247,6 +258,7 @@ SwapChainProxy::SwapChainProxy(IDXGISwapChain* real, Device11Proxy* parent)
     , m_leftEyeFrame(nullptr)
     , m_rightEyeFrame(nullptr)
     , m_lastSeenEye(NvDirectMode::kEyeMono)
+    , m_magicHeaderActive(false)
     , m_compositeVS(nullptr)
     , m_compositePS_SBS(nullptr)
     , m_compositePS_TB(nullptr)
@@ -420,6 +432,77 @@ void SwapChainProxy::CaptureEye(int eyeBeingLeft)
     }
     NVDM_TRACE_FIRST_N(8, "  CaptureEye(eye=%d): copied shadow=%p -> eyeFrame=%p\n",
                        eyeBeingLeft, m_shadowBB, *slot);
+}
+
+void SwapChainProxy::CaptureMagicHeaderSBS(ID3D11DeviceContext* pContext,
+                                           ID3D11Resource* pSrc,
+                                           UINT eyeWidth, UINT eyeHeight,
+                                           bool swapEyes)
+{
+    if (!pContext || !pSrc || !m_parent) return;
+    ID3D11Device* dev = m_parent->GetReal();
+    if (!dev) return;
+
+    // Pull source desc for Format / SampleDesc.
+    ID3D11Texture2D* srcTex = nullptr;
+    if (FAILED(pSrc->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&srcTex)) || !srcTex)
+        return;
+    D3D11_TEXTURE2D_DESC srcDesc = {};
+    srcTex->GetDesc(&srcDesc);
+    srcTex->Release();
+
+    // (Re)allocate eye textures if missing or wrong size/format.
+    for (int e = 0; e < 2; ++e)
+    {
+        ID3D11Texture2D** slot = (e == 0) ? &m_leftEyeFrame : &m_rightEyeFrame;
+        if (*slot)
+        {
+            D3D11_TEXTURE2D_DESC d = {};
+            (*slot)->GetDesc(&d);
+            if (d.Width != eyeWidth || d.Height != eyeHeight || d.Format != srcDesc.Format)
+            {
+                (*slot)->Release();
+                *slot = nullptr;
+            }
+        }
+        if (!*slot)
+        {
+            D3D11_TEXTURE2D_DESC td = {};
+            td.Width            = eyeWidth;
+            td.Height           = eyeHeight;
+            td.MipLevels        = 1;
+            td.ArraySize        = 1;
+            td.Format           = srcDesc.Format;
+            td.SampleDesc.Count = 1;
+            td.Usage            = D3D11_USAGE_DEFAULT;
+            td.BindFlags        = D3D11_BIND_SHADER_RESOURCE;
+            if (FAILED(dev->CreateTexture2D(&td, nullptr, slot)) || !*slot)
+            {
+                LOG_VERBOSE("  d3d11 magic-header: eye tex alloc FAILED (%ux%u)\n",
+                            eyeWidth, eyeHeight);
+                return;
+            }
+            LOG_VERBOSE("  d3d11 magic-header: alloc eyeFrame[%d]=%p (%ux%u)\n",
+                        e, *slot, eyeWidth, eyeHeight);
+        }
+    }
+
+    D3D11_BOX leftBox  = { 0,         0, 0, eyeWidth,     eyeHeight, 1 };
+    D3D11_BOX rightBox = { eyeWidth,  0, 0, eyeWidth * 2, eyeHeight, 1 };
+    ID3D11Texture2D* leftOnto  = swapEyes ? m_rightEyeFrame : m_leftEyeFrame;
+    ID3D11Texture2D* rightOnto = swapEyes ? m_leftEyeFrame  : m_rightEyeFrame;
+    pContext->CopySubresourceRegion(leftOnto,  0, 0, 0, 0, pSrc, 0, &leftBox);
+    pContext->CopySubresourceRegion(rightOnto, 0, 0, 0, 0, pSrc, 0, &rightBox);
+
+    if (!m_magicHeaderActive)
+    {
+        m_magicHeaderActive = true;
+        m_logicalW = eyeWidth;
+        m_logicalH = eyeHeight;
+        m_shadowFormat = srcDesc.Format;
+        LOG_VERBOSE("  d3d11 magic-header: ACTIVE (%ux%u eye, swap=%d)\n",
+                    eyeWidth, eyeHeight, swapEyes);
+    }
 }
 
 void SwapChainProxy::EnsureShadowBB()

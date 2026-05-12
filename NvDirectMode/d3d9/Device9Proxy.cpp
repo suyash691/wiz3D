@@ -7,6 +7,7 @@
  */
 
 #include "Device9Proxy.h"
+#include "magic_header_capture.h"
 #include "swapchain_helpers.h"
 #include "eye_state.h"
 #include "log.h"
@@ -60,7 +61,14 @@ namespace
     {
         EnsurePrimaryLock();
         EnterCriticalSection(&g_primaryLock);
-        if (g_primaryDevice) g_primaryDevice->CaptureEye(oldEye);
+        // If the magic-header SBS capture path has fired this session, the
+        // game isn't actually using SetActiveEye to drive per-eye rendering —
+        // some other component (often NvAPI proxy itself) is calling
+        // Stereo_SetActiveEye spuriously. Skip the shadow-capture here to
+        // avoid clobbering the per-eye surfaces we just populated from the
+        // SBS split.
+        if (g_primaryDevice && !g_primaryDevice->IsMagicHeaderActive())
+            g_primaryDevice->CaptureEye(oldEye);
         LeaveCriticalSection(&g_primaryLock);
     }
 }
@@ -94,7 +102,12 @@ Device9Proxy::Device9Proxy(IDirect3DDevice9* real, bool isEx)
     , m_srSBSW(0)
     , m_srSBSH(0)
     , m_srSBSFmt(D3DFMT_UNKNOWN)
+    , m_magicHeaderActive(false)
+    , m_magicHeaderSwapEyes(false)
+    , m_knownStereoSurfaceCount(0)
 {
+    for (size_t i = 0; i < kMaxKnownStereoSurfaces; ++i)
+        m_knownStereoSurfaces[i] = nullptr;
     EnsurePrimaryLock();
     EnterCriticalSection(&g_primaryLock);
     g_primaryDevice = this;
@@ -949,7 +962,130 @@ HRESULT Device9Proxy::UpdateSurface(IDirect3DSurface9* sS, CONST RECT* sR, IDire
 HRESULT Device9Proxy::UpdateTexture(IDirect3DBaseTexture9* sT, IDirect3DBaseTexture9* dT)                          { return m_real->UpdateTexture(sT, dT); }
 HRESULT Device9Proxy::GetRenderTargetData(IDirect3DSurface9* sR, IDirect3DSurface9* dS)                            { return m_real->GetRenderTargetData(sR, dS); }
 HRESULT Device9Proxy::GetFrontBufferData(UINT iSC, IDirect3DSurface9* dS)                                          { return m_real->GetFrontBufferData(iSC, dS); }
-HRESULT Device9Proxy::StretchRect(IDirect3DSurface9* sS, CONST RECT* sR, IDirect3DSurface9* dS, CONST RECT* dR, D3DTEXTUREFILTERTYPE F) { return m_real->StretchRect(sS, sR, dS, dR, F); }
+// ---------------------------------------------------------------------------
+// Magic-header SBS surface tracking helpers (used by StretchRect below).
+// ---------------------------------------------------------------------------
+bool Device9Proxy::IsKnownStereoSurface(IDirect3DSurface9* s) const
+{
+    for (UINT i = 0; i < m_knownStereoSurfaceCount; ++i)
+        if (m_knownStereoSurfaces[i] == s) return true;
+    return false;
+}
+
+void Device9Proxy::MarkKnownStereoSurface(IDirect3DSurface9* s)
+{
+    if (IsKnownStereoSurface(s)) return;
+    if (m_knownStereoSurfaceCount < kMaxKnownStereoSurfaces)
+        m_knownStereoSurfaces[m_knownStereoSurfaceCount++] = s;
+    // If full, silently drop — we'll just re-probe on each StretchRect for
+    // surfaces that didn't fit. Acceptable: real games use 1-2 stereo surfaces.
+}
+
+HRESULT Device9Proxy::StretchRect(IDirect3DSurface9* sS, CONST RECT* sR,
+                                  IDirect3DSurface9* dS, CONST RECT* dR,
+                                  D3DTEXTUREFILTERTYPE F)
+{
+    // Magic-header SBS capture path. We're looking for the pattern where a
+    // game / wrapper produces a (2W × H+1) surface tagged with
+    // NVSTEREO_IMAGE_SIGNATURE and StretchRect's it to the swap-chain
+    // backbuffer for the driver to present as stereo. We catch that here,
+    // split into our per-eye surfaces, and let the downstream OutputMethod
+    // composite normally — bypassing the wide-SBS-to-backbuffer blit so we
+    // don't end up with the raw SBS image on screen.
+    //
+    // The destination check (dS == m_pTrackedBackBuffer) keeps us out of the
+    // way of the game's intermediate stereo surface manipulations — only the
+    // final blit-to-backbuffer triggers capture.
+    if (sS && dS == m_pTrackedBackBuffer && m_pTrackedBackBuffer)
+    {
+        bool capture = false;
+        UINT eyeW = 0, eyeH = 0;
+        bool swap = m_magicHeaderSwapEyes;
+
+        if (IsKnownStereoSurface(sS))
+        {
+            // Fast path — surface previously verified. Pull dims from desc.
+            D3DSURFACE_DESC desc = {};
+            if (SUCCEEDED(sS->GetDesc(&desc)) && desc.Width >= 2 && desc.Height >= 2)
+            {
+                eyeW = desc.Width / 2;
+                eyeH = desc.Height - 1;
+                capture = true;
+            }
+        }
+        else
+        {
+            // Slow path — probe for magic. Once detected, cache the pointer
+            // so subsequent frames skip the lock.
+            NvDirectMode::MagicHeader::DetectResult r =
+                NvDirectMode::MagicHeader::DetectStereoMagic(m_real, sS);
+            if (r.hasMagic)
+            {
+                eyeW = r.eyeWidth;
+                eyeH = r.eyeHeight;
+                swap = r.swapEyes;
+                m_magicHeaderActive   = true;
+                m_magicHeaderSwapEyes = swap;
+                MarkKnownStereoSurface(sS);
+                capture = true;
+                LOG_VERBOSE("  d3d9 StretchRect: magic-header SBS detected (src=%p, %ux%u eye, swap=%d) -> capture\n",
+                            (void*)sS, eyeW, eyeH, swap);
+            }
+        }
+
+        if (capture)
+        {
+            // Make sure our per-eye surfaces exist at the eye dimensions.
+            // CaptureEye normally allocates them lazily based on m_shadowBB's
+            // size, but in the magic-header path the shadow isn't involved.
+            // If the slots are null OR the wrong size, (re)allocate.
+            for (int e = 0; e < 2; ++e)
+            {
+                IDirect3DSurface9** slot = (e == 0) ? &m_leftEyeSurf : &m_rightEyeSurf;
+                if (*slot)
+                {
+                    D3DSURFACE_DESC d = {};
+                    if (SUCCEEDED((*slot)->GetDesc(&d)) &&
+                        (d.Width != eyeW || d.Height != eyeH))
+                    {
+                        (*slot)->Release();
+                        *slot = nullptr;
+                    }
+                }
+                if (!*slot)
+                {
+                    D3DSURFACE_DESC src = {};
+                    sS->GetDesc(&src);
+                    HRESULT hr = m_real->CreateRenderTarget(
+                        eyeW, eyeH, src.Format,
+                        D3DMULTISAMPLE_NONE, 0, FALSE, slot, NULL);
+                    if (FAILED(hr) || !*slot)
+                    {
+                        LOG_VERBOSE("  d3d9 StretchRect: magic-header eye RT alloc FAILED hr=0x%08lX\n", hr);
+                        // Bail to legacy behaviour for this call.
+                        return m_real->StretchRect(sS, sR, dS, dR, F);
+                    }
+                    LOG_VERBOSE("  d3d9 magic-header: alloc eyeSurf[%d]=%p (%ux%u fmt=%d)\n",
+                                e, *slot, eyeW, eyeH, (int)src.Format);
+                }
+            }
+
+            HRESULT hr = NvDirectMode::MagicHeader::SplitStereoSurface(
+                m_real, sS, eyeW, eyeH, m_leftEyeSurf, m_rightEyeSurf, swap);
+            if (FAILED(hr))
+            {
+                LOG_VERBOSE("  d3d9 magic-header: split FAILED hr=0x%08lX, falling back to passthrough\n", hr);
+                return m_real->StretchRect(sS, sR, dS, dR, F);
+            }
+            // Skip the original blit — Present's OutputMethod composite will
+            // overwrite the backbuffer using the per-eye surfaces. Returning
+            // D3D_OK keeps the game happy.
+            return D3D_OK;
+        }
+    }
+
+    return m_real->StretchRect(sS, sR, dS, dR, F);
+}
 HRESULT Device9Proxy::ColorFill(IDirect3DSurface9* s, CONST RECT* r, D3DCOLOR c)                                   { return m_real->ColorFill(s, r, c); }
 HRESULT Device9Proxy::CreateOffscreenPlainSurface(UINT W, UINT H, D3DFORMAT F, D3DPOOL P, IDirect3DSurface9** pp, HANDLE* sh)              { return m_real->CreateOffscreenPlainSurface(W, H, F, P, pp, sh); }
 HRESULT Device9Proxy::SetRenderTarget(DWORD i, IDirect3DSurface9* p)

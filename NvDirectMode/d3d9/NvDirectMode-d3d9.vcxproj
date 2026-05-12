@@ -163,6 +163,7 @@
     <ClCompile Include="layout_stable_hooks.cpp" />
     <ClCompile Include="device_vtable_hooks.cpp" />
     <ClCompile Include="eye_state.cpp" />
+    <ClCompile Include="magic_header_capture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="D3D9Proxy.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="device_vtable_hooks.h" />
     <ClInclude Include="swapchain_helpers.h" />
     <ClInclude Include="eye_state.h" />
+    <ClInclude Include="magic_header_capture.h" />
     <ClInclude Include="log.h" />
   </ItemGroup>
   <ItemGroup>

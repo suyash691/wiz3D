@@ -69,6 +69,21 @@ public:
     // before the next eye's render starts overwriting.
     void CaptureEye(int eyeBeingLeft);
 
+    // Magic-header SBS capture — Device10Proxy::CopyResource calls this when
+    // it detects a (2W × H+1) source texture tagged with NVSTEREO_IMAGE_SIGNATURE.
+    // We allocate / resize the eye textures to (eyeWidth × eyeHeight) and split
+    // the source into left/right via CopySubresourceRegion. The composite path
+    // (RunCompositePass / RunSRWeave) then reads from m_leftEyeFrame /
+    // m_rightEyeFrame as it normally does.
+    void CaptureMagicHeaderSBS(ID3D10Resource* pSrc,
+                               UINT eyeWidth, UINT eyeHeight, bool swapEyes);
+
+    bool IsMagicHeaderActive() const { return m_magicHeaderActive; }
+
+    // Static accessor for Device10Proxy::CopyResource — returns the primary
+    // SwapChainProxy registered with the eye-change dispatcher (this->this).
+    static SwapChainProxy* GetPrimary();
+
 private:
     void EnsureShadowBB();
     void ReleaseShadowBB();
@@ -91,6 +106,13 @@ private:
     ID3D10Texture2D* m_leftEyeFrame;
     ID3D10Texture2D* m_rightEyeFrame;
     int              m_lastSeenEye;
+
+    // Magic-header SBS state. m_magicHeaderActive flips on once we detect
+    // the NV-stereo pattern; from then on Composite/SR uses the per-eye
+    // textures populated by CaptureMagicHeaderSBS instead of the
+    // SetActiveEye-driven CaptureEye path (which is gated off in
+    // OnEyeChange when this is true).
+    bool             m_magicHeaderActive;
 
     ID3D10VertexShader*       m_compositeVS;
     ID3D10PixelShader*        m_compositePS_SBS;

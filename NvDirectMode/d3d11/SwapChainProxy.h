@@ -107,6 +107,18 @@ public:
     // Public so the static callback dispatcher can call into us.
     void CaptureEye(int eyeBeingLeft);
 
+    // Magic-header SBS capture — Context11Proxy::CopyResource calls this
+    // when it detects a (2W × H+1) source tagged with NVSTEREO_IMAGE_SIGNATURE.
+    // Allocates / resizes m_leftEyeFrame and m_rightEyeFrame to (eyeWidth ×
+    // eyeHeight) and splits the source via CopySubresourceRegion. Composite /
+    // SR-weave then reads from the eye textures normally.
+    void CaptureMagicHeaderSBS(ID3D11DeviceContext* pContext,
+                               ID3D11Resource* pSrc,
+                               UINT eyeWidth, UINT eyeHeight, bool swapEyes);
+
+    bool IsMagicHeaderActive() const { return m_magicHeaderActive; }
+    static SwapChainProxy* GetPrimary();
+
 private:
     void EnsureShadowBB();
     void EnsureEyeFrames();
@@ -137,6 +149,10 @@ private:
     ID3D11Texture2D* m_leftEyeFrame;
     ID3D11Texture2D* m_rightEyeFrame;
     int              m_lastSeenEye;  // 1=R 2=L 3=MONO; default MONO
+
+    // Magic-header SBS state: when set, eye textures are being populated
+    // from CopyResource intercepts instead of CaptureEye/SetActiveEye.
+    bool             m_magicHeaderActive;
 
     // Stage 4b composite pipeline. Lazy-compiled the first time both
     // eye frames have content; reused thereafter. Released in dtor /
