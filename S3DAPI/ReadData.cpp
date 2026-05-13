@@ -652,6 +652,11 @@ void ReadProfilePart2Data(TiXmlNode* node)
 		DECLARE_BVALUE(WideRenderTarget),
 		DECLARE_BVALUE(CommandBuffering),
 		DECLARE_BVALUE(RenderTargetBuffering),
+		// 0=never stereo, 1=always stereo, 2=heuristic (size/shape/MonoRT-flag aware).
+		// Default 2. Setting to 1 force-flags every RT as stereo — useful for
+		// games where the heuristic excludes intermediate RTs that should be
+		// stereo (causes "scene mono, only UI stereo" symptom).
+		DECLARE_IVALUE(RenderTargetCreationMode),
 		DECLARE_BVALUE(MonoRenderTargetTextures),
 		DECLARE_BVALUE(MonoRenderTargetSurfaces),
 		DECLARE_BVALUE(MonoDepthStencilTextures),

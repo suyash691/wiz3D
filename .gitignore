@@ -31,13 +31,16 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
-# Track wiz3D release uninstaller scripts (manual deployment artifacts).
-# Negations must come AFTER the broad excludes above (incl. x86/, x64/) so they
-# take precedence — order matters in .gitignore. Re-include the parent dirs so
-# git traverses into them, then re-include only the .bat files within.
+# Track wiz3D release uninstaller scripts + per-API Config XMLs (manual
+# deployment artifacts). Negations must come AFTER the broad excludes above
+# (incl. x86/, x64/) so they take precedence — order matters in .gitignore.
+# Re-include the parent dirs so git traverses into them, then re-include only
+# the specific filenames within. Build/binary artifacts (DLLs, EXEs, recipes)
+# stay ignored.
 !releases/
 !releases/**/
 !releases/**/*.bat
+!releases/**/wiz3D_Config.xml
 
 # Track wiz3D scripts at the repo's bin/ root. Other contents of bin/ stay
 # ignored (build artefacts, unrelated tools).

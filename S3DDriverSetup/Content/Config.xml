@@ -161,6 +161,12 @@
 		<CommandBuffering Value="1" Vendor="ATI"/>
 		<CommandBuffering Value="1" Vendor="NVidia"/>
         <RenderTargetBuffering Value="0"/>
+		<!-- How the wrapper decides which render targets become stereo (L+R).
+		     0 = never stereo (game runs mono regardless of StereoActive)
+		     1 = always stereo (force-flag every RT for L+R duplication)
+		     2 = heuristic (default; skips 1x1, square-if-MonoSquare, less-than-BB-if-MonoLessBB)
+		     If a game renders mono despite stereo plumbing being alive, try 1. -->
+		<RenderTargetCreationMode Value="2"/>
 		<MonoRenderTargetTextures Value="0" />
 		<MonoRenderTargetSurfaces Value="0" />
 		<MonoDepthStencilTextures Value="0" />
