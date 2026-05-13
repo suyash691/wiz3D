@@ -2,6 +2,10 @@
 #include "Device11Proxy.h"
 #include "Context11Proxy.h"
 #include "DXGIDeviceProxy.h"
+#include "Texture2D11Proxy.h"
+#include "RTV11Proxy.h"
+#include "DSV11Proxy.h"
+#include "StereoHeuristic.h"
 #include "proxy_factory.h"     // for IID_wiz3D_Device11Proxy
 #include "AdapterFunctions.h"  // DDILog
 
@@ -82,6 +86,11 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateRenderTargetView(
     ID3D11Resource* pResource, const D3D11_RENDER_TARGET_VIEW_DESC* pDesc,
     ID3D11RenderTargetView** ppRTView)
 {
+    // Stage 3a: pass through to the real device. The stereo right-eye RTV
+    // creation requires knowing that pResource is one of our Texture2D11Proxy
+    // instances — that reverse lookup needs the Device-level "wrapped-texture
+    // -> proxy" map which lands in Stage 3b. Until then, this method keeps
+    // its pre-existing BB-RTV tracking behaviour unchanged.
     HRESULT hr = m_real->CreateRenderTargetView(pResource, pDesc, ppRTView);
     if (SUCCEEDED(hr) && ppRTView && *ppRTView)
     {
@@ -204,6 +213,40 @@ void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext(ID3D11DeviceContext** 
     // Fallback: game calls GetImmediateContext before we've stashed a proxy
     // (shouldn't happen via the standard D3D11CreateDevice path, but defensive).
     m_real->GetImmediateContext(ppImmediateContext);
+}
+
+HRESULT STDMETHODCALLTYPE Device11Proxy::CreateTexture2D(
+    const D3D11_TEXTURE2D_DESC* pDesc,
+    const D3D11_SUBRESOURCE_DATA* pInitialData,
+    ID3D11Texture2D** ppTexture2D)
+{
+    // Stage 3a: pure passthrough. The Texture2D11Proxy class is built and
+    // ready (StereoHeuristic.h decides if a right-eye sibling is needed),
+    // but ACTIVATING the wrapping requires the Stage 3b "private IID +
+    // unwrap helper" pattern so that downstream methods (CreateRTV,
+    // CreateSRV, CreateDSV, Context11Proxy::Copy*, etc.) can detect a
+    // wrapped resource at their input and substitute the real underlying
+    // pointer for the real D3D11 runtime. Without that unwrap, handing a
+    // Texture2D11Proxy back to the game produces a guaranteed crash on the
+    // very next call that passes it to the real runtime. So Stage 3a ships
+    // the proxy classes as compiled-but-dormant infrastructure and Stage
+    // 3b adds the IID + unwrap + activates the wrapping for real.
+    return m_real->CreateTexture2D(pDesc, pInitialData, ppTexture2D);
+}
+
+HRESULT STDMETHODCALLTYPE Device11Proxy::CreateDepthStencilView(
+    ID3D11Resource* pResource, const D3D11_DEPTH_STENCIL_VIEW_DESC* pDesc,
+    ID3D11DepthStencilView** ppDepthStencilView)
+{
+    HRESULT hr = m_real->CreateDepthStencilView(pResource, pDesc, ppDepthStencilView);
+    if (FAILED(hr) || !ppDepthStencilView || !*ppDepthStencilView) return hr;
+
+    // Stage 3a: mirror the RTV stereo-sibling path for depth. The
+    // pResource->IsStereo() lookup will land in Stage 3b once the
+    // Texture2D11Proxy reverse map is wired up.
+    NVDM_TRACE_FIRST_N(8, "  Device11Proxy::CreateDepthStencilView: dsv=%p (resource=%p)\n",
+                       *ppDepthStencilView, pResource);
+    return hr;
 }
 
 } // namespace wiz3d

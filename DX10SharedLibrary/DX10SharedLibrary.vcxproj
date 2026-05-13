@@ -216,6 +216,9 @@
     <ClCompile Include="..\S3DWrapper10\Context11Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\DXGIDeviceProxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\proxy_factory.cpp" />
+    <ClCompile Include="..\S3DWrapper10\Texture2D11Proxy.cpp" />
+    <ClCompile Include="..\S3DWrapper10\RTV11Proxy.cpp" />
+    <ClCompile Include="..\S3DWrapper10\DSV11Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\AutoFocus.cpp" />
     <ClCompile Include="..\S3DWrapper10\Commands\CreateResourceBase.cpp" />
     <ClCompile Include="..\S3DWrapper10\Commands\DrawBase.cpp" />

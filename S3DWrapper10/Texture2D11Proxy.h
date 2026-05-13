@@ -1,0 +1,69 @@
+/* wiz3D - ID3D11Texture2D proxy (Option B Stage 3a)
+ *
+ * Wraps an ID3D11Texture2D returned from Device11Proxy::CreateTexture2D.
+ * At construction time, consults StereoHeuristic.h; if the texture meets
+ * the doubling criteria the proxy calls the real device's CreateTexture2D
+ * a second time with the same desc to allocate a right-eye sibling.
+ * IsStereo() lets downstream code (the RTV/DSV/SRV/UAV proxies, and the
+ * Stage-4 OMSet routing) tell which textures need per-eye handling.
+ *
+ * Mirrors S3DWrapper10/ResourceWrapper.cpp's CreateRightResource at the
+ * COM layer. The Resource11Proxy / Stereo11Resource patterns from the
+ * design doc collapse to a single concrete class here because the COM
+ * surface is small enough not to need a template hierarchy.
+ */
+
+#pragma once
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <d3d11.h>
+
+namespace wiz3d
+{
+
+class Device11Proxy;
+
+class Texture2D11Proxy : public ID3D11Texture2D
+{
+public:
+    // realLeft is the always-present main texture the game asked for; realRight
+    // is the optional sibling created by the heuristic (nullable). Parent
+    // Device11Proxy is used by GetDevice to preserve COM identity (return the
+    // wrapped device, not the real one).
+    Texture2D11Proxy(ID3D11Texture2D* realLeft, ID3D11Texture2D* realRight, Device11Proxy* parent);
+    virtual ~Texture2D11Proxy();
+
+    // IUnknown
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** ppvObj) override;
+    ULONG   STDMETHODCALLTYPE AddRef() override                  { return InterlockedIncrement(&m_refs); }
+    ULONG   STDMETHODCALLTYPE Release() override;
+
+    // ID3D11DeviceChild
+    void    STDMETHODCALLTYPE GetDevice(ID3D11Device** ppDevice) override;
+    HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT* pDataSize, void* pData) override                  { return m_realLeft->GetPrivateData(guid, pDataSize, pData); }
+    HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void* pData) override              { return m_realLeft->SetPrivateData(guid, DataSize, pData); }
+    HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown* pData) override                { return m_realLeft->SetPrivateDataInterface(guid, pData); }
+
+    // ID3D11Resource
+    void    STDMETHODCALLTYPE GetType(D3D11_RESOURCE_DIMENSION* pResourceDimension) override                       { m_realLeft->GetType(pResourceDimension); }
+    void    STDMETHODCALLTYPE SetEvictionPriority(UINT EvictionPriority) override                                  { m_realLeft->SetEvictionPriority(EvictionPriority); if (m_realRight) m_realRight->SetEvictionPriority(EvictionPriority); }
+    UINT    STDMETHODCALLTYPE GetEvictionPriority() override                                                       { return m_realLeft->GetEvictionPriority(); }
+
+    // ID3D11Texture2D
+    void    STDMETHODCALLTYPE GetDesc(D3D11_TEXTURE2D_DESC* pDesc) override                                        { m_realLeft->GetDesc(pDesc); }
+
+    // wiz3D accessors used by View11 proxies and Stage 4's per-eye routing.
+    bool             IsStereo()      const { return m_realRight != nullptr; }
+    ID3D11Texture2D* GetReal()       const { return m_realLeft;  }
+    ID3D11Texture2D* GetRealRight()  const { return m_realRight; }
+    Device11Proxy*   GetParent()     const { return m_parent;    }
+
+private:
+    ID3D11Texture2D* m_realLeft;   // owned (released in dtor)
+    ID3D11Texture2D* m_realRight;  // owned, nullable
+    Device11Proxy*   m_parent;     // not owned
+    LONG             m_refs;
+};
+
+} // namespace wiz3d
