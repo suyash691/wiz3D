@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 #include "DSV11Proxy.h"
 #include "Device11Proxy.h"
+#include "proxy_factory.h"     // IID_wiz3D_DSV11Proxy
 #include "AdapterFunctions.h"
 
 #pragma comment(lib, "dxguid.lib")
@@ -40,6 +41,13 @@ HRESULT STDMETHODCALLTYPE DSV11Proxy::QueryInterface(REFIID riid, void** ppvObj)
         riid == IID_ID3D11DepthStencilView)
     {
         *ppvObj = static_cast<ID3D11DepthStencilView*>(this);
+        AddRef();
+        return S_OK;
+    }
+    // Stage 3b: private identity IID for TryUnwrapDSV.
+    if (riid == IID_wiz3D_DSV11Proxy)
+    {
+        *ppvObj = static_cast<IUnknown*>(static_cast<ID3D11DepthStencilView*>(this));
         AddRef();
         return S_OK;
     }

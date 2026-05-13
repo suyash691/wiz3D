@@ -3,6 +3,7 @@
 #include "StdAfx.h"
 #include "Texture2D11Proxy.h"
 #include "Device11Proxy.h"
+#include "proxy_factory.h"     // IID_wiz3D_Texture2D11Proxy
 #include "AdapterFunctions.h"  // DDILog
 
 #pragma comment(lib, "dxguid.lib")
@@ -40,6 +41,15 @@ HRESULT STDMETHODCALLTYPE Texture2D11Proxy::QueryInterface(REFIID riid, void** p
         riid == IID_ID3D11Texture2D)
     {
         *ppvObj = static_cast<ID3D11Texture2D*>(this);
+        AddRef();
+        return S_OK;
+    }
+    // Stage 3b: private identity IID. Used by TryUnwrapTexture2D in
+    // proxy_factory.cpp to detect a wiz3D proxy at COM boundaries before
+    // forwarding to the real D3D11 runtime.
+    if (riid == IID_wiz3D_Texture2D11Proxy)
+    {
+        *ppvObj = static_cast<IUnknown*>(static_cast<ID3D11Texture2D*>(this));
         AddRef();
         return S_OK;
     }

@@ -4,6 +4,7 @@
 #include "RTV11Proxy.h"
 #include "Device11Proxy.h"
 #include "Texture2D11Proxy.h"
+#include "proxy_factory.h"     // IID_wiz3D_RTV11Proxy
 #include "AdapterFunctions.h"
 
 #pragma comment(lib, "dxguid.lib")
@@ -41,6 +42,13 @@ HRESULT STDMETHODCALLTYPE RTV11Proxy::QueryInterface(REFIID riid, void** ppvObj)
         riid == IID_ID3D11RenderTargetView)
     {
         *ppvObj = static_cast<ID3D11RenderTargetView*>(this);
+        AddRef();
+        return S_OK;
+    }
+    // Stage 3b: private identity IID for TryUnwrapRTV.
+    if (riid == IID_wiz3D_RTV11Proxy)
+    {
+        *ppvObj = static_cast<IUnknown*>(static_cast<ID3D11RenderTargetView*>(this));
         AddRef();
         return S_OK;
     }

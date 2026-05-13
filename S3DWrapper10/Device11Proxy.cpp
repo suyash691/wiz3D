@@ -86,14 +86,20 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateRenderTargetView(
     ID3D11Resource* pResource, const D3D11_RENDER_TARGET_VIEW_DESC* pDesc,
     ID3D11RenderTargetView** ppRTView)
 {
-    // Stage 3a: pass through to the real device. The stereo right-eye RTV
-    // creation requires knowing that pResource is one of our Texture2D11Proxy
-    // instances — that reverse lookup needs the Device-level "wrapped-texture
-    // -> proxy" map which lands in Stage 3b. Until then, this method keeps
-    // its pre-existing BB-RTV tracking behaviour unchanged.
-    HRESULT hr = m_real->CreateRenderTargetView(pResource, pDesc, ppRTView);
+    // Stage 3b: probe pResource for a Texture2D11Proxy via the private IID.
+    // On hit, unwrap to the real left-eye texture for the runtime's
+    // CreateRTV; if the proxy also has a right-eye sibling, allocate a
+    // matching right-eye RTV and bundle both into an RTV11Proxy returned
+    // to the game.
+    Texture2D11Proxy* texProxy   = TryUnwrapTexture2D(pResource);
+    ID3D11Resource*   realToUse  = texProxy ? texProxy->GetReal()      : pResource;
+    ID3D11Resource*   realRight  = texProxy ? texProxy->GetRealRight() : nullptr;
+
+    HRESULT hr = m_real->CreateRenderTargetView(realToUse, pDesc, ppRTView);
     if (SUCCEEDED(hr) && ppRTView && *ppRTView)
     {
+        // BB-RTV tracking still operates on the unwrapped game pointer so
+        // the legacy back-buffer flow continues to work for shutdown logic.
         if (IsBackBufferResource(pResource))
         {
             TrackBackBufferRTV(*ppRTView);
@@ -104,6 +110,24 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateRenderTargetView(
         {
             NVDM_TRACE_FIRST_N(8, "  Device11Proxy::CreateRenderTargetView: non-BB rtv=%p (resource=%p, our BB=%p)\n",
                                *ppRTView, pResource, m_pBackBufferResource);
+        }
+
+        // Always wrap RTVs that came from a Texture2D11Proxy so identity
+        // tracking flows through the wrapper. Right-eye sibling created only
+        // if the underlying resource was stereo.
+        if (texProxy)
+        {
+            ID3D11RenderTargetView* realRightRTV = nullptr;
+            if (realRight)
+            {
+                HRESULT hr2 = m_real->CreateRenderTargetView(realRight, pDesc, &realRightRTV);
+                if (FAILED(hr2)) realRightRTV = nullptr;   // fall through to mono RTV
+            }
+            auto* rtvProxy = new RTV11Proxy(*ppRTView, realRightRTV, this);
+            *ppRTView = static_cast<ID3D11RenderTargetView*>(rtvProxy);
+            NVDM_TRACE_FIRST_N(16,
+                "  Device11Proxy::CreateRenderTargetView: -> RTV11Proxy=%p stereo=%d\n",
+                rtvProxy, (int)rtvProxy->IsStereo());
         }
     }
     return hr;
@@ -220,33 +244,106 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateTexture2D(
     const D3D11_SUBRESOURCE_DATA* pInitialData,
     ID3D11Texture2D** ppTexture2D)
 {
-    // Stage 3a: pure passthrough. The Texture2D11Proxy class is built and
-    // ready (StereoHeuristic.h decides if a right-eye sibling is needed),
-    // but ACTIVATING the wrapping requires the Stage 3b "private IID +
-    // unwrap helper" pattern so that downstream methods (CreateRTV,
-    // CreateSRV, CreateDSV, Context11Proxy::Copy*, etc.) can detect a
-    // wrapped resource at their input and substitute the real underlying
-    // pointer for the real D3D11 runtime. Without that unwrap, handing a
-    // Texture2D11Proxy back to the game produces a guaranteed crash on the
-    // very next call that passes it to the real runtime. So Stage 3a ships
-    // the proxy classes as compiled-but-dormant infrastructure and Stage
-    // 3b adds the IID + unwrap + activates the wrapping for real.
-    return m_real->CreateTexture2D(pDesc, pInitialData, ppTexture2D);
+    HRESULT hr = m_real->CreateTexture2D(pDesc, pInitialData, ppTexture2D);
+    if (FAILED(hr) || !ppTexture2D || !*ppTexture2D) return hr;
+
+    // Stage 3b: consult the heuristic on the just-allocated texture. If it
+    // qualifies for stereo doubling, allocate a right-eye sibling via the
+    // real device using the SAME desc but no initial data — the right-eye
+    // is wiz3D's stereo replica and gets its content via per-eye writes in
+    // Stage 4. Mirrors ResourceWrapper::CreateRightResource semantics.
+    //
+    // We always wrap, even for mono resources, so that:
+    //   (a) GetDevice() returns our wrapped device (COM identity preserved)
+    //   (b) TryUnwrapTexture2D detects our texture in downstream Create*View
+    //       methods regardless of stereo status
+    //   (c) Stage 4 can attach state-tracking metadata here later.
+    SIZE bbSize = { (LONG)m_logicalWidth, (LONG)m_logicalHeight };
+    const SIZE* pBBSize = (m_logicalWidth > 0 && m_logicalHeight > 0) ? &bbSize : nullptr;
+
+    ID3D11Texture2D* realLeft  = *ppTexture2D;
+    ID3D11Texture2D* realRight = nullptr;
+
+    if (ShouldDoubleTexture2D(pDesc, pBBSize))
+    {
+        HRESULT hr2 = m_real->CreateTexture2D(pDesc, nullptr, &realRight);
+        if (FAILED(hr2))
+        {
+            // Right-eye allocation failed (OOM, format restrictions, etc.).
+            // Continue mono for this resource — game still works, just no
+            // stereo for this RT.
+            realRight = nullptr;
+            NVDM_TRACE_FIRST_N(4, "  Device11Proxy::CreateTexture2D: right-eye alloc failed hr=0x%08lX (mono fallback)\n", hr2);
+        }
+    }
+
+    auto* texProxy = new Texture2D11Proxy(realLeft, realRight, this);
+    *ppTexture2D = static_cast<ID3D11Texture2D*>(texProxy);
+    NVDM_TRACE_FIRST_N(32,
+        "  Device11Proxy::CreateTexture2D: %ux%u fmt=%d bind=0x%X -> Texture2D11Proxy=%p stereo=%d\n",
+        (unsigned)(pDesc ? pDesc->Width : 0),
+        (unsigned)(pDesc ? pDesc->Height : 0),
+        (int)(pDesc ? pDesc->Format : DXGI_FORMAT_UNKNOWN),
+        (unsigned)(pDesc ? pDesc->BindFlags : 0),
+        texProxy, (int)texProxy->IsStereo());
+    return hr;
 }
 
 HRESULT STDMETHODCALLTYPE Device11Proxy::CreateDepthStencilView(
     ID3D11Resource* pResource, const D3D11_DEPTH_STENCIL_VIEW_DESC* pDesc,
     ID3D11DepthStencilView** ppDepthStencilView)
 {
-    HRESULT hr = m_real->CreateDepthStencilView(pResource, pDesc, ppDepthStencilView);
+    // Stage 3b: same unwrap-then-rewrap pattern as CreateRenderTargetView.
+    Texture2D11Proxy* texProxy   = TryUnwrapTexture2D(pResource);
+    ID3D11Resource*   realToUse  = texProxy ? texProxy->GetReal()      : pResource;
+    ID3D11Resource*   realRight  = texProxy ? texProxy->GetRealRight() : nullptr;
+
+    HRESULT hr = m_real->CreateDepthStencilView(realToUse, pDesc, ppDepthStencilView);
     if (FAILED(hr) || !ppDepthStencilView || !*ppDepthStencilView) return hr;
 
-    // Stage 3a: mirror the RTV stereo-sibling path for depth. The
-    // pResource->IsStereo() lookup will land in Stage 3b once the
-    // Texture2D11Proxy reverse map is wired up.
-    NVDM_TRACE_FIRST_N(8, "  Device11Proxy::CreateDepthStencilView: dsv=%p (resource=%p)\n",
-                       *ppDepthStencilView, pResource);
+    if (texProxy)
+    {
+        ID3D11DepthStencilView* realRightDSV = nullptr;
+        if (realRight)
+        {
+            HRESULT hr2 = m_real->CreateDepthStencilView(realRight, pDesc, &realRightDSV);
+            if (FAILED(hr2)) realRightDSV = nullptr;
+        }
+        auto* dsvProxy = new DSV11Proxy(*ppDepthStencilView, realRightDSV, this);
+        *ppDepthStencilView = static_cast<ID3D11DepthStencilView*>(dsvProxy);
+        NVDM_TRACE_FIRST_N(16,
+            "  Device11Proxy::CreateDepthStencilView: -> DSV11Proxy=%p stereo=%d\n",
+            dsvProxy, (int)dsvProxy->IsStereo());
+    }
+    else
+    {
+        NVDM_TRACE_FIRST_N(8, "  Device11Proxy::CreateDepthStencilView: dsv=%p (unwrapped resource=%p)\n",
+                           *ppDepthStencilView, pResource);
+    }
     return hr;
+}
+
+HRESULT STDMETHODCALLTYPE Device11Proxy::CreateShaderResourceView(
+    ID3D11Resource* pResource, const D3D11_SHADER_RESOURCE_VIEW_DESC* pDesc,
+    ID3D11ShaderResourceView** ppSRView)
+{
+    // Stage 3b: unwrap pResource only — Stage 3c will add an SRV11Proxy
+    // class for full COM identity preservation. For now games get back an
+    // unwrapped SRV against the real left-eye texture; per-eye SRV routing
+    // is a Stage 4 concern.
+    Texture2D11Proxy* texProxy  = TryUnwrapTexture2D(pResource);
+    ID3D11Resource*   realToUse = texProxy ? texProxy->GetReal() : pResource;
+    return m_real->CreateShaderResourceView(realToUse, pDesc, ppSRView);
+}
+
+HRESULT STDMETHODCALLTYPE Device11Proxy::CreateUnorderedAccessView(
+    ID3D11Resource* pResource, const D3D11_UNORDERED_ACCESS_VIEW_DESC* pDesc,
+    ID3D11UnorderedAccessView** ppUAView)
+{
+    // Stage 3b: unwrap pResource only — UAV11Proxy lands in Stage 3c.
+    Texture2D11Proxy* texProxy  = TryUnwrapTexture2D(pResource);
+    ID3D11Resource*   realToUse = texProxy ? texProxy->GetReal() : pResource;
+    return m_real->CreateUnorderedAccessView(realToUse, pDesc, ppUAView);
 }
 
 } // namespace wiz3d

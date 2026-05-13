@@ -16,6 +16,17 @@
 // const GUID with the same value and matches on memcmp.
 EXTERN_C const GUID IID_wiz3D_Device11Proxy;
 
+// Stage 3b: same pattern for the resource/view proxies. Methods that take an
+// `ID3D11Resource*` / `ID3D11RenderTargetView*` / `ID3D11DepthStencilView*`
+// at the COM boundary check for these IIDs to detect a wiz3D proxy at their
+// input. If positive, the wrap call extracts the real underlying pointer (and
+// the right-eye sibling if any) before forwarding to the real D3D11 runtime —
+// the runtime would crash if handed our proxy directly since it doesn't
+// understand the proxy's vtable layout beyond ID3D11* method signatures.
+EXTERN_C const GUID IID_wiz3D_Texture2D11Proxy;
+EXTERN_C const GUID IID_wiz3D_RTV11Proxy;
+EXTERN_C const GUID IID_wiz3D_DSV11Proxy;
+
 namespace wiz3d
 {
     // Wraps the device + (optional) immediate context the system
@@ -27,6 +38,32 @@ namespace wiz3d
     //                     Context11Proxy on exit. May be NULL if the game
     //                     didn't ask for the context.
     void WrapD3D11DeviceAndContext(void** ppDeviceInOut, void** ppContextInOut);
+
+    // Stage 3b: identify whether a COM pointer the game just handed us is one
+    // of our wiz3D proxies. Returns the proxy interface pointer (still
+    // AddRef'd by the caller's reference) on hit, nullptr if not ours. The
+    // caller does NOT receive a new ref — just identity. Implemented inline
+    // so any TU can use them without linking against the proxy classes.
+    //
+    // Usage pattern at a method entry:
+    //   ID3D11Resource* realIn = pResource;
+    //   if (auto* tex = TryUnwrapTexture2D(pResource)) realIn = UnwrapRealLeft(tex);
+    //   m_real->SomeMethod(realIn, ...);
+    //
+    // The helpers QueryInterface the input for our private IID; on hit they
+    // Release the QI'd ref (we don't need it, only the identity match) and
+    // reinterpret_cast back to the proxy. Same pattern NvDirectMode uses for
+    // IID_NvDM_Device11Proxy.
+
+    // Forward-declarations so callers don't have to include the proxy headers
+    // just to call the unwrap helpers. The .cpp side does include them.
+    class Texture2D11Proxy;
+    class RTV11Proxy;
+    class DSV11Proxy;
+
+    Texture2D11Proxy* TryUnwrapTexture2D(struct ID3D11Resource* p);
+    RTV11Proxy*       TryUnwrapRTV(struct ID3D11RenderTargetView* p);
+    DSV11Proxy*       TryUnwrapDSV(struct ID3D11DepthStencilView* p);
 }
 
 // Exported entry point the d3d11.dll proxy resolves via GetProcAddress, so
