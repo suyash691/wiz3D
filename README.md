@@ -133,6 +133,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | Assassin's Creed: Brotherhood | DX9 | x86 | ✓ | Untested |  |
 | Audiosurf | DX9 | x86 | ✓ | Untested |  |
 | Back to the Future: The Game | DX9 | x86 | ✓ | Untested | Episode 1-5 |
+| Batman: Arkham Origins Blackgate | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | Battlefield 2 | DX9 | x86 | ✓ | Untested |  |
 | Battlefield 2142 | DX9 | x86 | ✓ | Untested |  |
 | Battlestations: Pacific | DX9 | x86 | ✓ | Untested |  |
