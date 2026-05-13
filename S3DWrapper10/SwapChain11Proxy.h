@@ -33,6 +33,7 @@ namespace wiz3d
 {
 
 class Device11Proxy;
+class Texture2D11Proxy;
 
 class SwapChain11Proxy : public IDXGISwapChain1
 {
@@ -63,7 +64,7 @@ public:
 
     // IDXGISwapChain
     HRESULT STDMETHODCALLTYPE Present(UINT SyncInterval, UINT Flags) override;
-    HRESULT STDMETHODCALLTYPE GetBuffer(UINT Buffer, REFIID riid, void** ppSurface) override                   { return m_real->GetBuffer(Buffer, riid, ppSurface); }
+    HRESULT STDMETHODCALLTYPE GetBuffer(UINT Buffer, REFIID riid, void** ppSurface) override;
     HRESULT STDMETHODCALLTYPE SetFullscreenState(BOOL Fullscreen, IDXGIOutput* pTarget) override;
     HRESULT STDMETHODCALLTYPE GetFullscreenState(BOOL* pFullscreen, IDXGIOutput** ppTarget) override           { return m_real->GetFullscreenState(pFullscreen, ppTarget); }
     HRESULT STDMETHODCALLTYPE GetDesc(DXGI_SWAP_CHAIN_DESC* pDesc) override                                    { return m_real->GetDesc(pDesc); }
@@ -98,10 +99,48 @@ private:
     void OnPresentBoundaryPre();
     void OnPresentBoundaryPost();
 
+    // Stage 4d: stereo BB sibling + SBS composite. EnsureStereoBackBuffer
+    // allocates wiz3D-side LEFT + RIGHT BB textures (matching real BB desc
+    // + BIND_RENDER_TARGET + BIND_SHADER_RESOURCE) that the game's draws
+    // (left) and the recorded replay (right) write into. EnsureComposite
+    // lazily compiles the fullscreen-triangle VS/PS that samples L + R and
+    // writes SBS-formatted output into the real BB. DoComposite runs that
+    // pass at Pre-Present time, after the right-eye replay sweep.
+    HRESULT EnsureStereoBackBuffer();
+    HRESULT EnsureComposite();
+    void    ReleaseStereoBackBuffer();
+    void    ReleaseComposite();
+    void    DoComposite();
+
     IDXGISwapChain*  m_real;     // owned (released in dtor)
     IDXGISwapChain1* m_real1;    // optional, owned, nullable
-    Device11Proxy*   m_parent;   // not owned
+    Device11Proxy*   m_parent;   // AddRef'd in ctor, released in dtor
     LONG             m_refs;
+
+    // Stage 4d resources. All AddRef'd by us, released in dtor /
+    // ReleaseStereoBackBuffer / ReleaseComposite. m_wrappedBB is the
+    // single Texture2D11Proxy returned by GetBuffer(0) — its left/right
+    // reals are m_leftBB / m_rightBB. m_realBBRTV is an RTV on the REAL
+    // swap-chain back buffer (the composite destination).
+    ID3D11Texture2D*          m_leftBB;
+    ID3D11Texture2D*          m_rightBB;
+    Texture2D11Proxy*         m_wrappedBB;
+    ID3D11ShaderResourceView* m_leftSRV;
+    ID3D11ShaderResourceView* m_rightSRV;
+    ID3D11RenderTargetView*   m_realBBRTV;
+    UINT                      m_bbWidth;
+    UINT                      m_bbHeight;
+    DXGI_FORMAT               m_bbFormat;
+
+    // Composite pipeline state. Once compiled they're reusable across
+    // frames; cleared in dtor + ResizeBuffers (the BB format/size may
+    // change, but the shaders themselves are independent of those).
+    ID3D11VertexShader*       m_compositeVS;
+    ID3D11PixelShader*        m_compositePS;
+    ID3D11SamplerState*       m_compositeSampler;
+    ID3D11RasterizerState*    m_compositeRaster;
+    ID3D11BlendState*         m_compositeBlend;
+    ID3D11DepthStencilState*  m_compositeDepthStencil;
 };
 
 } // namespace wiz3d

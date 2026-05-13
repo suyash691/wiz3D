@@ -7,6 +7,7 @@
 #include "../S3DAPI/ShutterAPI.h"
 #include "DXGIFactoryWrapper.h"
 #include "presenter.h"
+#include "proxy_factory.h"      // Option B Stage 4b.8 factory hook
 
 void UnhookCreateD3DDevice();
 
@@ -311,10 +312,35 @@ STDMETHODIMP CreateSwapChain( IDXGIFactory* This, IUnknown *pDevice, DXGI_SWAP_C
 			}
 		}
 		g_pLastD3DDevice = NULL;
-	}	
+	}
 	ScalingHook.reset();
 	g_SwapChainMode = scNormal;
-	
+
+	// Stage 4b.8 follow-up: Option B factory hook. The legacy g_pLastD3DDevice
+	// path above only fires when DDI hooks created a D3DDeviceWrapper. With
+	// UseCOMWrap=1 (default on Win11) the DDI hooks are skipped, so games
+	// taking the two-call path (D3D11CreateDevice + factory->CreateSwapChain
+	// — Dragon Age II, Max Payne 3, Batman Arkham Origins) get unwrapped
+	// swap chains and skip the 4b.8 replay sweep + 4d composite. Detect our
+	// Device11Proxy via the private IID and wrap the swap chain post-hoc.
+	// Same gates as the D3D11CreateDeviceAndSwapChain export path: the
+	// wiz3D_WrapSwapChain helper checks UseCOMWrapSwapChain internally.
+	if (SUCCEEDED(hResult) && ppSwapChain && *ppSwapChain && pDevice)
+	{
+		IUnknown* probe = NULL;
+		HRESULT qihr = pDevice->QueryInterface(IID_wiz3D_Device11Proxy,
+		                                        reinterpret_cast<void**>(&probe));
+		if (SUCCEEDED(qihr) && probe)
+		{
+			probe->Release();  // drop QI ref — we only need identity
+			WrapperLog("  Option B: pDevice is wiz3D Device11Proxy=%p — invoking wiz3D_WrapSwapChain\n", probe);
+			void* scOut = static_cast<void*>(*ppSwapChain);
+			wiz3D_WrapSwapChain(&scOut, probe);
+			*ppSwapChain = static_cast<IDXGISwapChain*>(scOut);
+			WrapperLog("  Option B: wrapped *ppSwapChain=%p\n", *ppSwapChain);
+		}
+	}
+
 	DEBUG_TRACE1(_T("CreateSwapChain(): EXIT\n"));
 	return hResult;
 }
