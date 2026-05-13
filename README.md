@@ -331,7 +331,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | Tom Clancy's Rainbow Six: Vegas | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Rainbow Six: Vegas 2 | DX9 | x86 | ✓ | Untested |  |
 | Tom Clancy's Splinter Cell: Double Agent | DX9 | x86 | ✓ | Untested |  |
-| Tom Clancy's Splinter Cell: Conviction | DX9 | x86 | ✓ | Untested |  |
+| Tom Clancy's Splinter Cell: Conviction | DX9 | x86 | ✓ | ✅ Mostly Working | Needs shader fix. |
 | Tomb Raider: Legend | DX9 | x86 | ✓ | ✅ Mostly Working | Needs shadow shader fix. |
 | Tomb Raider: Anniversary | DX9 | x86 | ✓ | ✅ Working |  |
 | Tomb Raider: Underworld | DX9 | x86 | ✓ | ✅ Working |  |
@@ -351,6 +351,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | Warhammer 40,000: Dawn of War: Soulstorm | DX9 | x86 | ✓ | Untested |  |
 | Warhammer 40,000: Dawn of War II | DX9 | x86 | ✓ | Untested |  |
 | Watchmen: The End is Nigh | DX9 | x86 | ✓ | Untested |  |
+| Wheelman | DX9 | x86 | ✕ | ✅ Working | May need shader fix. |
 | Wings of Prey | DX9 | x86 | ✓ | Untested |  |
 | Wolfenstein (2009) | DX9 | x86 | ✓ | Untested |  |
 | WorldShift | DX9 | x86 | ✓ | Untested |  |
@@ -366,6 +367,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | Game | API | Bits | iZ3D Profile | Testing | Notes |
 |------|-----|---------|--------|-------|-------|
 | Chess Titans | DX9 | x86/x64 | ✕ | Untested | Freezes on level load. |
+| Dragon Ball Xenoverse | DX9 | x64 | ✕ | ✅ Working | May need shader fix. |
 | Far Cry | DX9 | x86/x64 | ✓ | ❌ Not Working | Crashes on startup. |
 | Final Fantasy IX | DX9 | x64 | ✕ | ⚠️ Partial | Dual-View Output works, flat 3D though. |
 | Pro Evolution Soccer 2016 | DX9 | x64 | ✕ | ✅ Working |  |
@@ -406,7 +408,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | S.T.A.L.K.E.R.: Call of Pripyat | DX9/DX10/DX11 | x86/x64 | ✓ | Untested |  |
 | Serious Sam HD: The First Encounter | DX9/DX11/DX12 | x86 | ✓ | Untested |  |
 | Tom Clancy's H.A.W.X | DX9/DX10 | x86 | ✓ | Untested |  |
-| Tom Clancy's Splinter Cell: Blacklist | DX9/DX11 | x86 | ✕ | ❌ Not Working | DX9 not working. |
+| Tom Clancy's Splinter Cell: Blacklist | DX9/DX11 | x86 | ✕ | ✅ Mostly Working | DX9 only. Needs shader fix. |
 | World in Conflict | DX9/DX10 | x86 | ✓ | Untested |  |
 
 - **Excluded (Online Ban Risk):** *Age of Conan: Unchained*, *Champions Online*, *DC Universe Online*, *Entropia Universe*, *Final Fantasy 14*, *TERA Online*, *The Lord of the Rings Online*, *Warcraft III: Reign of Chaos*, *World of Tanks*.
@@ -424,7 +426,7 @@ Games that used 3D Vision "Automatic Mode" driver stereo injection, but communic
 | Brave: The Video Game | DX9 | x86 | ✕ | Untested |  |
 | Call of Duty: Black Ops | DX9 | x86 | ✓ | ✅ Working | Might need to implement more 3D Vison features. |
 | Carrier Command: Gaea Mission | DX9/DX11 | x86 | ✕ | Untested |  |
-| Dead Rising 2 | DX9 | x86 | ✕ | Untested |  |
+| Dead Rising 2 | DX9 | x86 | ✕ | ✅ Working | May need shader fix. |
 | Deep Black: Reloaded | DX9 | x86 | ✕ | Untested |  |
 | Depth Hunter | DX9 | x86 | ✕ | Untested |  |
 | Devil May Cry 4 | DX9/10 | x86 | ✓ | Untested | `Stereo=ON` in `config.ini`. |
