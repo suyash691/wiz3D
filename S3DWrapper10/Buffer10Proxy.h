@@ -30,8 +30,8 @@ public:
     void    STDMETHODCALLTYPE SetEvictionPriority(UINT EvictionPriority) override                                  { m_real->SetEvictionPriority(EvictionPriority); }
     UINT    STDMETHODCALLTYPE GetEvictionPriority() override                                                       { return m_real->GetEvictionPriority(); }
 
-    HRESULT STDMETHODCALLTYPE Map(D3D10_MAP MapType, UINT MapFlags, void** ppData) override                        { return m_real->Map(MapType, MapFlags, ppData); }
-    void    STDMETHODCALLTYPE Unmap() override                                                                     { m_real->Unmap(); }
+    HRESULT STDMETHODCALLTYPE Map(D3D10_MAP MapType, UINT MapFlags, void** ppData) override;
+    void    STDMETHODCALLTYPE Unmap() override;
     void    STDMETHODCALLTYPE GetDesc(D3D10_BUFFER_DESC* pDesc) override                                           { m_real->GetDesc(pDesc); }
 
     ID3D10Buffer*  GetReal()       const { return m_real;   }
@@ -45,6 +45,14 @@ private:
     Device10Proxy* m_parent;
     LONG           m_refs;
     bool           m_vsBound;
+
+    // Stage 4c carryover: tracks an in-progress write Map so Unmap can
+    // snapshot the bytes the game wrote and push a per-eye replay closure
+    // onto the device's m_frameCommands.
+    bool      m_activeMapValid;
+    void*     m_activeMapData;
+    UINT      m_activeMapByteWidth;
+    D3D10_MAP m_activeMapType;
 };
 
 } // namespace wiz3d

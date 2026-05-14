@@ -178,6 +178,11 @@ public:
     void ReplayFrameCommands(Eye eye);
     void SetPresentHookActive(bool active) { m_presentHookActive = active; }
     bool IsPresentHookActive() const       { return m_presentHookActive; }
+    // 4c10: Buffer10Proxy::Unmap pushes Map+memcpy+eye-shift+Unmap
+    // replay closures through this entry point so the per-eye CB math
+    // applies on the right-eye replay sweep.
+    void PushFrameCommand(std::function<void()> fn) { m_frameCommands.emplace_back(std::move(fn)); }
+    Eye  ActiveEye()      const { return m_activeEye; }
 
 private:
     ID3D10Device* m_real;
