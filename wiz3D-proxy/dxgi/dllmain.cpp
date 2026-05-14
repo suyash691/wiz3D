@@ -309,6 +309,8 @@ typedef DWORD   (WINAPI *pfnInitializeExchangeServer)(void);
 
 // Wrapper's Hooked_CreateDXGIFactory has 3 params (extra HMODULE)
 typedef HRESULT (WINAPI *pfnHookedCreateDXGIFactory)(REFIID riid, void** ppFactory, HMODULE hCallingModule);
+// Wrapper's Hooked_CreateDXGIFactory2 has 4 params (extra HMODULE)
+typedef HRESULT (WINAPI *pfnHookedCreateDXGIFactory2)(UINT Flags, REFIID riid, void** ppFactory, HMODULE hCallingModule);
 
 // Real DXGI function pointers
 static pfnCreateDXGIFactory  g_pfnRealCreateFactory  = NULL;
@@ -316,8 +318,9 @@ static pfnCreateDXGIFactory  g_pfnRealCreateFactory1 = NULL;
 static pfnCreateDXGIFactory2 g_pfnRealCreateFactory2 = NULL;
 
 // Wrapper function pointers (3-param versions)
-static pfnHookedCreateDXGIFactory g_pfnWrapCreateFactory  = NULL;
-static pfnHookedCreateDXGIFactory g_pfnWrapCreateFactory1 = NULL;
+static pfnHookedCreateDXGIFactory  g_pfnWrapCreateFactory  = NULL;
+static pfnHookedCreateDXGIFactory  g_pfnWrapCreateFactory1 = NULL;
+static pfnHookedCreateDXGIFactory2 g_pfnWrapCreateFactory2 = NULL;
 
 // Re-entrancy guard: wrapper calls CreateDXGIFactory internally,
 // which resolves back to our export. We detect this and forward
@@ -983,8 +986,9 @@ static void LoadWrapper(void)
             // Wrapper's CreateDXGIFactory export = Hooked_CreateDXGIFactory (3-param version)
             g_pfnWrapCreateFactory  = (pfnHookedCreateDXGIFactory)GetProcAddress(g_hWrapper, "CreateDXGIFactory");
             g_pfnWrapCreateFactory1 = (pfnHookedCreateDXGIFactory)GetProcAddress(g_hWrapper, "CreateDXGIFactory1");
-            Log("Wrapper exports: CreateDXGIFactory=%p, CreateDXGIFactory1=%p\n",
-                g_pfnWrapCreateFactory, g_pfnWrapCreateFactory1);
+            g_pfnWrapCreateFactory2 = (pfnHookedCreateDXGIFactory2)GetProcAddress(g_hWrapper, "CreateDXGIFactory2");
+            Log("Wrapper exports: CreateDXGIFactory=%p, CreateDXGIFactory1=%p, CreateDXGIFactory2=%p\n",
+                g_pfnWrapCreateFactory, g_pfnWrapCreateFactory1, g_pfnWrapCreateFactory2);
 
             // DDI device wrapping (OpenAdapter10/OpenAdapter10_2). The wrapper's
             // implementation reads the UMD path from the iZ3D installer's registry
@@ -1215,11 +1219,14 @@ extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory1(REFIID riid, 
 
 // ---------------------------------------------------------------------------
 // Exported: CreateDXGIFactory2
-// (DX11.1+/DX12 — wrapper doesn't intercept this, pass through to real)
+// Routed through the wrapper so its Hooked_CreateDXGIFactory2 can vtable-
+// hook slot 10 plus the Factory2-specific swap-chain slots (15/16/24).
+// Required for DX10/11 games that take the CreateDXGIFactory2 path —
+// without this they bypass our slot-10 hook entirely.
 // ---------------------------------------------------------------------------
 extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory2(UINT Flags, REFIID riid, void** ppFactory)
 {
-    Log("CreateDXGIFactory2(Flags=%u) called — pass-through to real dxgi.dll\n", Flags);
+    Log("CreateDXGIFactory2(Flags=%u) called (reentrant=%d)\n", Flags, g_reentrant);
 
     if (!LoadRealDXGI() || !g_pfnRealCreateFactory2)
     {
@@ -1227,6 +1234,33 @@ extern "C" __declspec(dllexport) HRESULT WINAPI CreateDXGIFactory2(UINT Flags, R
         return E_FAIL;
     }
 
+    if (g_reentrant > 0)
+    {
+        Log("  Re-entrant call — forwarding to real dxgi.dll\n");
+        return g_pfnRealCreateFactory2(Flags, riid, ppFactory);
+    }
+
+    LoadWrapper();
+
+    if (!g_bIATHooksInstalled && g_pfnWrapOpenAdapter10)
+    {
+        HookD3D_IAT();
+        g_bIATHooksInstalled = TRUE;
+    }
+
+    if (g_pfnWrapCreateFactory2)
+    {
+        Log("Routing through WRAPPER CreateDXGIFactory2...\n");
+        g_reentrant++;
+        HRESULT hr = g_pfnWrapCreateFactory2(Flags, riid, ppFactory, g_hProxy);
+        g_reentrant--;
+        Log("Wrapper CreateDXGIFactory2 returned 0x%08lX, ppFactory=%p\n", hr,
+            ppFactory ? *ppFactory : NULL);
+        LogFactoryDiagnostics(riid, ppFactory ? *ppFactory : NULL);
+        return hr;
+    }
+
+    Log("Routing through REAL CreateDXGIFactory2 (no wrapper)\n");
     return g_pfnRealCreateFactory2(Flags, riid, ppFactory);
 }
 

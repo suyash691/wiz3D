@@ -292,9 +292,18 @@ wiz3D_WrapD3D10SwapChain(void** ppSwapChainInOut, void* pWrappedDevice)
     }
     auto* deviceProxy = reinterpret_cast<wiz3d::Device10Proxy*>(pWrappedDevice);
     auto* realSC      = static_cast<IDXGISwapChain*>(*ppSwapChainInOut);
-    auto* scProxy     = new wiz3d::SwapChain10Proxy(realSC, deviceProxy);
-    DDILog("wiz3D_WrapD3D10SwapChain: realSC=%p -> SwapChain10Proxy=%p (device=%p)\n",
-           realSC, scProxy, deviceProxy);
+
+    // DX10 Factory2 path: CreateSwapChainForHwnd hands us an IDXGISwapChain1
+    // directly. QI for it so SwapChain10Proxy can satisfy IDXGISwapChain1
+    // surface requests from the game. Failure is fine — Factory1 path returns
+    // a plain IDXGISwapChain and the proxy serves E_NOINTERFACE on the 1+
+    // methods.
+    IDXGISwapChain1* realSC1 = nullptr;
+    realSC->QueryInterface(__uuidof(IDXGISwapChain1), reinterpret_cast<void**>(&realSC1));
+
+    auto* scProxy = new wiz3d::SwapChain10Proxy(realSC, realSC1, deviceProxy);
+    DDILog("wiz3D_WrapD3D10SwapChain: realSC=%p realSC1=%p -> SwapChain10Proxy=%p (device=%p)\n",
+           realSC, realSC1, scProxy, deviceProxy);
     *ppSwapChainInOut = static_cast<IDXGISwapChain*>(scProxy);
 }
 

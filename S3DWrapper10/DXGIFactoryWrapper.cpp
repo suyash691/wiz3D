@@ -2,6 +2,12 @@
 #include "DXGISwapChainWrapper.h"
 #include "D3DDeviceWrapper.h"
 #include <madCHook.h>
+#include <d3d9types.h>  // D3DCOLORVALUE for the DXGI_RGBA shim
+#ifndef _DXGI_RGBA_DEFINED
+#define _DXGI_RGBA_DEFINED
+typedef D3DCOLORVALUE DXGI_RGBA;  // bundled lib/d3d10 dxgitype.h is missing this
+#endif
+#include <dxgi1_2.h>   // IDXGIFactory2 / IDXGISwapChain1 for Factory2 hooks
 #include "../OutputMethods/OutputLib/OutputData.h"
 #include "../S3DAPI/ScalingAgent.h"
 #include "../S3DAPI/ShutterAPI.h"
@@ -412,7 +418,7 @@ STDMETHODIMP Hooked_CreateDXGIFactory1(REFIID riid, void **ppFactory, HMODULE hC
 {
 	HMODULE hDXGI = GetModuleHandle(_T("dxgi.dll"));
 	PFNCREATEDXGIFACTORY p = (PFNCREATEDXGIFACTORY)GetProcAddress(hDXGI, "CreateDXGIFactory1");
-	
+
 	if (IsInternalCall() || gInfo.UseMonoDeviceWrapper)
 		return p(riid, ppFactory);
 
@@ -425,11 +431,205 @@ STDMETHODIMP Hooked_CreateDXGIFactory1(REFIID riid, void **ppFactory, HMODULE hC
 	}
 #endif
 
-	HRESULT hResult = p(riid, ppFactory);	
+	HRESULT hResult = p(riid, ppFactory);
 	if (SUCCEEDED(hResult) && riid == __uuidof(IDXGIFactory1))
 	{
 		void** p = *(void***)(*ppFactory);
 		HookCode(p[10], CreateSwapChain, (PVOID*)&Original_CreateSwapChain, HOOKING_FLAG);
 	}
 	return hResult;
+}
+
+// ---------------------------------------------------------------------------
+// Factory2 swap-chain hooks. CreateDXGIFactory2 returns an IDXGIFactory2 which
+// exposes three NEW swap-chain entries on top of the legacy slot-10 path:
+//
+//   slot 15: CreateSwapChainForHwnd
+//   slot 16: CreateSwapChainForCoreWindow
+//   slot 24: CreateSwapChainForComposition
+//
+// DX10/11 games that use D3D11CreateDevice + CreateDXGIFactory2 land their
+// gameplay swap chain through slot 15 (Hwnd variant) on Win8+, bypassing the
+// legacy slot 10 hook entirely. Without these hooks the COM wrap can't see
+// the swap chain at all and the game runs mono (FC2 / JC2 / De Blob / Lost
+// Planet on the DX10 path were the original blockers).
+// ---------------------------------------------------------------------------
+
+HRESULT (STDMETHODCALLTYPE *Original_CreateSwapChainForHwnd)(
+    IDXGIFactory2* This, IUnknown* pDevice, HWND hWnd,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain) = NULL;
+
+HRESULT (STDMETHODCALLTYPE *Original_CreateSwapChainForCoreWindow)(
+    IDXGIFactory2* This, IUnknown* pDevice, IUnknown* pWindow,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain) = NULL;
+
+HRESULT (STDMETHODCALLTYPE *Original_CreateSwapChainForComposition)(
+    IDXGIFactory2* This, IUnknown* pDevice,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain) = NULL;
+
+// Shared device-probe + wrap path. Pulled out of the slot-10 CreateSwapChain
+// body so the new Factory2 hooks don't redundantly duplicate ~40 lines each.
+// On entry *ppSC is the real swap chain from the runtime. On exit it points
+// to our proxy if pDevice resolves to a wiz3D Device10/11 proxy, otherwise
+// unchanged.
+static void TryWrapSwapChainOptionB(const char* siteTag, IUnknown* pDevice,
+                                    IDXGISwapChain** ppSC)
+{
+    if (!ppSC || !*ppSC || !pDevice) return;
+
+    // DX11 path
+    ID3D11Device* asD3D11 = NULL;
+    HRESULT qiHr = pDevice->QueryInterface(__uuidof(ID3D11Device),
+                                           reinterpret_cast<void**>(&asD3D11));
+    if (SUCCEEDED(qiHr) && asD3D11)
+    {
+        IUnknown* probe = NULL;
+        HRESULT pHr = asD3D11->QueryInterface(IID_wiz3D_Device11Proxy,
+                                              reinterpret_cast<void**>(&probe));
+        if (SUCCEEDED(pHr) && probe)
+        {
+            probe->Release();
+            WrapperLog("  Option B[%s]: routed via Device11Proxy=%p\n", siteTag, probe);
+            void* scOut = static_cast<void*>(*ppSC);
+            wiz3D_WrapSwapChain(&scOut, probe);
+            *ppSC = static_cast<IDXGISwapChain*>(scOut);
+            asD3D11->Release();
+            return;
+        }
+        asD3D11->Release();
+    }
+    // DX10 path
+    ID3D10Device* asD3D10 = NULL;
+    HRESULT qi10 = pDevice->QueryInterface(__uuidof(ID3D10Device),
+                                           reinterpret_cast<void**>(&asD3D10));
+    if (SUCCEEDED(qi10) && asD3D10)
+    {
+        IUnknown* probe10 = NULL;
+        HRESULT pHr10 = asD3D10->QueryInterface(IID_wiz3D_Device10Proxy,
+                                                 reinterpret_cast<void**>(&probe10));
+        if (SUCCEEDED(pHr10) && probe10)
+        {
+            probe10->Release();
+            WrapperLog("  Option B[%s]: routed via Device10Proxy=%p\n", siteTag, probe10);
+            void* scOut = static_cast<void*>(*ppSC);
+            wiz3D_WrapD3D10SwapChain(&scOut, probe10);
+            *ppSC = static_cast<IDXGISwapChain*>(scOut);
+        }
+        asD3D10->Release();
+    }
+}
+
+STDMETHODIMP CreateSwapChainForHwnd(IDXGIFactory2* This, IUnknown* pDevice, HWND hWnd,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pFullscreenDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain)
+{
+    WrapperLog("\nCreateSwapChainForHwnd ENTER (Width=%u, Height=%u, Format=%d)\n",
+        pDesc ? pDesc->Width : 0, pDesc ? pDesc->Height : 0,
+        pDesc ? (int)pDesc->Format : -1);
+    HRESULT hr = Original_CreateSwapChainForHwnd(This, pDevice, hWnd, pDesc,
+        pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+    WrapperLog("  Original_CreateSwapChainForHwnd returned 0x%08lX\n", hr);
+    if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain)
+    {
+        // IDXGISwapChain1 inherits from IDXGISwapChain — same pointer
+        // value, just a typed view. Wrap via the IDXGISwapChain* alias and
+        // re-tag back to IDXGISwapChain1* on return.
+        IDXGISwapChain* sc = static_cast<IDXGISwapChain*>(*ppSwapChain);
+        TryWrapSwapChainOptionB("F2.Hwnd", pDevice, &sc);
+        *ppSwapChain = static_cast<IDXGISwapChain1*>(sc);
+    }
+    return hr;
+}
+
+STDMETHODIMP CreateSwapChainForCoreWindow(IDXGIFactory2* This, IUnknown* pDevice,
+    IUnknown* pWindow,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain)
+{
+    WrapperLog("\nCreateSwapChainForCoreWindow ENTER\n");
+    HRESULT hr = Original_CreateSwapChainForCoreWindow(This, pDevice, pWindow,
+        pDesc, pRestrictToOutput, ppSwapChain);
+    if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain)
+    {
+        IDXGISwapChain* sc = static_cast<IDXGISwapChain*>(*ppSwapChain);
+        TryWrapSwapChainOptionB("F2.CoreWindow", pDevice, &sc);
+        *ppSwapChain = static_cast<IDXGISwapChain1*>(sc);
+    }
+    return hr;
+}
+
+STDMETHODIMP CreateSwapChainForComposition(IDXGIFactory2* This, IUnknown* pDevice,
+    const DXGI_SWAP_CHAIN_DESC1* pDesc,
+    IDXGIOutput* pRestrictToOutput,
+    IDXGISwapChain1** ppSwapChain)
+{
+    WrapperLog("\nCreateSwapChainForComposition ENTER\n");
+    HRESULT hr = Original_CreateSwapChainForComposition(This, pDevice, pDesc,
+        pRestrictToOutput, ppSwapChain);
+    if (SUCCEEDED(hr) && ppSwapChain && *ppSwapChain)
+    {
+        IDXGISwapChain* sc = static_cast<IDXGISwapChain*>(*ppSwapChain);
+        TryWrapSwapChainOptionB("F2.Comp", pDevice, &sc);
+        *ppSwapChain = static_cast<IDXGISwapChain1*>(sc);
+    }
+    return hr;
+}
+
+typedef HRESULT (STDMETHODCALLTYPE *PFNCREATEDXGIFACTORY2)(UINT Flags, REFIID riid, void **ppFactory);
+
+STDMETHODIMP Hooked_CreateDXGIFactory2(UINT Flags, REFIID riid, void **ppFactory, HMODULE hCallingModule)
+{
+    HMODULE hDXGI = GetModuleHandle(_T("dxgi.dll"));
+    PFNCREATEDXGIFACTORY2 pReal =
+        (PFNCREATEDXGIFACTORY2)GetProcAddress(hDXGI, "CreateDXGIFactory2");
+    if (!pReal) return E_FAIL;
+
+    if (IsInternalCall() || gInfo.UseMonoDeviceWrapper)
+        return pReal(Flags, riid, ppFactory);
+
+#ifndef FINAL_RELEASE
+    if (hCallingModule)
+    {
+        TCHAR moduleName[MAX_PATH];
+        GetModuleFileName(hCallingModule, moduleName, sizeof(moduleName));
+        DEBUG_MESSAGE(_T("Calling Module: %s\n"), moduleName);
+    }
+#endif
+
+    HRESULT hResult = pReal(Flags, riid, ppFactory);
+    if (FAILED(hResult) || !ppFactory || !*ppFactory)
+        return hResult;
+
+    // Always patch slot 10 (legacy CreateSwapChain) — it's on every factory.
+    void** vt = *(void***)(*ppFactory);
+    HookCode(vt[10], CreateSwapChain, (PVOID*)&Original_CreateSwapChain, HOOKING_FLAG);
+
+    // Slot 15/16/24 only exist on IDXGIFactory2+. Probe the returned factory
+    // via QI; bail out if it's just a Factory/Factory1 even though the entry
+    // was called via CreateDXGIFactory2.
+    IDXGIFactory2* asF2 = NULL;
+    if (SUCCEEDED((*(IUnknown**)ppFactory)->QueryInterface(__uuidof(IDXGIFactory2),
+                                                            reinterpret_cast<void**>(&asF2)))
+        && asF2)
+    {
+        void** vt2 = *(void***)asF2;
+        HookCode(vt2[15], CreateSwapChainForHwnd,
+                 (PVOID*)&Original_CreateSwapChainForHwnd, HOOKING_FLAG);
+        HookCode(vt2[16], CreateSwapChainForCoreWindow,
+                 (PVOID*)&Original_CreateSwapChainForCoreWindow, HOOKING_FLAG);
+        HookCode(vt2[24], CreateSwapChainForComposition,
+                 (PVOID*)&Original_CreateSwapChainForComposition, HOOKING_FLAG);
+        asF2->Release();
+    }
+    return hResult;
 }

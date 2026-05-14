@@ -15,7 +15,13 @@ namespace wiz3d
 {
 
 SwapChain10Proxy::SwapChain10Proxy(IDXGISwapChain* real, Device10Proxy* parent)
+    : SwapChain10Proxy(real, nullptr, parent)
+{
+}
+
+SwapChain10Proxy::SwapChain10Proxy(IDXGISwapChain* real, IDXGISwapChain1* real1, Device10Proxy* parent)
     : m_real(real)
+    , m_real1(real1)
     , m_parent(parent)
     , m_refs(1)
     , m_leftBB(nullptr)
@@ -35,13 +41,14 @@ SwapChain10Proxy::SwapChain10Proxy(IDXGISwapChain* real, Device10Proxy* parent)
     , m_compositeDepthStencil(nullptr)
 {
     if (m_parent) m_parent->AddRef();
-    DDILog("SwapChain10Proxy ctor: real=%p parent=%p\n", real, parent);
+    DDILog("SwapChain10Proxy ctor: real=%p real1=%p parent=%p\n", real, real1, parent);
 }
 
 SwapChain10Proxy::~SwapChain10Proxy()
 {
     ReleaseStereoBackBuffer();
     ReleaseComposite();
+    if (m_real1)  { m_real1->Release();  m_real1  = nullptr; }
     if (m_real)   { m_real->Release();   m_real   = nullptr; }
     if (m_parent) { m_parent->Release(); m_parent = nullptr; }
 }
@@ -62,6 +69,12 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::QueryInterface(REFIID riid, void** p
         riid == IID_IDXGISwapChain)
     {
         *ppvObj = static_cast<IDXGISwapChain*>(this);
+        AddRef();
+        return S_OK;
+    }
+    if (riid == IID_IDXGISwapChain1 && m_real1)
+    {
+        *ppvObj = static_cast<IDXGISwapChain1*>(this);
         AddRef();
         return S_OK;
     }
@@ -400,6 +413,16 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::Present(UINT SyncInterval, UINT Flag
 {
     OnPresentBoundaryPre();
     HRESULT hr = m_real->Present(SyncInterval, Flags);
+    OnPresentBoundaryPost();
+    return hr;
+}
+
+HRESULT STDMETHODCALLTYPE SwapChain10Proxy::Present1(UINT SyncInterval, UINT PresentFlags,
+    const DXGI_PRESENT_PARAMETERS* pPresentParameters)
+{
+    if (!m_real1) return E_NOINTERFACE;
+    OnPresentBoundaryPre();
+    HRESULT hr = m_real1->Present1(SyncInterval, PresentFlags, pPresentParameters);
     OnPresentBoundaryPost();
     return hr;
 }

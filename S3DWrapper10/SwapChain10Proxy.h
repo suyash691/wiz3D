@@ -1,4 +1,4 @@
-/* wiz3D - IDXGISwapChain proxy for DX10 (Option B Stage 4d-equivalent)
+/* wiz3D - IDXGISwapChain / IDXGISwapChain1 proxy for DX10 (Option B Stage 4d-equivalent)
  *
  * Mirror of SwapChain11Proxy but holding a Device10Proxy* parent and using
  * ID3D10* composite resources. The IDXGISwapChain interface itself is the
@@ -6,8 +6,11 @@
  * directly; only the BB siblings, composite shader pipeline, and the parent
  * device differ.
  *
- * Drops IDXGISwapChain1 support — DX10 games predate that extension by
- * several years, so the additional 1+ surface area would be unused weight.
+ * The IDXGISwapChain1 surface was originally dropped for DX10, but
+ * CreateSwapChainForHwnd (DXGI 1.2+) returns IDXGISwapChain1 directly even
+ * on DX10 devices, so the Factory2 swap-chain hook needs to wrap and return
+ * an IDXGISwapChain1. Methods on the IDXGISwapChain1 surface return
+ * E_NOINTERFACE when m_real1 is null.
  */
 
 #pragma once
@@ -21,6 +24,7 @@ typedef D3DCOLORVALUE DXGI_RGBA;
 #endif
 #include <d3d10.h>
 #include <dxgi.h>
+#include <dxgi1_2.h>
 
 namespace wiz3d
 {
@@ -28,10 +32,16 @@ namespace wiz3d
 class Device10Proxy;
 class Texture2D10Proxy;
 
-class SwapChain10Proxy : public IDXGISwapChain
+class SwapChain10Proxy : public IDXGISwapChain1
 {
 public:
+    // real    : the underlying IDXGISwapChain from the real DXGI factory.
+    // parent  : the Device10Proxy this swap chain belongs to (AddRef'd).
+    // real1   : optional QI'd IDXGISwapChain1 (Win8+ / Factory2 path).
+    //           Nullable; methods on the IDXGISwapChain1 surface return
+    //           E_NOINTERFACE when this is null.
     SwapChain10Proxy(IDXGISwapChain* real, Device10Proxy* parent);
+    SwapChain10Proxy(IDXGISwapChain* real, IDXGISwapChain1* real1, Device10Proxy* parent);
     virtual ~SwapChain10Proxy();
 
     // IUnknown
@@ -60,6 +70,19 @@ public:
     HRESULT STDMETHODCALLTYPE GetFrameStatistics(DXGI_FRAME_STATISTICS* pStats) override                       { return m_real->GetFrameStatistics(pStats); }
     HRESULT STDMETHODCALLTYPE GetLastPresentCount(UINT* pLastPresentCount) override                            { return m_real->GetLastPresentCount(pLastPresentCount); }
 
+    // IDXGISwapChain1
+    HRESULT STDMETHODCALLTYPE GetDesc1(DXGI_SWAP_CHAIN_DESC1* pDesc) override                                  { return m_real1 ? m_real1->GetDesc1(pDesc) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE GetFullscreenDesc(DXGI_SWAP_CHAIN_FULLSCREEN_DESC* pDesc) override               { return m_real1 ? m_real1->GetFullscreenDesc(pDesc) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE GetHwnd(HWND* pHwnd) override                                                    { return m_real1 ? m_real1->GetHwnd(pHwnd) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE GetCoreWindow(REFIID refiid, void** ppUnk) override                              { return m_real1 ? m_real1->GetCoreWindow(refiid, ppUnk) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE Present1(UINT SyncInterval, UINT PresentFlags, const DXGI_PRESENT_PARAMETERS* pPresentParameters) override;
+    BOOL    STDMETHODCALLTYPE IsTemporaryMonoSupported() override                                              { return m_real1 ? m_real1->IsTemporaryMonoSupported() : FALSE; }
+    HRESULT STDMETHODCALLTYPE GetRestrictToOutput(IDXGIOutput** ppRestrictToOutput) override                   { return m_real1 ? m_real1->GetRestrictToOutput(ppRestrictToOutput) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE SetBackgroundColor(const DXGI_RGBA* pColor) override                             { return m_real1 ? m_real1->SetBackgroundColor(pColor) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE GetBackgroundColor(DXGI_RGBA* pColor) override                                   { return m_real1 ? m_real1->GetBackgroundColor(pColor) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE SetRotation(DXGI_MODE_ROTATION Rotation) override                                { return m_real1 ? m_real1->SetRotation(Rotation) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE GetRotation(DXGI_MODE_ROTATION* pRotation) override                              { return m_real1 ? m_real1->GetRotation(pRotation) : E_NOINTERFACE; }
+
     IDXGISwapChain* GetReal()    const { return m_real;   }
     Device10Proxy*  GetParent()  const { return m_parent; }
 
@@ -74,6 +97,7 @@ private:
     void    DoComposite();
 
     IDXGISwapChain*  m_real;
+    IDXGISwapChain1* m_real1;    // optional, owned, nullable
     Device10Proxy*   m_parent;
     LONG             m_refs;
 

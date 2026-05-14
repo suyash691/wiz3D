@@ -6,6 +6,7 @@ EXPORTS
     InitializeExchangeServer						@5 PRIVATE
     CreateDXGIFactory=Hooked_CreateDXGIFactory		@6 PRIVATE
     CreateDXGIFactory1=Hooked_CreateDXGIFactory1	@7 PRIVATE
+    CreateDXGIFactory2=Hooked_CreateDXGIFactory2	@12 PRIVATE
     wiz3D_WrapD3D11DeviceAndContext					@8 PRIVATE
     wiz3D_WrapSwapChain								@9 PRIVATE
     wiz3D_WrapD3D10Device							@10 PRIVATE
