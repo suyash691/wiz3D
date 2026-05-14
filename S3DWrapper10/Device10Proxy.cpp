@@ -6,8 +6,14 @@
 #include "RTV10Proxy.h"
 #include "DSV10Proxy.h"
 #include "Buffer10Proxy.h"
+#include "DXGIDevice10Proxy.h"
 #include "StereoHeuristic.h"
 #include "proxy_factory.h"     // IID_wiz3D_Device10Proxy + TryUnwrap_10 helpers
+#include "AdapterFunctions.h"  // DDILog
+
+#include <dxgi.h>
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
 
 #pragma comment(lib, "dxguid.lib")
 
@@ -51,7 +57,9 @@ Device10Proxy::Device10Proxy(ID3D10Device* real)
     , m_logicalWidth(0)
     , m_logicalHeight(0)
     , m_presentHookActive(false)
+    , m_dxgiDeviceProxy(nullptr)
 {
+    InitializeCriticalSection(&m_dxgiCacheLock);
 }
 
 void Device10Proxy::ClearFrameCommands()
@@ -69,6 +77,50 @@ void Device10Proxy::ReplayFrameCommands(Eye eye)
 
 Device10Proxy::~Device10Proxy()
 {
+    // Sever the back-pointer first so any outstanding game-held refs on
+    // the DXGI proxy don't route QI(ID3D10Device) through a destructed
+    // parent. Then drop our cache ref — the proxy self-deletes if no
+    // other refs exist.
+    if (m_dxgiDeviceProxy)
+    {
+        m_dxgiDeviceProxy->DetachParent();
+        m_dxgiDeviceProxy->Release();
+        m_dxgiDeviceProxy = nullptr;
+    }
+    DeleteCriticalSection(&m_dxgiCacheLock);
+}
+
+DXGIDevice10Proxy* Device10Proxy::GetOrCreateDXGIDeviceProxyAddRef()
+{
+    EnterCriticalSection(&m_dxgiCacheLock);
+    if (m_dxgiDeviceProxy)
+    {
+        m_dxgiDeviceProxy->AddRef();
+        DXGIDevice10Proxy* hit = m_dxgiDeviceProxy;
+        LeaveCriticalSection(&m_dxgiCacheLock);
+        return hit;
+    }
+
+    IDXGIDevice*  r0 = nullptr;
+    IDXGIDevice1* r1 = nullptr;
+    IDXGIDevice2* r2 = nullptr;
+    IDXGIDevice3* r3 = nullptr;
+    HRESULT hr0 = m_real->QueryInterface(IID_IDXGIDevice,  reinterpret_cast<void**>(&r0));
+    if (FAILED(hr0) || !r0)
+    {
+        LeaveCriticalSection(&m_dxgiCacheLock);
+        return nullptr;
+    }
+    m_real->QueryInterface(IID_IDXGIDevice1, reinterpret_cast<void**>(&r1));
+    m_real->QueryInterface(IID_IDXGIDevice2, reinterpret_cast<void**>(&r2));
+    m_real->QueryInterface(IID_IDXGIDevice3, reinterpret_cast<void**>(&r3));
+
+    // ctor sets m_refs=1 (cache's ref); AddRef again for caller.
+    m_dxgiDeviceProxy = new DXGIDevice10Proxy(this, r0, r1, r2, r3);
+    m_dxgiDeviceProxy->AddRef();
+    DXGIDevice10Proxy* hit = m_dxgiDeviceProxy;
+    LeaveCriticalSection(&m_dxgiCacheLock);
+    return hit;
 }
 
 HRESULT STDMETHODCALLTYPE Device10Proxy::QueryInterface(REFIID riid, void** ppvObj)
@@ -88,8 +140,22 @@ HRESULT STDMETHODCALLTYPE Device10Proxy::QueryInterface(REFIID riid, void** ppvO
         AddRef();
         return S_OK;
     }
-    // ID3D10Device1 / IDXGIDevice etc — pass through unwrapped for now.
-    // Stage 3 of the DX10 port can extend this for COM identity preservation.
+    // IDXGIDevice family: route through DXGIDevice10Proxy so the game's
+    // `dev->QI(IDXGIDevice)->QI(ID3D10Device)` round-trip lands on this
+    // Device10Proxy. Without this, the runtime passes the unwrapped real
+    // device to factory->CreateSwapChain and our factory hook misses.
+    if (riid == IID_IDXGIDevice  ||
+        riid == IID_IDXGIDevice1 ||
+        riid == IID_IDXGIDevice2 ||
+        riid == IID_IDXGIDevice3)
+    {
+        DXGIDevice10Proxy* dp = GetOrCreateDXGIDeviceProxyAddRef();
+        if (!dp) return E_NOINTERFACE;
+        HRESULT hr = dp->QueryInterface(riid, ppvObj);
+        dp->Release();
+        return hr;
+    }
+    // ID3D10Device1 + vendor IIDs — pass through unwrapped for now.
     return m_real->QueryInterface(riid, ppvObj);
 }
 

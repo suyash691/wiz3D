@@ -22,6 +22,8 @@
 namespace wiz3d
 {
 
+class DXGIDevice10Proxy;
+
 // RAII COM-pointer holder for closure captures. Same shape as the DX11
 // Context11Proxy's ComRefHolder — keeps a reference alive across the
 // frame even if the game releases its own.
@@ -184,14 +186,23 @@ public:
     void PushFrameCommand(std::function<void()> fn) { m_frameCommands.emplace_back(std::move(fn)); }
     Eye  ActiveEye()      const { return m_activeEye; }
 
+    // DX10 DXGIDevice identity loop: lazily creates and caches a wrapped
+    // DXGIDevice10Proxy so the game's QI(IDXGIDevice) → QI(ID3D10Device)
+    // round-trip lands back on this Device10Proxy. Without it, the runtime
+    // hands the unwrapped real device to factory->CreateSwapChain and our
+    // factory hook misses (FC2 / JC2 stay mono).
+    DXGIDevice10Proxy* GetOrCreateDXGIDeviceProxyAddRef();
+
 private:
-    ID3D10Device* m_real;
-    LONG          m_refs;
-    Eye           m_activeEye;
-    UINT          m_logicalWidth;
-    UINT          m_logicalHeight;
-    bool          m_presentHookActive;
+    ID3D10Device*      m_real;
+    LONG               m_refs;
+    Eye                m_activeEye;
+    UINT               m_logicalWidth;
+    UINT               m_logicalHeight;
+    bool               m_presentHookActive;
     std::vector<std::function<void()>> m_frameCommands;
+    DXGIDevice10Proxy* m_dxgiDeviceProxy;
+    CRITICAL_SECTION   m_dxgiCacheLock;
 };
 
 } // namespace wiz3d
