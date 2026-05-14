@@ -327,12 +327,13 @@ public:
 	// true now that Stage 4c (per-eye CB math) and 4e (shader analyzer)
 	// have shipped; flip to false only as a dev escape hatch.
 	bool		UseCOMWrapReplay;
-	// Option B (Stage 4c): per-eye horizontal shift applied to the [2][0]
-	// element of projection-shaped matrices in mapped constant buffers
-	// during the right-eye replay. Scale is in same units as the matrix
-	// — typical good values are 0.01..0.05; the projection-style scan
-	// detects matrices with m[2][3]=1, m[3][3]=0 and writes m[2][0]+=
-	// COMWrapEyeShift on the right-eye replay. Zero disables 4c math.
+	// Option B (Stage 4c): override for the per-eye horizontal shift applied
+	// to projection matrices' m[2][0] during the right-eye replay. Zero
+	// (the default) means "use the per-game profile's StereoBase value"
+	// — see Input.GetActivePreset()->StereoBase, which loads from
+	// BaseProfile.xml and is hotkey-adjustable at runtime via Num +/-.
+	// Set this non-zero in the config XML to force a specific magnitude
+	// regardless of the profile (e.g. for diagnostic A/B comparison).
 	float		COMWrapEyeShift;
 	bool		CollectDebugInformation;
 	DWORD       ScreenshotType;	
@@ -444,7 +445,7 @@ public:
 		UseCOMWrap = true;            // Option B device/context/resource wrap.
 		UseCOMWrapSwapChain = true;   // Swap-chain wrap + Present hook (4d composite needs this).
 		UseCOMWrapReplay = true;      // Right-eye replay at Present (4c CB math + 4e analyzer use this).
-		COMWrapEyeShift  = 0.03f;     // Stage 4c default shift magnitude.
+		COMWrapEyeShift  = 0.0f;      // 0 = use per-game profile StereoBase; non-zero = override.
 		DrawType = 2;
 		DeviceMode = DEVICE_MODE_AUTO;
 		MultiWindowsMode = MULTI_WINDOWS_MODE_AUTO;
@@ -517,6 +518,18 @@ public:
 extern S3DAPI_API GlobalInfo _gInfo;
 
 extern GlobalInfo& gInfo;
+
+// Option B Stage 4c / 4e: effective per-eye horizontal shift used by the
+// COM-wrap CB math. Returns the COMWrapEyeShift override when non-zero,
+// otherwise the per-game profile's StereoBase (loaded from BaseProfile.xml
+// + hotkey-adjustable via Num +/-). Inline so callers can branch cheaply
+// per Map closure without an extra .cpp dep.
+inline float wiz3D_GetEffectiveEyeShift()
+{
+	if (gInfo.COMWrapEyeShift != 0.0f) return gInfo.COMWrapEyeShift;
+	const CameraPreset* preset = gInfo.Input.GetActivePreset();
+	return preset ? preset->StereoBase : 0.0f;
+}
 
 // you should declare gInfo in project
 //GlobalInfo& gInfo = _gInfo;

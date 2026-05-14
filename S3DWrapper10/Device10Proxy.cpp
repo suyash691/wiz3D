@@ -58,8 +58,30 @@ Device10Proxy::Device10Proxy(ID3D10Device* real)
     , m_logicalHeight(0)
     , m_presentHookActive(false)
     , m_dxgiDeviceProxy(nullptr)
+    , m_boundVS(nullptr)
 {
     InitializeCriticalSection(&m_dxgiCacheLock);
+    InitializeCriticalSection(&m_shaderProjLock);
+    for (UINT i = 0; i < kMaxVSCBSlots; ++i) m_boundVSCBs[i] = nullptr;
+}
+
+void Device10Proxy::StoreShaderProjection(void* shaderPtr, const ShaderAnalysis11Result& info)
+{
+    if (!shaderPtr) return;
+    EnterCriticalSection(&m_shaderProjLock);
+    m_shaderProjections[shaderPtr] = info;
+    LeaveCriticalSection(&m_shaderProjLock);
+}
+
+const ShaderAnalysis11Result* Device10Proxy::LookupShaderProjection(void* shaderPtr) const
+{
+    if (!shaderPtr) return nullptr;
+    auto* self = const_cast<Device10Proxy*>(this);
+    EnterCriticalSection(&self->m_shaderProjLock);
+    auto it = m_shaderProjections.find(shaderPtr);
+    const ShaderAnalysis11Result* p = (it == m_shaderProjections.end()) ? nullptr : &it->second;
+    LeaveCriticalSection(&self->m_shaderProjLock);
+    return p;
 }
 
 void Device10Proxy::ClearFrameCommands()
@@ -88,6 +110,7 @@ Device10Proxy::~Device10Proxy()
         m_dxgiDeviceProxy = nullptr;
     }
     DeleteCriticalSection(&m_dxgiCacheLock);
+    DeleteCriticalSection(&m_shaderProjLock);
 }
 
 DXGIDevice10Proxy* Device10Proxy::GetOrCreateDXGIDeviceProxyAddRef()
@@ -310,10 +333,51 @@ void STDMETHODCALLTYPE Device10Proxy::STAGE_PREFIX##SetConstantBuffers(         
             m_real->STAGE_PREFIX##SetConstantBuffers(StartSlot, NumBuffers, rraw);          \
         });                                                                                 \
 }
-D3D10_CB_SET(VS, 1)
 D3D10_CB_SET(PS, 0)
 D3D10_CB_SET(GS, 1)
 #undef D3D10_CB_SET
+
+// Stage 4e DX10: VS variant that ALSO snapshots m_boundVSCBs[] so
+// Buffer10Proxy::Unmap can find which slot a CB is bound at on the VS
+// pipeline. Otherwise identical to the macro-generated PS/GS versions.
+void STDMETHODCALLTYPE Device10Proxy::VSSetConstantBuffers(
+    UINT StartSlot, UINT NumBuffers, ID3D10Buffer* const* ppConstantBuffers)
+{
+    ID3D10Buffer* raw[kMaxUnwrapArray] = { 0 };
+    UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+    for (UINT i = 0; i < cap; ++i)
+    {
+        ID3D10Buffer* p = ppConstantBuffers ? ppConstantBuffers[i] : nullptr;
+        UINT slot = StartSlot + i;
+        if (slot < kMaxVSCBSlots) m_boundVSCBs[slot] = p;
+        if (p)
+        {
+            if (auto* bp = TryUnwrapBuffer_10(static_cast<ID3D10Resource*>(p)))
+            {
+                bp->TagVSBound();
+                raw[i] = bp->GetReal();
+            }
+            else
+            {
+                raw[i] = p;
+            }
+        }
+    }
+    m_real->VSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers ? raw : nullptr);
+    if (!m_presentHookActive) return;
+    std::vector<ComRefHolder10> refs;
+    refs.reserve(NumBuffers);
+    for (UINT i = 0; i < NumBuffers; ++i)
+        refs.emplace_back(ppConstantBuffers ? ppConstantBuffers[i] : nullptr);
+    m_frameCommands.emplace_back(
+        [this, StartSlot, NumBuffers, refs]() {
+            ID3D10Buffer* rraw[kMaxUnwrapArray] = { 0 };
+            UINT rcap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+            for (UINT i = 0; i < rcap; ++i)
+                rraw[i] = UnwrapBuf10(static_cast<ID3D10Buffer*>(refs[i].p));
+            m_real->VSSetConstantBuffers(StartSlot, NumBuffers, rraw);
+        });
+}
 
 void STDMETHODCALLTYPE Device10Proxy::IASetInputLayout(ID3D10InputLayout* pInputLayout)
 {
@@ -632,10 +696,24 @@ void STDMETHODCALLTYPE Device10Proxy::STAGE_PREFIX##SetShader(SHADER_TYPE* pShad
             m_real->STAGE_PREFIX##SetShader(static_cast<SHADER_TYPE*>(shaderRef.p));        \
         });                                                                                 \
 }
-D3D10_SHADER_SET(VS, ID3D10VertexShader)
 D3D10_SHADER_SET(PS, ID3D10PixelShader)
 D3D10_SHADER_SET(GS, ID3D10GeometryShader)
 #undef D3D10_SHADER_SET
+
+// Stage 4e DX10: VS variant that ALSO snapshots m_boundVS so Buffer10Proxy::
+// Unmap can ask LookupShaderProjection(m_boundVS) what matrix registers
+// live at which CB slot.
+void STDMETHODCALLTYPE Device10Proxy::VSSetShader(ID3D10VertexShader* pShader)
+{
+    m_boundVS = pShader;
+    m_real->VSSetShader(pShader);
+    if (!m_presentHookActive) return;
+    ComRefHolder10 shaderRef(pShader);
+    m_frameCommands.emplace_back(
+        [this, shaderRef]() {
+            m_real->VSSetShader(static_cast<ID3D10VertexShader*>(shaderRef.p));
+        });
+}
 
 void STDMETHODCALLTYPE Device10Proxy::IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY Topology)
 {
@@ -759,6 +837,76 @@ void STDMETHODCALLTYPE Device10Proxy::DrawAuto()
     m_real->DrawAuto();
     if (!m_presentHookActive) return;
     m_frameCommands.emplace_back([this]() { m_real->DrawAuto(); });
+}
+
+// Stage 4e DX10: shader-create methods now run the DXBC analyzer + cache
+// per-shader projection-matrix info. DX10 bytecode is SHDR (SM4) — the
+// shared analyzer in ShaderAnalyzer11 already tries SHEX first then falls
+// back to SHDR, so the same call works.
+namespace {
+
+template<typename TShader>
+HRESULT AnalyzeAndCreate10(const char* tag, Device10Proxy* self,
+                           std::function<HRESULT(const void*, SIZE_T, TShader**)> createReal,
+                           const void* pBytecode, SIZE_T byteLength, TShader** ppShader)
+{
+    HRESULT hr = createReal(pBytecode, byteLength, ppShader);
+    if (FAILED(hr) || !ppShader || !*ppShader) return hr;
+    ShaderAnalysis11Result info;
+    if (AnalyzeShader11(pBytecode, byteLength, info) && !info.projection.matrixData.cb.empty())
+    {
+        DDILog("  Device10Proxy::Create%sShader: CRC=0x%08lX shader=%p matrices in %u CB(s)\n",
+               tag, info.crc32, *ppShader,
+               (unsigned)info.projection.matrixData.cb.size());
+        self->StoreShaderProjection(*ppShader, info);
+    }
+    else
+    {
+        DDILog("  Device10Proxy::Create%sShader: CRC=0x%08lX shader=%p (no projection, parsed=%d)\n",
+               tag, info.crc32, *ppShader, (int)info.parsed);
+    }
+    return hr;
+}
+
+} // namespace
+
+HRESULT STDMETHODCALLTYPE Device10Proxy::CreateVertexShader(
+    const void* pShaderBytecode, SIZE_T BytecodeLength,
+    ID3D10VertexShader** ppVertexShader)
+{
+    return AnalyzeAndCreate10<ID3D10VertexShader>("Vertex", this,
+        [this](const void* b, SIZE_T n, ID3D10VertexShader** pp) {
+            return m_real->CreateVertexShader(b, n, pp);
+        },
+        pShaderBytecode, BytecodeLength, ppVertexShader);
+}
+
+HRESULT STDMETHODCALLTYPE Device10Proxy::CreateGeometryShader(
+    const void* pShaderBytecode, SIZE_T BytecodeLength,
+    ID3D10GeometryShader** ppGeometryShader)
+{
+    return AnalyzeAndCreate10<ID3D10GeometryShader>("Geometry", this,
+        [this](const void* b, SIZE_T n, ID3D10GeometryShader** pp) {
+            return m_real->CreateGeometryShader(b, n, pp);
+        },
+        pShaderBytecode, BytecodeLength, ppGeometryShader);
+}
+
+HRESULT STDMETHODCALLTYPE Device10Proxy::CreateGeometryShaderWithStreamOutput(
+    const void* pShaderBytecode, SIZE_T BytecodeLength,
+    const D3D10_SO_DECLARATION_ENTRY* pSODeclaration, UINT NumEntries,
+    UINT OutputStreamStride, ID3D10GeometryShader** ppGeometryShader)
+{
+    HRESULT hr = m_real->CreateGeometryShaderWithStreamOutput(
+        pShaderBytecode, BytecodeLength, pSODeclaration, NumEntries,
+        OutputStreamStride, ppGeometryShader);
+    if (FAILED(hr) || !ppGeometryShader || !*ppGeometryShader) return hr;
+    ShaderAnalysis11Result info;
+    if (AnalyzeShader11(pShaderBytecode, BytecodeLength, info) && !info.projection.matrixData.cb.empty())
+    {
+        StoreShaderProjection(*ppGeometryShader, info);
+    }
+    return hr;
 }
 
 } // namespace wiz3d

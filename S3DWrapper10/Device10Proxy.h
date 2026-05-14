@@ -18,6 +18,8 @@
 #include <d3d10.h>
 #include <functional>
 #include <vector>
+#include <unordered_map>
+#include "ShaderAnalyzer11.h"  // ShaderAnalysis11Result — DXBC analyzer works for SM4 (DX10) too
 
 namespace wiz3d
 {
@@ -140,9 +142,9 @@ public:
     HRESULT STDMETHODCALLTYPE CreateRenderTargetView(ID3D10Resource* pResource, const D3D10_RENDER_TARGET_VIEW_DESC* pDesc, ID3D10RenderTargetView** ppRTView) override;
     HRESULT STDMETHODCALLTYPE CreateDepthStencilView(ID3D10Resource* pResource, const D3D10_DEPTH_STENCIL_VIEW_DESC* pDesc, ID3D10DepthStencilView** ppDepthStencilView) override;
     HRESULT STDMETHODCALLTYPE CreateInputLayout(const D3D10_INPUT_ELEMENT_DESC* pInputElementDescs, UINT NumElements, const void* pShaderBytecodeWithInputSignature, SIZE_T BytecodeLength, ID3D10InputLayout** ppInputLayout) override { return m_real->CreateInputLayout(pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, ppInputLayout); }
-    HRESULT STDMETHODCALLTYPE CreateVertexShader(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D10VertexShader** ppVertexShader) override                                                  { return m_real->CreateVertexShader(pShaderBytecode, BytecodeLength, ppVertexShader); }
-    HRESULT STDMETHODCALLTYPE CreateGeometryShader(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D10GeometryShader** ppGeometryShader) override                                            { return m_real->CreateGeometryShader(pShaderBytecode, BytecodeLength, ppGeometryShader); }
-    HRESULT STDMETHODCALLTYPE CreateGeometryShaderWithStreamOutput(const void* pShaderBytecode, SIZE_T BytecodeLength, const D3D10_SO_DECLARATION_ENTRY* pSODeclaration, UINT NumEntries, UINT OutputStreamStride, ID3D10GeometryShader** ppGeometryShader) override { return m_real->CreateGeometryShaderWithStreamOutput(pShaderBytecode, BytecodeLength, pSODeclaration, NumEntries, OutputStreamStride, ppGeometryShader); }
+    HRESULT STDMETHODCALLTYPE CreateVertexShader(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D10VertexShader** ppVertexShader) override;
+    HRESULT STDMETHODCALLTYPE CreateGeometryShader(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D10GeometryShader** ppGeometryShader) override;
+    HRESULT STDMETHODCALLTYPE CreateGeometryShaderWithStreamOutput(const void* pShaderBytecode, SIZE_T BytecodeLength, const D3D10_SO_DECLARATION_ENTRY* pSODeclaration, UINT NumEntries, UINT OutputStreamStride, ID3D10GeometryShader** ppGeometryShader) override;
     HRESULT STDMETHODCALLTYPE CreatePixelShader(const void* pShaderBytecode, SIZE_T BytecodeLength, ID3D10PixelShader** ppPixelShader) override                                                     { return m_real->CreatePixelShader(pShaderBytecode, BytecodeLength, ppPixelShader); }
     HRESULT STDMETHODCALLTYPE CreateBlendState(const D3D10_BLEND_DESC* pBlendStateDesc, ID3D10BlendState** ppBlendState) override                                                                   { return m_real->CreateBlendState(pBlendStateDesc, ppBlendState); }
     HRESULT STDMETHODCALLTYPE CreateDepthStencilState(const D3D10_DEPTH_STENCIL_DESC* pDepthStencilDesc, ID3D10DepthStencilState** ppDepthStencilState) override                                    { return m_real->CreateDepthStencilState(pDepthStencilDesc, ppDepthStencilState); }
@@ -193,6 +195,19 @@ public:
     // factory hook misses (FC2 / JC2 stay mono).
     DXGIDevice10Proxy* GetOrCreateDXGIDeviceProxyAddRef();
 
+    // Stage 4e DX10 port: analyzer cache + VS-binding snapshot. DX10 has
+    // no separate context so the binding state lives on the device itself.
+    // Buffer10Proxy::Unmap consults LookupShaderProjection(m_boundVS) +
+    // walks m_boundVSCBs to build a precise matrix-target list per CB.
+    static constexpr UINT kMaxVSCBSlots = 14;  // D3D10_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT
+    void StoreShaderProjection(void* shaderPtr, const ShaderAnalysis11Result& info);
+    const ShaderAnalysis11Result* LookupShaderProjection(void* shaderPtr) const;
+    ID3D10VertexShader* GetBoundVS() const { return m_boundVS; }
+    ID3D10Buffer*       GetBoundVSCB(UINT slot) const
+    {
+        return slot < kMaxVSCBSlots ? m_boundVSCBs[slot] : nullptr;
+    }
+
 private:
     ID3D10Device*      m_real;
     LONG               m_refs;
@@ -203,6 +218,19 @@ private:
     std::vector<std::function<void()>> m_frameCommands;
     DXGIDevice10Proxy* m_dxgiDeviceProxy;
     CRITICAL_SECTION   m_dxgiCacheLock;
+
+    // Stage 4e DX10: shader -> projection info map, lock-protected. Same
+    // stale-entry contract as Device11Proxy::m_shaderProjections — game
+    // owns shader lifetimes, we don't AddRef.
+    std::unordered_map<void*, ShaderAnalysis11Result> m_shaderProjections;
+    CRITICAL_SECTION                                  m_shaderProjLock;
+
+    // VS-binding snapshot. DX10 has 14 CB slots per stage. Used by
+    // Buffer10Proxy::Unmap to ask which slot the mapped CB is bound at
+    // on the VS pipeline, then look up matrix registers via the shader's
+    // analyzer data. kMaxVSCBSlots declared public above.
+    ID3D10VertexShader*   m_boundVS;
+    ID3D10Buffer*         m_boundVSCBs[kMaxVSCBSlots];
 };
 
 } // namespace wiz3d

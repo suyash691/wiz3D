@@ -32,6 +32,35 @@ static void ApplyEyeShiftToCB10(unsigned char* data, size_t byteCount, float eye
     }
 }
 
+// Stage 4e DX10: targeted CB modifier driven by analyzer data. matrixRegister
+// is the constant register index inside the CB (each register = 16 bytes / 4
+// floats). matrixIsTransposed picks row- vs column-major slot layout — see
+// Context11Proxy's ApplyTargetedEyeShiftToCB for the geometry.
+struct EyeShiftMatrix10
+{
+    DWORD matrixRegister;
+    BOOL  matrixIsTransposed;
+};
+
+static void ApplyTargetedEyeShiftToCB10(unsigned char* data, size_t byteCount,
+                                        float eyeShift,
+                                        const std::vector<EyeShiftMatrix10>& matrices)
+{
+    if (eyeShift == 0.f || matrices.empty()) return;
+    constexpr size_t kRegBytes  = 16;
+    constexpr size_t kMat4Bytes = 4 * kRegBytes;
+    for (const auto& m : matrices)
+    {
+        size_t base = size_t(m.matrixRegister) * kRegBytes;
+        if (base + kMat4Bytes > byteCount) continue;
+        float* f = reinterpret_cast<float*>(data + base);
+        float xScale = f[0];
+        if (xScale == 0.f) continue;
+        if (m.matrixIsTransposed) f[2] += eyeShift * xScale;
+        else                      f[8] += eyeShift * xScale;
+    }
+}
+
 Buffer10Proxy::Buffer10Proxy(ID3D10Buffer* real, Device10Proxy* parent)
     : m_real(real)
     , m_parent(parent)
@@ -124,11 +153,43 @@ void STDMETHODCALLTYPE Buffer10Proxy::Unmap()
         std::vector<unsigned char> bytes(m_activeMapByteWidth);
         memcpy(bytes.data(), m_activeMapData, m_activeMapByteWidth);
         D3D10_MAP mt = m_activeMapType;
+
+        // Stage 4e DX10: consult the analyzer for the bound VS shader. If
+        // it has known projection matrices in any CB slot that this buffer
+        // is bound to (per Device10Proxy's m_boundVSCBs snapshot), build
+        // a precise target list. Empty → falls back to the m[2][3]==1 /
+        // m[3][3]==0 heuristic at replay time.
+        std::vector<EyeShiftMatrix10> targets;
+        if (ID3D10VertexShader* vs = m_parent->GetBoundVS())
+        {
+            if (const ShaderAnalysis11Result* info = m_parent->LookupShaderProjection(vs))
+            {
+                if (info->parsed)
+                {
+                    for (UINT slot = 0; slot < Device10Proxy::kMaxVSCBSlots; ++slot)
+                    {
+                        if (m_parent->GetBoundVSCB(slot) != static_cast<ID3D10Buffer*>(this))
+                            continue;
+                        auto cbIt = info->projection.matrixData.cb.find(slot);
+                        if (cbIt == info->projection.matrixData.cb.end()) continue;
+                        for (const auto& pmd : cbIt->second)
+                        {
+                            if (pmd.incorrectProjection) continue;
+                            EyeShiftMatrix10 em;
+                            em.matrixRegister     = pmd.matrixRegister;
+                            em.matrixIsTransposed = pmd.matrixIsTransposed;
+                            targets.push_back(em);
+                        }
+                    }
+                }
+            }
+        }
+
         // Keep this proxy alive across the frame; the closure holds a ref.
         AddRef();
         Buffer10Proxy* self = this;
         m_parent->PushFrameCommand(
-            [self, mt, bytes]() {
+            [self, mt, bytes, targets]() {
                 if (self->m_parent &&
                     self->m_parent->ActiveEye() == Device10Proxy::Eye::Right)
                 {
@@ -136,8 +197,18 @@ void STDMETHODCALLTYPE Buffer10Proxy::Unmap()
                     if (SUCCEEDED(self->m_real->Map(mt, 0, &mapped)) && mapped)
                     {
                         memcpy(mapped, bytes.data(), bytes.size());
-                        ApplyEyeShiftToCB10(static_cast<unsigned char*>(mapped),
-                                            bytes.size(), gInfo.COMWrapEyeShift);
+                        float eyeShift = wiz3D_GetEffectiveEyeShift();
+                        if (!targets.empty())
+                        {
+                            ApplyTargetedEyeShiftToCB10(
+                                static_cast<unsigned char*>(mapped),
+                                bytes.size(), eyeShift, targets);
+                        }
+                        else
+                        {
+                            ApplyEyeShiftToCB10(static_cast<unsigned char*>(mapped),
+                                                bytes.size(), eyeShift);
+                        }
                         self->m_real->Unmap();
                     }
                 }

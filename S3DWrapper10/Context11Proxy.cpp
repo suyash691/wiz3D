@@ -967,16 +967,17 @@ void STDMETHODCALLTYPE Context11Proxy::Unmap(ID3D11Resource* pResource, UINT Sub
                     if (FAILED(m_real->Map(real, subres, mapType, 0, &mapped))
                         || !mapped.pData) return;
                     memcpy(mapped.pData, bytes.data(), bytes.size());
+                    float eyeShift = wiz3D_GetEffectiveEyeShift();
                     if (!targets.empty())
                     {
                         ApplyTargetedEyeShiftToCB(
                             static_cast<unsigned char*>(mapped.pData),
-                            bytes.size(), gInfo.COMWrapEyeShift, targets);
+                            bytes.size(), eyeShift, targets);
                     }
                     else
                     {
                         ApplyEyeShiftToCB(static_cast<unsigned char*>(mapped.pData),
-                                          bytes.size(), gInfo.COMWrapEyeShift);
+                                          bytes.size(), eyeShift);
                     }
                     m_real->Unmap(real, subres);
                 });
