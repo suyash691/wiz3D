@@ -25,6 +25,7 @@ EXTERN_C const GUID IID_wiz3D_Texture2D10Proxy;
 EXTERN_C const GUID IID_wiz3D_RTV10Proxy;
 EXTERN_C const GUID IID_wiz3D_DSV10Proxy;
 EXTERN_C const GUID IID_wiz3D_Buffer10Proxy;
+EXTERN_C const GUID IID_wiz3D_SwapChain10Proxy;
 
 // Stage 3b: same pattern for the resource/view proxies. Methods that take an
 // `ID3D11Resource*` / `ID3D11RenderTargetView*` / `ID3D11DepthStencilView*`
@@ -117,3 +118,11 @@ wiz3D_WrapSwapChain(void** ppSwapChainInOut, void* pWrappedDevice);
 // Stage 1 of the DX10 port; later stages add per-eye routing + composite.
 extern "C" __declspec(dllexport) void
 wiz3D_WrapD3D10Device(void** ppDeviceInOut);
+
+// DX10 Stage 4d: companion to wiz3D_WrapSwapChain for the DX10 path. Wraps
+// the IDXGISwapChain returned by D3D10CreateDeviceAndSwapChain in our
+// SwapChain10Proxy. Called from the d3d10 dllmain after the device has
+// already been wrapped via wiz3D_WrapD3D10Device. The factory hook in
+// DXGIFactoryWrapper.cpp invokes this for the two-call path too.
+extern "C" __declspec(dllexport) void
+wiz3D_WrapD3D10SwapChain(void** ppSwapChainInOut, void* pWrappedDevice);

@@ -20,6 +20,7 @@
 #include "RTV10Proxy.h"
 #include "DSV10Proxy.h"
 #include "Buffer10Proxy.h"
+#include "SwapChain10Proxy.h"
 #include "SwapChain11Proxy.h"
 #include "AdapterFunctions.h"  // DDILog
 
@@ -68,6 +69,9 @@ EXTERN_C const GUID IID_wiz3D_DSV10Proxy =
 // {516803AB-C4E6-DCB3-24A5-03F415C43464} — DX10 Buffer
 EXTERN_C const GUID IID_wiz3D_Buffer10Proxy =
     { 0x516803AB, 0xC4E6, 0xDCB3, { 0x24, 0xA5, 0x03, 0xF4, 0x15, 0xC4, 0x34, 0x64 } };
+// {627914BC-D5F7-EDC4-35B6-1405269554A5} — DX10 SwapChain
+EXTERN_C const GUID IID_wiz3D_SwapChain10Proxy =
+    { 0x627914BC, 0xD5F7, 0xEDC4, { 0x35, 0xB6, 0x14, 0x05, 0x26, 0x95, 0x54, 0xA5 } };
 
 namespace wiz3d
 {
@@ -213,6 +217,24 @@ wiz3D_WrapD3D10Device(void** ppDeviceInOut)
     DDILog("WrapD3D10Device: realDevice=%p -> wiz3d::Device10Proxy=%p\n",
            realDevice, deviceProxy);
     *ppDeviceInOut = static_cast<ID3D10Device*>(deviceProxy);
+}
+
+extern "C" __declspec(dllexport) void
+wiz3D_WrapD3D10SwapChain(void** ppSwapChainInOut, void* pWrappedDevice)
+{
+    if (!ppSwapChainInOut || !*ppSwapChainInOut) return;
+    if (!pWrappedDevice) return;
+    if (!gInfo.UseCOMWrapSwapChain)
+    {
+        DDILog("wiz3D_WrapD3D10SwapChain: UseCOMWrapSwapChain=0 -- passing through unwrapped\n");
+        return;
+    }
+    auto* deviceProxy = reinterpret_cast<wiz3d::Device10Proxy*>(pWrappedDevice);
+    auto* realSC      = static_cast<IDXGISwapChain*>(*ppSwapChainInOut);
+    auto* scProxy     = new wiz3d::SwapChain10Proxy(realSC, deviceProxy);
+    DDILog("wiz3D_WrapD3D10SwapChain: realSC=%p -> SwapChain10Proxy=%p (device=%p)\n",
+           realSC, scProxy, deviceProxy);
+    *ppSwapChainInOut = static_cast<IDXGISwapChain*>(scProxy);
 }
 
 extern "C" __declspec(dllexport) void

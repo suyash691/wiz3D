@@ -131,8 +131,10 @@ DECLARE_FWD(D3D10StateBlockMaskUnion);
 // real device. Symmetric with the D3D11 dllmain's MaybeWrapDeviceAndContext.
 // ---------------------------------------------------------------------------
 typedef void (*PFN_wiz3D_WrapD3D10Device)(void**);
-static PFN_wiz3D_WrapD3D10Device g_pfn_wiz3D_WrapD3D10 = nullptr;
-static bool                       g_pfn_wiz3D_WrapD3D10_resolved = false;
+typedef void (*PFN_wiz3D_WrapD3D10SwapChain)(void**, void*);
+static PFN_wiz3D_WrapD3D10Device    g_pfn_wiz3D_WrapD3D10    = nullptr;
+static PFN_wiz3D_WrapD3D10SwapChain g_pfn_wiz3D_WrapD3D10SC  = nullptr;
+static bool                          g_pfn_wiz3D_WrapD3D10_resolved = false;
 
 static void MaybeWrapD3D10Device(void** ppDevice)
 {
@@ -145,8 +147,10 @@ static void MaybeWrapD3D10Device(void** ppDevice)
         {
             g_pfn_wiz3D_WrapD3D10 = (PFN_wiz3D_WrapD3D10Device)
                 GetProcAddress(hWrap, "wiz3D_WrapD3D10Device");
-            Log("  wiz3D Option B: wiz3D_WrapD3D10Device=%p (hWrap=%p)\n",
-                (void*)g_pfn_wiz3D_WrapD3D10, (void*)hWrap);
+            g_pfn_wiz3D_WrapD3D10SC = (PFN_wiz3D_WrapD3D10SwapChain)
+                GetProcAddress(hWrap, "wiz3D_WrapD3D10SwapChain");
+            Log("  wiz3D Option B: wiz3D_WrapD3D10Device=%p wiz3D_WrapD3D10SwapChain=%p (hWrap=%p)\n",
+                (void*)g_pfn_wiz3D_WrapD3D10, (void*)g_pfn_wiz3D_WrapD3D10SC, (void*)hWrap);
         }
         else
         {
@@ -155,6 +159,13 @@ static void MaybeWrapD3D10Device(void** ppDevice)
     }
     if (g_pfn_wiz3D_WrapD3D10)
         g_pfn_wiz3D_WrapD3D10(ppDevice);
+}
+
+static void MaybeWrapD3D10SwapChain(void** ppSwapChain, void* pWrappedDevice)
+{
+    if (!ppSwapChain || !*ppSwapChain || !pWrappedDevice) return;
+    if (g_pfn_wiz3D_WrapD3D10SC)
+        g_pfn_wiz3D_WrapD3D10SC(ppSwapChain, pWrappedDevice);
 }
 
 typedef HRESULT(WINAPI* PFN_D3D10CreateDevice)(void*, int, HMODULE, UINT, UINT, void**);
@@ -188,7 +199,11 @@ extern "C" __declspec(dllexport) HRESULT WINAPI D3D10CreateDeviceAndSwapChain(
                    pSwapChainDesc, ppSwapChain, ppDevice);
     Log("  D3D10CreateDeviceAndSwapChain returned 0x%08lX, *ppSwapChain=%p, *ppDevice=%p\n",
         hr, ppSwapChain ? *ppSwapChain : nullptr, ppDevice ? *ppDevice : nullptr);
-    if (SUCCEEDED(hr)) MaybeWrapD3D10Device(ppDevice);
+    if (SUCCEEDED(hr))
+    {
+        MaybeWrapD3D10Device(ppDevice);
+        if (ppDevice && *ppDevice) MaybeWrapD3D10SwapChain(ppSwapChain, *ppDevice);
+    }
     return hr;
 }
 

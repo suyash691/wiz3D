@@ -9,3 +9,4 @@ EXPORTS
     wiz3D_WrapD3D11DeviceAndContext					@8 PRIVATE
     wiz3D_WrapSwapChain								@9 PRIVATE
     wiz3D_WrapD3D10Device							@10 PRIVATE
+    wiz3D_WrapD3D10SwapChain						@11 PRIVATE

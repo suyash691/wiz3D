@@ -334,6 +334,7 @@ STDMETHODIMP CreateSwapChain( IDXGIFactory* This, IUnknown *pDevice, DXGI_SWAP_C
 	// ID3D11Device, which would mean Option B isn't active for this device).
 	if (SUCCEEDED(hResult) && ppSwapChain && *ppSwapChain && pDevice)
 	{
+		// DX11 path: route via ID3D11Device + private IID.
 		ID3D11Device* asD3D11 = NULL;
 		HRESULT qiHr = pDevice->QueryInterface(__uuidof(ID3D11Device),
 		                                        reinterpret_cast<void**>(&asD3D11));
@@ -344,7 +345,7 @@ STDMETHODIMP CreateSwapChain( IDXGIFactory* This, IUnknown *pDevice, DXGI_SWAP_C
 			                                       reinterpret_cast<void**>(&probe));
 			if (SUCCEEDED(pHr) && probe)
 			{
-				probe->Release();  // drop QI ref — we only need identity
+				probe->Release();
 				WrapperLog("  Option B: pDevice routed to wiz3D Device11Proxy=%p — invoking wiz3D_WrapSwapChain\n", probe);
 				void* scOut = static_cast<void*>(*ppSwapChain);
 				wiz3D_WrapSwapChain(&scOut, probe);
@@ -352,6 +353,29 @@ STDMETHODIMP CreateSwapChain( IDXGIFactory* This, IUnknown *pDevice, DXGI_SWAP_C
 				WrapperLog("  Option B: wrapped *ppSwapChain=%p\n", *ppSwapChain);
 			}
 			asD3D11->Release();
+		}
+		// DX10 path: same idea but via ID3D10Device + IID_wiz3D_Device10Proxy.
+		// Only fires when the DX11 probe didn't match (DX10 games never
+		// implement ID3D11Device on their device, so the QI above would
+		// have failed with E_NOINTERFACE before getting here).
+		ID3D10Device* asD3D10 = NULL;
+		HRESULT qi10 = pDevice->QueryInterface(__uuidof(ID3D10Device),
+		                                        reinterpret_cast<void**>(&asD3D10));
+		if (SUCCEEDED(qi10) && asD3D10)
+		{
+			IUnknown* probe10 = NULL;
+			HRESULT pHr10 = asD3D10->QueryInterface(IID_wiz3D_Device10Proxy,
+			                                         reinterpret_cast<void**>(&probe10));
+			if (SUCCEEDED(pHr10) && probe10)
+			{
+				probe10->Release();
+				WrapperLog("  Option B: pDevice routed to wiz3D Device10Proxy=%p — invoking wiz3D_WrapD3D10SwapChain\n", probe10);
+				void* scOut = static_cast<void*>(*ppSwapChain);
+				wiz3D_WrapD3D10SwapChain(&scOut, probe10);
+				*ppSwapChain = static_cast<IDXGISwapChain*>(scOut);
+				WrapperLog("  Option B: wrapped *ppSwapChain=%p (DX10)\n", *ppSwapChain);
+			}
+			asD3D10->Release();
 		}
 	}
 
