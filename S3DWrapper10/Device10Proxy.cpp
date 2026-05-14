@@ -48,10 +48,6 @@ static inline ID3D10Resource* UnwrapResForEye10(ID3D10Resource* p, bool pickRigh
         ID3D10Resource* right = tex->GetRealRight();
         return (pickRight && right) ? right : static_cast<ID3D10Resource*>(tex->GetReal());
     }
-    if (auto* tex1 = TryUnwrapTexture1D_10(p))
-        return static_cast<ID3D10Resource*>(tex1->GetReal());
-    if (auto* tex3 = TryUnwrapTexture3D_10(p))
-        return static_cast<ID3D10Resource*>(tex3->GetReal());
     if (auto* buf = TryUnwrapBuffer_10(p))
         return static_cast<ID3D10Resource*>(buf->GetReal());
     return p;
@@ -302,16 +298,18 @@ HRESULT STDMETHODCALLTYPE Device10Proxy::CreateDepthStencilView(
     return hr;
 }
 
+// DX10 Stage 3c.2 regression fix: Tex1D/Tex3D wrappers were causing crashes
+// in Lost Planet + Far Cry 2 at startup. D3D10/d3d11 runtime internals walk
+// internal struct fields on resources directly (not via COM vtable), and
+// our proxy lacks those fields → segfault inside d3d11.dll. Reverted to
+// passthrough; SRV10Proxy still wraps the SRV result, just doesn't try to
+// unwrap a wrapped Tex1D/Tex3D input (there isn't one anymore).
 HRESULT STDMETHODCALLTYPE Device10Proxy::CreateTexture1D(
     const D3D10_TEXTURE1D_DESC* pDesc,
     const D3D10_SUBRESOURCE_DATA* pInitialData,
     ID3D10Texture1D** ppTexture1D)
 {
-    HRESULT hr = m_real->CreateTexture1D(pDesc, pInitialData, ppTexture1D);
-    if (FAILED(hr) || !ppTexture1D || !*ppTexture1D) return hr;
-    auto* texProxy = new Texture1D10Proxy(*ppTexture1D, this);
-    *ppTexture1D = static_cast<ID3D10Texture1D*>(texProxy);
-    return hr;
+    return m_real->CreateTexture1D(pDesc, pInitialData, ppTexture1D);
 }
 
 HRESULT STDMETHODCALLTYPE Device10Proxy::CreateTexture3D(
@@ -319,28 +317,21 @@ HRESULT STDMETHODCALLTYPE Device10Proxy::CreateTexture3D(
     const D3D10_SUBRESOURCE_DATA* pInitialData,
     ID3D10Texture3D** ppTexture3D)
 {
-    HRESULT hr = m_real->CreateTexture3D(pDesc, pInitialData, ppTexture3D);
-    if (FAILED(hr) || !ppTexture3D || !*ppTexture3D) return hr;
-    auto* texProxy = new Texture3D10Proxy(*ppTexture3D, this);
-    *ppTexture3D = static_cast<ID3D10Texture3D*>(texProxy);
-    return hr;
+    return m_real->CreateTexture3D(pDesc, pInitialData, ppTexture3D);
 }
 
 HRESULT STDMETHODCALLTYPE Device10Proxy::CreateShaderResourceView(
     ID3D10Resource* pResource, const D3D10_SHADER_RESOURCE_VIEW_DESC* pDesc,
     ID3D10ShaderResourceView** ppSRView)
 {
-    // Stage 3c.2 DX10 port: same unwrap-input/wrap-output pattern as DX11.
-    // Right-eye sibling SRV gets allocated against the right-eye real
-    // resource (Texture2D only — Buffer/Tex1D/Tex3D have no siblings).
+    // Stage 3c.2 DX10 port: unwrap Texture2D / Buffer inputs (Tex1D/Tex3D
+    // aren't wrapped — see CreateTexture1D/CreateTexture3D for the
+    // rationale). SRV result still gets wrapped so downstream
+    // *SetShaderResources can eye-aware-route Tex2D-backed SRVs.
     Texture2D10Proxy* tex2Proxy = TryUnwrapTexture2D_10(pResource);
-    Texture1D10Proxy* tex1Proxy = TryUnwrapTexture1D_10(pResource);
-    Texture3D10Proxy* tex3Proxy = TryUnwrapTexture3D_10(pResource);
     Buffer10Proxy*    bufProxy  = TryUnwrapBuffer_10(pResource);
 
     ID3D10Resource* realLeftRes  = tex2Proxy ? static_cast<ID3D10Resource*>(tex2Proxy->GetReal())
-                                 : tex1Proxy ? static_cast<ID3D10Resource*>(tex1Proxy->GetReal())
-                                 : tex3Proxy ? static_cast<ID3D10Resource*>(tex3Proxy->GetReal())
                                  : bufProxy  ? static_cast<ID3D10Resource*>(bufProxy->GetReal())
                                              : pResource;
     ID3D10Resource* realRightRes = tex2Proxy ? static_cast<ID3D10Resource*>(tex2Proxy->GetRealRight())

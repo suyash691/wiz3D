@@ -231,8 +231,12 @@
     <ClCompile Include="..\S3DWrapper10\DSV10Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\Buffer10Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\SRV10Proxy.cpp" />
-    <ClCompile Include="..\S3DWrapper10\Texture1D10Proxy.cpp" />
-    <ClCompile Include="..\S3DWrapper10\Texture3D10Proxy.cpp" />
+    <!-- Texture1D10Proxy/Texture3D10Proxy .cpp/.h still in source tree but
+         excluded from build — wrapping those crashed Lost Planet + FC2 inside
+         d3d11.dll runtime internals. SRV creation now passes raw Tex1D/3D
+         pointers straight to the runtime. -->
+    <!--<ClCompile Include="..\S3DWrapper10\Texture1D10Proxy.cpp" />-->
+    <!--<ClCompile Include="..\S3DWrapper10\Texture3D10Proxy.cpp" />-->
     <ClCompile Include="..\S3DWrapper10\SwapChain10Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\DXGIDevice10Proxy.cpp" />
     <ClCompile Include="..\S3DWrapper10\SwapChain11Proxy.cpp" />
