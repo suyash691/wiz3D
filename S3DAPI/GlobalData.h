@@ -327,13 +327,14 @@ public:
 	// true now that Stage 4c (per-eye CB math) and 4e (shader analyzer)
 	// have shipped; flip to false only as a dev escape hatch.
 	bool		UseCOMWrapReplay;
-	// Option B (Stage 4c): override for the per-eye horizontal shift applied
-	// to projection matrices' m[2][0] during the right-eye replay. Zero
-	// (the default) means "use the per-game profile's StereoBase value"
-	// — see Input.GetActivePreset()->StereoBase, which loads from
-	// BaseProfile.xml and is hotkey-adjustable at runtime via Num +/-.
-	// Set this non-zero in the config XML to force a specific magnitude
-	// regardless of the profile (e.g. for diagnostic A/B comparison).
+	// Option B (Stage 4c): internal dev override for the per-eye horizontal
+	// shift applied to projection matrices' m[2][0] during the right-eye
+	// replay. Not surfaced in the user-facing wiz3D_Config.xml — the user
+	// adjusts stereo via the standard Separation/Convergence controls
+	// (Input.GetActivePreset()->StereoBase / One_div_ZPS, hotkey-bound to
+	// Num +/-). This stays in GlobalInfo so a developer can set it non-zero
+	// in code (or restore the XML entry) for diagnostic A/B comparison.
+	// Zero (default) means "use profile-driven shift via wiz3D_GetEffectiveEyeShift".
 	float		COMWrapEyeShift;
 	bool		CollectDebugInformation;
 	DWORD       ScreenshotType;	
