@@ -270,7 +270,7 @@ Games that render Stereoscipic 3D themselves and display that via 3D Vision's 'D
 | Prince of Persia: The Forgotten Sands | DX9 | x86 | ✓ | Untested |  |
 | Pro Evolution Soccer 2017 | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | ProtoGalaxy | DX9 | x86 | ✓ | Untested |  |
-| Prototype 2 | DX9 | x86 | ✕ | ❌ Not Working |  |
+| Prototype 2 | DX9 | x86 | ✕ | ✅ Mostly Working | Needs shadows shader fix. |
 | Rayman Legends | DX9 | x86 | ✕ | ✅ Working | Might need shader fix. |
 | RefRain - prism memories - | DX9/DX9 | x86 | ✕ | ✅ Partially Working | Play with depth set low. Needs higher depth shader fix and issues with Simulated Reality output. |
 | Richard Burns Rally | DX9 | x86 | ✓ | Untested |  |
