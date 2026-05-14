@@ -27,6 +27,11 @@ EXTERN_C const GUID IID_wiz3D_Texture2D11Proxy;
 EXTERN_C const GUID IID_wiz3D_RTV11Proxy;
 EXTERN_C const GUID IID_wiz3D_DSV11Proxy;
 EXTERN_C const GUID IID_wiz3D_SwapChain11Proxy;
+// Stage 3c.1: Buffer11Proxy private IID. Buffers aren't stereo-doubled
+// (no right-eye sibling) but identity wrapping still matters for the 4c
+// eye-shift heuristic, which uses a tag bit on the wrapped buffer to
+// decide whether to apply per-eye CB modification.
+EXTERN_C const GUID IID_wiz3D_Buffer11Proxy;
 
 namespace wiz3d
 {
@@ -61,10 +66,12 @@ namespace wiz3d
     class Texture2D11Proxy;
     class RTV11Proxy;
     class DSV11Proxy;
+    class Buffer11Proxy;
 
     Texture2D11Proxy* TryUnwrapTexture2D(struct ID3D11Resource* p);
     RTV11Proxy*       TryUnwrapRTV(struct ID3D11RenderTargetView* p);
     DSV11Proxy*       TryUnwrapDSV(struct ID3D11DepthStencilView* p);
+    Buffer11Proxy*    TryUnwrapBuffer(struct ID3D11Resource* p);
 }
 
 // Exported entry point the d3d11.dll proxy resolves via GetProcAddress, so

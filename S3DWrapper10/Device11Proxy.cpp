@@ -5,6 +5,7 @@
 #include "Texture2D11Proxy.h"
 #include "RTV11Proxy.h"
 #include "DSV11Proxy.h"
+#include "Buffer11Proxy.h"
 #include "StereoHeuristic.h"
 #include "proxy_factory.h"     // for IID_wiz3D_Device11Proxy
 #include "AdapterFunctions.h"  // DDILog
@@ -92,8 +93,12 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateRenderTargetView(
     // matching right-eye RTV and bundle both into an RTV11Proxy returned
     // to the game.
     Texture2D11Proxy* texProxy   = TryUnwrapTexture2D(pResource);
-    ID3D11Resource*   realToUse  = texProxy ? texProxy->GetReal()      : pResource;
-    ID3D11Resource*   realRight  = texProxy ? texProxy->GetRealRight() : nullptr;
+    Buffer11Proxy*    bufProxy   = TryUnwrapBuffer(pResource);
+    ID3D11Resource*   realToUse  = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetReal())
+                                 : bufProxy ? static_cast<ID3D11Resource*>(bufProxy->GetReal())
+                                            : pResource;
+    ID3D11Resource*   realRight  = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetRealRight())
+                                            : nullptr;
 
     HRESULT hr = m_real->CreateRenderTargetView(realToUse, pDesc, ppRTView);
     if (SUCCEEDED(hr) && ppRTView && *ppRTView)
@@ -239,6 +244,22 @@ void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext(ID3D11DeviceContext** 
     m_real->GetImmediateContext(ppImmediateContext);
 }
 
+HRESULT STDMETHODCALLTYPE Device11Proxy::CreateBuffer(
+    const D3D11_BUFFER_DESC* pDesc,
+    const D3D11_SUBRESOURCE_DATA* pInitialData,
+    ID3D11Buffer** ppBuffer)
+{
+    // Stage 3c.1: always wrap so downstream Try*Unwrap calls see our proxy
+    // identity even for buffers that aren't constant buffers. Buffers don't
+    // get stereo doubling (no right-eye sibling) — the wrap is purely for
+    // identity + the VS-binding tag bit Stage 4c.1 consults.
+    HRESULT hr = m_real->CreateBuffer(pDesc, pInitialData, ppBuffer);
+    if (FAILED(hr) || !ppBuffer || !*ppBuffer) return hr;
+    auto* bufProxy = new Buffer11Proxy(*ppBuffer, this);
+    *ppBuffer = static_cast<ID3D11Buffer*>(bufProxy);
+    return hr;
+}
+
 HRESULT STDMETHODCALLTYPE Device11Proxy::CreateTexture2D(
     const D3D11_TEXTURE2D_DESC* pDesc,
     const D3D11_SUBRESOURCE_DATA* pInitialData,
@@ -295,8 +316,12 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateDepthStencilView(
 {
     // Stage 3b: same unwrap-then-rewrap pattern as CreateRenderTargetView.
     Texture2D11Proxy* texProxy   = TryUnwrapTexture2D(pResource);
-    ID3D11Resource*   realToUse  = texProxy ? texProxy->GetReal()      : pResource;
-    ID3D11Resource*   realRight  = texProxy ? texProxy->GetRealRight() : nullptr;
+    Buffer11Proxy*    bufProxy   = TryUnwrapBuffer(pResource);  // DSV-on-buffer is exotic but legal
+    ID3D11Resource*   realToUse  = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetReal())
+                                 : bufProxy ? static_cast<ID3D11Resource*>(bufProxy->GetReal())
+                                            : pResource;
+    ID3D11Resource*   realRight  = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetRealRight())
+                                            : nullptr;
 
     HRESULT hr = m_real->CreateDepthStencilView(realToUse, pDesc, ppDepthStencilView);
     if (FAILED(hr) || !ppDepthStencilView || !*ppDepthStencilView) return hr;
@@ -332,7 +357,10 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateShaderResourceView(
     // unwrapped SRV against the real left-eye texture; per-eye SRV routing
     // is a Stage 4 concern.
     Texture2D11Proxy* texProxy  = TryUnwrapTexture2D(pResource);
-    ID3D11Resource*   realToUse = texProxy ? texProxy->GetReal() : pResource;
+    Buffer11Proxy*    bufProxy  = TryUnwrapBuffer(pResource);
+    ID3D11Resource*   realToUse = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetReal())
+                                : bufProxy ? static_cast<ID3D11Resource*>(bufProxy->GetReal())
+                                           : pResource;
     return m_real->CreateShaderResourceView(realToUse, pDesc, ppSRView);
 }
 
@@ -342,7 +370,10 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::CreateUnorderedAccessView(
 {
     // Stage 3b: unwrap pResource only — UAV11Proxy lands in Stage 3c.
     Texture2D11Proxy* texProxy  = TryUnwrapTexture2D(pResource);
-    ID3D11Resource*   realToUse = texProxy ? texProxy->GetReal() : pResource;
+    Buffer11Proxy*    bufProxy  = TryUnwrapBuffer(pResource);
+    ID3D11Resource*   realToUse = texProxy ? static_cast<ID3D11Resource*>(texProxy->GetReal())
+                                : bufProxy ? static_cast<ID3D11Resource*>(bufProxy->GetReal())
+                                           : pResource;
     return m_real->CreateUnorderedAccessView(realToUse, pDesc, ppUAView);
 }
 

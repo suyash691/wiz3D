@@ -14,6 +14,7 @@
 #include "Texture2D11Proxy.h"
 #include "RTV11Proxy.h"
 #include "DSV11Proxy.h"
+#include "Buffer11Proxy.h"
 #include "SwapChain11Proxy.h"
 #include "AdapterFunctions.h"  // DDILog
 
@@ -44,6 +45,9 @@ EXTERN_C const GUID IID_wiz3D_DSV11Proxy =
 // {FB027D45-6E80-7C5D-CF4F-AD9EBF6F708F}
 EXTERN_C const GUID IID_wiz3D_SwapChain11Proxy =
     { 0xFB027D45, 0x6E80, 0x7C5D, { 0xCF, 0x4F, 0xAD, 0x9E, 0xBF, 0x6F, 0x70, 0x8F } };
+// {0C138E56-7F91-8D6E-DF50-BEAFC07F819F}
+EXTERN_C const GUID IID_wiz3D_Buffer11Proxy =
+    { 0x0C138E56, 0x7F91, 0x8D6E, { 0xDF, 0x50, 0xBE, 0xAF, 0xC0, 0x7F, 0x81, 0x9F } };
 
 namespace wiz3d
 {
@@ -110,6 +114,17 @@ DSV11Proxy* TryUnwrapDSV(ID3D11DepthStencilView* p)
         return nullptr;
     probe->Release();
     return (DSV11Proxy*)probe;
+}
+
+Buffer11Proxy* TryUnwrapBuffer(ID3D11Resource* p)
+{
+    if (!p) return nullptr;
+    IUnknown* probe = nullptr;
+    if (FAILED(p->QueryInterface(IID_wiz3D_Buffer11Proxy,
+                                  reinterpret_cast<void**>(&probe))) || !probe)
+        return nullptr;
+    probe->Release();
+    return (Buffer11Proxy*)probe;
 }
 
 } // namespace wiz3d

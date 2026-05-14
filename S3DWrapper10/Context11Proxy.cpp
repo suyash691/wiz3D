@@ -13,6 +13,7 @@
 #include "Texture2D11Proxy.h"
 #include "RTV11Proxy.h"
 #include "DSV11Proxy.h"
+#include "Buffer11Proxy.h"
 #include "proxy_factory.h"     // TryUnwrap* helpers
 #include "AdapterFunctions.h"  // DDILog
 
@@ -20,6 +21,36 @@
 // arrays passed to OMSetRenderTargets. D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT
 // is 8; UAVs go higher but we cap defensively.
 static constexpr UINT kMaxUnwrapArray = 16;
+
+// Stage 3c.1: lightweight inline unwrap for ID3D11Buffer*. Used at every
+// method boundary that hands a buffer to the real D3D11 runtime — passing
+// our Buffer11Proxy directly would crash the runtime because it doesn't
+// understand our vtable layout past ID3D11Buffer methods. Returns the raw
+// buffer (or the original pointer if not ours, including nullptr).
+static inline ID3D11Buffer* UnwrapBuf(ID3D11Buffer* p)
+{
+    if (!p) return nullptr;
+    if (auto* bp = wiz3d::TryUnwrapBuffer(static_cast<ID3D11Resource*>(p)))
+        return bp->GetReal();
+    return p;
+}
+
+// Stage 3c.1: unwrap ID3D11Resource* for the eye-aware Do* helpers. Tries
+// Texture2D11Proxy first (which has eye-stereo siblings) then Buffer11Proxy
+// (no stereo doubling, single real). Passes through unmodified for other
+// resource types until those get their own proxies (Texture1D/3D in 3c.2).
+static inline ID3D11Resource* UnwrapResourceForEye(ID3D11Resource* p, bool pickRight)
+{
+    if (!p) return nullptr;
+    if (auto* tex = wiz3d::TryUnwrapTexture2D(p))
+    {
+        ID3D11Resource* right = tex->GetRealRight();
+        return (pickRight && right) ? right : static_cast<ID3D11Resource*>(tex->GetReal());
+    }
+    if (auto* buf = wiz3d::TryUnwrapBuffer(p))
+        return static_cast<ID3D11Resource*>(buf->GetReal());
+    return p;
+}
 
 #pragma comment(lib, "dxguid.lib")
 
@@ -131,18 +162,28 @@ RECORD_SAMPLER_SET(CS)
 void STDMETHODCALLTYPE Context11Proxy::STAGE_PREFIX##SetConstantBuffers(                    \
     UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers)                \
 {                                                                                           \
-    m_real->STAGE_PREFIX##SetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);     \
-    /* Stage 4c.1: tag the bound CBs as VS-pipeline if this is a vertex-shading stage. */   \
-    /* Sticky: once a CB has carried a VS/GS/HS/DS binding, it's eligible for the 4c */     \
-    /* eye-shift even when later only PS-bound. PS/CS-only CBs stay out of the set and */   \
-    /* skip the heuristic. Set is unbounded but the population converges quickly (~game */  \
-    /* CB count) so memory cost is trivial. */                                              \
-    if (IS_VS_PIPELINE)                                                                     \
+    /* Stage 3c.1: unwrap wrapped buffers before forwarding. Also stage-tag */              \
+    /* the proxy when VS-pipeline so 4c.1's Map filter can consult it. */                   \
+    ID3D11Buffer* rawCBs[kMaxUnwrapArray] = { 0 };                                          \
+    UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;                \
+    for (UINT i = 0; i < cap; ++i)                                                          \
     {                                                                                       \
-        for (UINT i = 0; i < NumBuffers; ++i)                                               \
-            if (ppConstantBuffers && ppConstantBuffers[i])                                  \
-                m_vsBoundCBs.insert(ppConstantBuffers[i]);                                  \
+        ID3D11Buffer* p = ppConstantBuffers ? ppConstantBuffers[i] : nullptr;               \
+        if (p)                                                                              \
+        {                                                                                   \
+            if (auto* bp = wiz3d::TryUnwrapBuffer(static_cast<ID3D11Resource*>(p)))         \
+            {                                                                               \
+                if (IS_VS_PIPELINE) bp->TagVSBound();                                       \
+                rawCBs[i] = bp->GetReal();                                                  \
+            }                                                                               \
+            else                                                                            \
+            {                                                                               \
+                rawCBs[i] = p;                                                              \
+            }                                                                               \
+        }                                                                                   \
     }                                                                                       \
+    m_real->STAGE_PREFIX##SetConstantBuffers(StartSlot, NumBuffers,                         \
+        ppConstantBuffers ? rawCBs : nullptr);                                              \
     if (!m_presentHookActive) return;                                                       \
     std::vector<ComRefHolder> refs;                                                         \
     refs.reserve(NumBuffers);                                                               \
@@ -151,9 +192,9 @@ void STDMETHODCALLTYPE Context11Proxy::STAGE_PREFIX##SetConstantBuffers(        
     m_frameCommands.emplace_back(                                                           \
         [this, StartSlot, NumBuffers, refs]() {                                             \
             ID3D11Buffer* raw[kMaxUnwrapArray] = { 0 };                                     \
-            UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;        \
-            for (UINT i = 0; i < cap; ++i)                                                  \
-                raw[i] = static_cast<ID3D11Buffer*>(refs[i].p);                             \
+            UINT replayCap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;  \
+            for (UINT i = 0; i < replayCap; ++i)                                            \
+                raw[i] = UnwrapBuf(static_cast<ID3D11Buffer*>(refs[i].p));                  \
             m_real->STAGE_PREFIX##SetConstantBuffers(StartSlot, NumBuffers, raw);           \
         });                                                                                 \
 }
@@ -275,28 +316,28 @@ void STDMETHODCALLTYPE Context11Proxy::DrawAuto()
 void STDMETHODCALLTYPE Context11Proxy::DrawInstancedIndirect(
     ID3D11Buffer* pBufferForArgs, UINT AlignedByteOffsetForArgs)
 {
-    m_real->DrawInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
+    m_real->DrawInstancedIndirect(UnwrapBuf(pBufferForArgs), AlignedByteOffsetForArgs);
     if (!m_presentHookActive) return;
     ComRefHolder bufRef(pBufferForArgs);
     m_frameCommands.emplace_back(
         [this, bufRef, AlignedByteOffsetForArgs]()
         {
             m_real->DrawInstancedIndirect(
-                static_cast<ID3D11Buffer*>(bufRef.p), AlignedByteOffsetForArgs);
+                UnwrapBuf(static_cast<ID3D11Buffer*>(bufRef.p)), AlignedByteOffsetForArgs);
         });
 }
 
 void STDMETHODCALLTYPE Context11Proxy::DrawIndexedInstancedIndirect(
     ID3D11Buffer* pBufferForArgs, UINT AlignedByteOffsetForArgs)
 {
-    m_real->DrawIndexedInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
+    m_real->DrawIndexedInstancedIndirect(UnwrapBuf(pBufferForArgs), AlignedByteOffsetForArgs);
     if (!m_presentHookActive) return;
     ComRefHolder bufRef(pBufferForArgs);
     m_frameCommands.emplace_back(
         [this, bufRef, AlignedByteOffsetForArgs]()
         {
             m_real->DrawIndexedInstancedIndirect(
-                static_cast<ID3D11Buffer*>(bufRef.p), AlignedByteOffsetForArgs);
+                UnwrapBuf(static_cast<ID3D11Buffer*>(bufRef.p)), AlignedByteOffsetForArgs);
         });
 }
 
@@ -315,14 +356,14 @@ void STDMETHODCALLTYPE Context11Proxy::Dispatch(
 void STDMETHODCALLTYPE Context11Proxy::DispatchIndirect(
     ID3D11Buffer* pBufferForArgs, UINT AlignedByteOffsetForArgs)
 {
-    m_real->DispatchIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
+    m_real->DispatchIndirect(UnwrapBuf(pBufferForArgs), AlignedByteOffsetForArgs);
     if (!m_presentHookActive) return;
     ComRefHolder bufRef(pBufferForArgs);
     m_frameCommands.emplace_back(
         [this, bufRef, AlignedByteOffsetForArgs]()
         {
             m_real->DispatchIndirect(
-                static_cast<ID3D11Buffer*>(bufRef.p), AlignedByteOffsetForArgs);
+                UnwrapBuf(static_cast<ID3D11Buffer*>(bufRef.p)), AlignedByteOffsetForArgs);
         });
 }
 
@@ -525,25 +566,18 @@ void STDMETHODCALLTYPE Context11Proxy::RSSetViewports(UINT NumViewports, const D
     m_real->RSSetViewports(NumViewports, pViewports);
 }
 
+void STDMETHODCALLTYPE Context11Proxy::CopyStructureCount(
+    ID3D11Buffer* pDstBuffer, UINT DstAlignedByteOffset, ID3D11UnorderedAccessView* pSrcView)
+{
+    m_real->CopyStructureCount(UnwrapBuf(pDstBuffer), DstAlignedByteOffset, pSrcView);
+}
+
 void Context11Proxy::DoCopyResource(
     ID3D11Resource* pDstResource, ID3D11Resource* pSrcResource)
 {
     bool pickRight = (m_activeEye == Eye::Right);
-    Texture2D11Proxy* dst = TryUnwrapTexture2D(pDstResource);
-    Texture2D11Proxy* src = TryUnwrapTexture2D(pSrcResource);
-    ID3D11Resource* realDst = pDstResource;
-    if (dst)
-    {
-        ID3D11Resource* right = dst->GetRealRight();
-        realDst = (pickRight && right) ? right : dst->GetReal();
-    }
-    ID3D11Resource* realSrc = pSrcResource;
-    if (src)
-    {
-        ID3D11Resource* right = src->GetRealRight();
-        realSrc = (pickRight && right) ? right : src->GetReal();
-    }
-    m_real->CopyResource(realDst, realSrc);
+    m_real->CopyResource(UnwrapResourceForEye(pDstResource, pickRight),
+                         UnwrapResourceForEye(pSrcResource, pickRight));
 }
 
 void STDMETHODCALLTYPE Context11Proxy::CopyResource(
@@ -567,23 +601,9 @@ void Context11Proxy::DoCopySubresourceRegion(
     const D3D11_BOX* pSrcBox)
 {
     bool pickRight = (m_activeEye == Eye::Right);
-    Texture2D11Proxy* dst = TryUnwrapTexture2D(pDstResource);
-    Texture2D11Proxy* src = TryUnwrapTexture2D(pSrcResource);
-    ID3D11Resource* realDst = pDstResource;
-    if (dst)
-    {
-        ID3D11Resource* right = dst->GetRealRight();
-        realDst = (pickRight && right) ? right : dst->GetReal();
-    }
-    ID3D11Resource* realSrc = pSrcResource;
-    if (src)
-    {
-        ID3D11Resource* right = src->GetRealRight();
-        realSrc = (pickRight && right) ? right : src->GetReal();
-    }
     m_real->CopySubresourceRegion(
-        realDst, DstSubresource, DstX, DstY, DstZ,
-        realSrc, SrcSubresource, pSrcBox);
+        UnwrapResourceForEye(pDstResource, pickRight), DstSubresource, DstX, DstY, DstZ,
+        UnwrapResourceForEye(pSrcResource, pickRight), SrcSubresource, pSrcBox);
 }
 
 void STDMETHODCALLTYPE Context11Proxy::CopySubresourceRegion(
@@ -655,38 +675,30 @@ HRESULT STDMETHODCALLTYPE Context11Proxy::Map(
     ID3D11Resource* pResource, UINT Subresource, D3D11_MAP MapType, UINT MapFlags,
     D3D11_MAPPED_SUBRESOURCE* pMappedResource)
 {
+    // Stage 3c.1: unwrap either texture or buffer proxies before forwarding.
     Texture2D11Proxy* tex = TryUnwrapTexture2D(pResource);
-    ID3D11Resource* realRes = tex ? tex->GetReal() : pResource;
+    Buffer11Proxy*    buf = TryUnwrapBuffer(pResource);
+    ID3D11Resource*   realRes = tex ? static_cast<ID3D11Resource*>(tex->GetReal())
+                              : buf ? static_cast<ID3D11Resource*>(buf->GetReal())
+                                    : pResource;
     HRESULT hr = m_real->Map(realRes, Subresource, MapType, MapFlags, pMappedResource);
     if (FAILED(hr) || !pMappedResource) return hr;
     if (!m_presentHookActive) return hr;
     if (!gInfo.UseCOMWrapReplay) return hr;
 
-    // Stage 4c: only record write maps on CONSTANT BUFFERS. Vertex/index/
-    // structured buffers don't carry the projection matrix and aren't worth
-    // the replay cost; their Map() bypasses our recording. CB detection
-    // happens via QI for ID3D11Buffer + BindFlags check (no ID3D11Buffer
-    // wrap needed at this stage).
+    // Stage 4c: only record write maps on CONSTANT BUFFERS. Stage 4c.1
+    // additionally requires the buffer to have been ever bound through a
+    // vertex-pipeline stage — the IsVSBound tag is set on Buffer11Proxy by
+    // *SetConstantBuffers when its stage is VS/GS/HS/DS.
     if (MapType != D3D11_MAP_WRITE_DISCARD &&
         MapType != D3D11_MAP_WRITE &&
         MapType != D3D11_MAP_WRITE_NO_OVERWRITE &&
         MapType != D3D11_MAP_READ_WRITE)
         return hr;
+    if (!buf || !buf->IsVSBound()) return hr;
 
-    ID3D11Buffer* asBuffer = nullptr;
-    if (FAILED(pResource->QueryInterface(__uuidof(ID3D11Buffer),
-                                          reinterpret_cast<void**>(&asBuffer))) || !asBuffer)
-        return hr;
     D3D11_BUFFER_DESC desc;
-    asBuffer->GetDesc(&desc);
-    // Stage 4c.1: only proceed if this CB has ever been bound through a
-    // vertex-pipeline stage. Lookup is identity-based (raw pointer) on the
-    // QI'd ID3D11Buffer — matches what *SetConstantBuffers tags. For COM
-    // single-inheritance, QI for ID3D11Buffer on an ID3D11Buffer returns
-    // the same pointer, so the set lookup is stable across Map calls.
-    bool isVSCB = (m_vsBoundCBs.find(asBuffer) != m_vsBoundCBs.end());
-    asBuffer->Release();
-    if (!isVSCB) return hr;
+    buf->GetReal()->GetDesc(&desc);
     if ((desc.BindFlags & D3D11_BIND_CONSTANT_BUFFER) == 0) return hr;
     if (desc.ByteWidth == 0) return hr;
 
@@ -703,7 +715,10 @@ HRESULT STDMETHODCALLTYPE Context11Proxy::Map(
 void STDMETHODCALLTYPE Context11Proxy::Unmap(ID3D11Resource* pResource, UINT Subresource)
 {
     Texture2D11Proxy* tex = TryUnwrapTexture2D(pResource);
-    ID3D11Resource* realRes = tex ? tex->GetReal() : pResource;
+    Buffer11Proxy*    buf = TryUnwrapBuffer(pResource);
+    ID3D11Resource*   realRes = tex ? static_cast<ID3D11Resource*>(tex->GetReal())
+                              : buf ? static_cast<ID3D11Resource*>(buf->GetReal())
+                                    : pResource;
 
     // Stage 4c: if Map captured this CB write, snapshot the bytes BEFORE
     // forwarding Unmap (which invalidates the mapped pointer), then push a
@@ -726,8 +741,7 @@ void STDMETHODCALLTYPE Context11Proxy::Unmap(ID3D11Resource* pResource, UINT Sub
                 {
                     if (m_activeEye != Eye::Right) return;
                     auto* gameRes = static_cast<ID3D11Resource*>(resRef.p);
-                    Texture2D11Proxy* texR = TryUnwrapTexture2D(gameRes);
-                    ID3D11Resource* real = texR ? texR->GetReal() : gameRes;
+                    ID3D11Resource* real = UnwrapResourceForEye(gameRes, false);
                     D3D11_MAPPED_SUBRESOURCE mapped = {};
                     if (FAILED(m_real->Map(real, subres, mapType, 0, &mapped))
                         || !mapped.pData) return;
@@ -749,14 +763,8 @@ void Context11Proxy::DoUpdateSubresource(
     const void* pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch)
 {
     bool pickRight = (m_activeEye == Eye::Right);
-    Texture2D11Proxy* tex = TryUnwrapTexture2D(pDstResource);
-    ID3D11Resource* real = pDstResource;
-    if (tex)
-    {
-        ID3D11Resource* right = tex->GetRealRight();
-        real = (pickRight && right) ? right : tex->GetReal();
-    }
-    m_real->UpdateSubresource(real, DstSubresource, pDstBox,
+    m_real->UpdateSubresource(UnwrapResourceForEye(pDstResource, pickRight),
+                              DstSubresource, pDstBox,
                               pSrcData, SrcRowPitch, SrcDepthPitch);
 }
 
@@ -787,22 +795,9 @@ void Context11Proxy::DoResolveSubresource(
     ID3D11Resource* pSrcResource, UINT SrcSubresource, DXGI_FORMAT Format)
 {
     bool pickRight = (m_activeEye == Eye::Right);
-    Texture2D11Proxy* dst = TryUnwrapTexture2D(pDstResource);
-    Texture2D11Proxy* src = TryUnwrapTexture2D(pSrcResource);
-    ID3D11Resource* realDst = pDstResource;
-    if (dst)
-    {
-        ID3D11Resource* right = dst->GetRealRight();
-        realDst = (pickRight && right) ? right : dst->GetReal();
-    }
-    ID3D11Resource* realSrc = pSrcResource;
-    if (src)
-    {
-        ID3D11Resource* right = src->GetRealRight();
-        realSrc = (pickRight && right) ? right : src->GetReal();
-    }
-    m_real->ResolveSubresource(realDst, DstSubresource,
-                                realSrc, SrcSubresource, Format);
+    m_real->ResolveSubresource(
+        UnwrapResourceForEye(pDstResource, pickRight), DstSubresource,
+        UnwrapResourceForEye(pSrcResource, pickRight), SrcSubresource, Format);
 }
 
 void STDMETHODCALLTYPE Context11Proxy::ResolveSubresource(
@@ -907,7 +902,13 @@ void STDMETHODCALLTYPE Context11Proxy::IASetVertexBuffers(
     UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppVertexBuffers,
     const UINT* pStrides, const UINT* pOffsets)
 {
-    m_real->IASetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets);
+    // Stage 3c.1: unwrap each VB before forwarding to D3D11.
+    ID3D11Buffer* rawVBs[kMaxUnwrapArray] = { 0 };
+    UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+    for (UINT i = 0; i < cap; ++i)
+        rawVBs[i] = ppVertexBuffers ? UnwrapBuf(ppVertexBuffers[i]) : nullptr;
+    m_real->IASetVertexBuffers(StartSlot, NumBuffers,
+        ppVertexBuffers ? rawVBs : nullptr, pStrides, pOffsets);
     if (!m_presentHookActive) return;
     std::vector<ComRefHolder> bufRefs;
     bufRefs.reserve(NumBuffers);
@@ -921,9 +922,9 @@ void STDMETHODCALLTYPE Context11Proxy::IASetVertexBuffers(
         [this, StartSlot, NumBuffers, bufRefs, strides, offsets]()
         {
             ID3D11Buffer* raw[kMaxUnwrapArray] = { 0 };
-            UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
-            for (UINT i = 0; i < cap; ++i)
-                raw[i] = static_cast<ID3D11Buffer*>(bufRefs[i].p);
+            UINT replayCap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+            for (UINT i = 0; i < replayCap; ++i)
+                raw[i] = UnwrapBuf(static_cast<ID3D11Buffer*>(bufRefs[i].p));
             m_real->IASetVertexBuffers(
                 StartSlot, NumBuffers, raw,
                 strides.empty() ? nullptr : strides.data(),
@@ -934,14 +935,14 @@ void STDMETHODCALLTYPE Context11Proxy::IASetVertexBuffers(
 void STDMETHODCALLTYPE Context11Proxy::IASetIndexBuffer(
     ID3D11Buffer* pIndexBuffer, DXGI_FORMAT Format, UINT Offset)
 {
-    m_real->IASetIndexBuffer(pIndexBuffer, Format, Offset);
+    m_real->IASetIndexBuffer(UnwrapBuf(pIndexBuffer), Format, Offset);
     if (!m_presentHookActive) return;
     ComRefHolder bufRef(pIndexBuffer);
     m_frameCommands.emplace_back(
         [this, bufRef, Format, Offset]()
         {
             m_real->IASetIndexBuffer(
-                static_cast<ID3D11Buffer*>(bufRef.p), Format, Offset);
+                UnwrapBuf(static_cast<ID3D11Buffer*>(bufRef.p)), Format, Offset);
         });
 }
 
@@ -1021,7 +1022,13 @@ void STDMETHODCALLTYPE Context11Proxy::OMSetDepthStencilState(
 void STDMETHODCALLTYPE Context11Proxy::SOSetTargets(
     UINT NumBuffers, ID3D11Buffer* const* ppSOTargets, const UINT* pOffsets)
 {
-    m_real->SOSetTargets(NumBuffers, ppSOTargets, pOffsets);
+    // Stage 3c.1: unwrap each SO target before forwarding to D3D11.
+    ID3D11Buffer* rawSOs[kMaxUnwrapArray] = { 0 };
+    UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+    for (UINT i = 0; i < cap; ++i)
+        rawSOs[i] = ppSOTargets ? UnwrapBuf(ppSOTargets[i]) : nullptr;
+    m_real->SOSetTargets(NumBuffers,
+        ppSOTargets ? rawSOs : nullptr, pOffsets);
     if (!m_presentHookActive) return;
     std::vector<ComRefHolder> bufRefs;
     bufRefs.reserve(NumBuffers);
@@ -1033,9 +1040,9 @@ void STDMETHODCALLTYPE Context11Proxy::SOSetTargets(
         [this, NumBuffers, bufRefs, offsets]()
         {
             ID3D11Buffer* raw[kMaxUnwrapArray] = { 0 };
-            UINT cap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
-            for (UINT i = 0; i < cap; ++i)
-                raw[i] = static_cast<ID3D11Buffer*>(bufRefs[i].p);
+            UINT replayCap = NumBuffers <= kMaxUnwrapArray ? NumBuffers : kMaxUnwrapArray;
+            for (UINT i = 0; i < replayCap; ++i)
+                raw[i] = UnwrapBuf(static_cast<ID3D11Buffer*>(bufRefs[i].p));
             m_real->SOSetTargets(
                 NumBuffers, raw,
                 offsets.empty() ? nullptr : offsets.data());
