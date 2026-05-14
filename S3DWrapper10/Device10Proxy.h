@@ -16,9 +16,34 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <d3d10.h>
+#include <functional>
+#include <vector>
 
 namespace wiz3d
 {
+
+// RAII COM-pointer holder for closure captures. Same shape as the DX11
+// Context11Proxy's ComRefHolder — keeps a reference alive across the
+// frame even if the game releases its own.
+struct ComRefHolder10
+{
+    IUnknown* p;
+    ComRefHolder10() : p(nullptr) {}
+    explicit ComRefHolder10(IUnknown* x) : p(x) { if (p) p->AddRef(); }
+    ComRefHolder10(const ComRefHolder10& o) : p(o.p) { if (p) p->AddRef(); }
+    ComRefHolder10(ComRefHolder10&& o) noexcept : p(o.p) { o.p = nullptr; }
+    ComRefHolder10& operator=(const ComRefHolder10& o)
+    {
+        if (this != &o) { if (p) p->Release(); p = o.p; if (p) p->AddRef(); }
+        return *this;
+    }
+    ComRefHolder10& operator=(ComRefHolder10&& o) noexcept
+    {
+        if (this != &o) { if (p) p->Release(); p = o.p; o.p = nullptr; }
+        return *this;
+    }
+    ~ComRefHolder10() { if (p) p->Release(); }
+};
 
 class Device10Proxy : public ID3D10Device
 {
@@ -38,34 +63,34 @@ public:
 
     // ID3D10Device — input assembler / shader stages / rasteriser / OM / draws
     void STDMETHODCALLTYPE VSSetConstantBuffers(UINT StartSlot, UINT NumBuffers, ID3D10Buffer* const* ppConstantBuffers) override;
-    void STDMETHODCALLTYPE PSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override                                                    { m_real->PSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews); }
-    void STDMETHODCALLTYPE PSSetShader(ID3D10PixelShader* pPixelShader) override                                                                                                                   { m_real->PSSetShader(pPixelShader); }
-    void STDMETHODCALLTYPE PSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override                                                                         { m_real->PSSetSamplers(StartSlot, NumSamplers, ppSamplers); }
-    void STDMETHODCALLTYPE VSSetShader(ID3D10VertexShader* pVertexShader) override                                                                                                                 { m_real->VSSetShader(pVertexShader); }
-    void STDMETHODCALLTYPE DrawIndexed(UINT IndexCount, UINT StartIndexLocation, INT BaseVertexLocation) override                                                                                  { m_real->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation); }
-    void STDMETHODCALLTYPE Draw(UINT VertexCount, UINT StartVertexLocation) override                                                                                                               { m_real->Draw(VertexCount, StartVertexLocation); }
+    void STDMETHODCALLTYPE PSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override;
+    void STDMETHODCALLTYPE PSSetShader(ID3D10PixelShader* pPixelShader) override;
+    void STDMETHODCALLTYPE PSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override;
+    void STDMETHODCALLTYPE VSSetShader(ID3D10VertexShader* pVertexShader) override;
+    void STDMETHODCALLTYPE DrawIndexed(UINT IndexCount, UINT StartIndexLocation, INT BaseVertexLocation) override;
+    void STDMETHODCALLTYPE Draw(UINT VertexCount, UINT StartVertexLocation) override;
     void STDMETHODCALLTYPE PSSetConstantBuffers(UINT StartSlot, UINT NumBuffers, ID3D10Buffer* const* ppConstantBuffers) override;
-    void STDMETHODCALLTYPE IASetInputLayout(ID3D10InputLayout* pInputLayout) override                                                                                                              { m_real->IASetInputLayout(pInputLayout); }
+    void STDMETHODCALLTYPE IASetInputLayout(ID3D10InputLayout* pInputLayout) override;
     void STDMETHODCALLTYPE IASetVertexBuffers(UINT StartSlot, UINT NumBuffers, ID3D10Buffer* const* ppVertexBuffers, const UINT* pStrides, const UINT* pOffsets) override;
     void STDMETHODCALLTYPE IASetIndexBuffer(ID3D10Buffer* pIndexBuffer, DXGI_FORMAT Format, UINT Offset) override;
-    void STDMETHODCALLTYPE DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, INT BaseVertexLocation, UINT StartInstanceLocation) override              { m_real->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation, BaseVertexLocation, StartInstanceLocation); }
-    void STDMETHODCALLTYPE DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation) override                                           { m_real->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation); }
+    void STDMETHODCALLTYPE DrawIndexedInstanced(UINT IndexCountPerInstance, UINT InstanceCount, UINT StartIndexLocation, INT BaseVertexLocation, UINT StartInstanceLocation) override;
+    void STDMETHODCALLTYPE DrawInstanced(UINT VertexCountPerInstance, UINT InstanceCount, UINT StartVertexLocation, UINT StartInstanceLocation) override;
     void STDMETHODCALLTYPE GSSetConstantBuffers(UINT StartSlot, UINT NumBuffers, ID3D10Buffer* const* ppConstantBuffers) override;
-    void STDMETHODCALLTYPE GSSetShader(ID3D10GeometryShader* pShader) override                                                                                                                     { m_real->GSSetShader(pShader); }
-    void STDMETHODCALLTYPE IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY Topology) override                                                                                                      { m_real->IASetPrimitiveTopology(Topology); }
-    void STDMETHODCALLTYPE VSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override                                                    { m_real->VSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews); }
-    void STDMETHODCALLTYPE VSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override                                                                         { m_real->VSSetSamplers(StartSlot, NumSamplers, ppSamplers); }
+    void STDMETHODCALLTYPE GSSetShader(ID3D10GeometryShader* pShader) override;
+    void STDMETHODCALLTYPE IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY Topology) override;
+    void STDMETHODCALLTYPE VSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override;
+    void STDMETHODCALLTYPE VSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override;
     void STDMETHODCALLTYPE SetPredication(ID3D10Predicate* pPredicate, BOOL PredicateValue) override                                                                                               { m_real->SetPredication(pPredicate, PredicateValue); }
-    void STDMETHODCALLTYPE GSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override                                                    { m_real->GSSetShaderResources(StartSlot, NumViews, ppShaderResourceViews); }
-    void STDMETHODCALLTYPE GSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override                                                                         { m_real->GSSetSamplers(StartSlot, NumSamplers, ppSamplers); }
+    void STDMETHODCALLTYPE GSSetShaderResources(UINT StartSlot, UINT NumViews, ID3D10ShaderResourceView* const* ppShaderResourceViews) override;
+    void STDMETHODCALLTYPE GSSetSamplers(UINT StartSlot, UINT NumSamplers, ID3D10SamplerState* const* ppSamplers) override;
     void STDMETHODCALLTYPE OMSetRenderTargets(UINT NumViews, ID3D10RenderTargetView* const* ppRenderTargetViews, ID3D10DepthStencilView* pDepthStencilView) override;
-    void STDMETHODCALLTYPE OMSetBlendState(ID3D10BlendState* pBlendState, const FLOAT BlendFactor[4], UINT SampleMask) override                                                                    { m_real->OMSetBlendState(pBlendState, BlendFactor, SampleMask); }
-    void STDMETHODCALLTYPE OMSetDepthStencilState(ID3D10DepthStencilState* pDepthStencilState, UINT StencilRef) override                                                                           { m_real->OMSetDepthStencilState(pDepthStencilState, StencilRef); }
+    void STDMETHODCALLTYPE OMSetBlendState(ID3D10BlendState* pBlendState, const FLOAT BlendFactor[4], UINT SampleMask) override;
+    void STDMETHODCALLTYPE OMSetDepthStencilState(ID3D10DepthStencilState* pDepthStencilState, UINT StencilRef) override;
     void STDMETHODCALLTYPE SOSetTargets(UINT NumBuffers, ID3D10Buffer* const* ppSOTargets, const UINT* pOffsets) override;
-    void STDMETHODCALLTYPE DrawAuto() override                                                                                                                                                     { m_real->DrawAuto(); }
-    void STDMETHODCALLTYPE RSSetState(ID3D10RasterizerState* pRasterizerState) override                                                                                                            { m_real->RSSetState(pRasterizerState); }
-    void STDMETHODCALLTYPE RSSetViewports(UINT NumViewports, const D3D10_VIEWPORT* pViewports) override                                                                                            { m_real->RSSetViewports(NumViewports, pViewports); }
-    void STDMETHODCALLTYPE RSSetScissorRects(UINT NumRects, const D3D10_RECT* pRects) override                                                                                                     { m_real->RSSetScissorRects(NumRects, pRects); }
+    void STDMETHODCALLTYPE DrawAuto() override;
+    void STDMETHODCALLTYPE RSSetState(ID3D10RasterizerState* pRasterizerState) override;
+    void STDMETHODCALLTYPE RSSetViewports(UINT NumViewports, const D3D10_VIEWPORT* pViewports) override;
+    void STDMETHODCALLTYPE RSSetScissorRects(UINT NumRects, const D3D10_RECT* pRects) override;
     void STDMETHODCALLTYPE CopySubresourceRegion(ID3D10Resource* pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D10Resource* pSrcResource, UINT SrcSubresource, const D3D10_BOX* pSrcBox) override;
     void STDMETHODCALLTYPE CopyResource(ID3D10Resource* pDstResource, ID3D10Resource* pSrcResource) override;
     void STDMETHODCALLTYPE UpdateSubresource(ID3D10Resource* pDstResource, UINT DstSubresource, const D3D10_BOX* pDstBox, const void* pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch) override;
@@ -136,8 +161,7 @@ public:
     ID3D10Device* GetReal() const { return m_real; }
 
     // DX10 Stage 4a equivalent: active-eye state controls which real
-    // RTV/DSV/RT the Do* helpers bind. Stage 1 of the DX10 port leaves
-    // m_activeEye = Left so all draws still go to the left-eye texture.
+    // RTV/DSV/RT the Do* helpers bind.
     enum class Eye { Left = 0, Right = 1 };
     void SetActiveEye(Eye e) { m_activeEye = e; }
     Eye  GetActiveEye() const { return m_activeEye; }
@@ -146,12 +170,23 @@ public:
     UINT GetLogicalBackBufferWidth()  const       { return m_logicalWidth; }
     UINT GetLogicalBackBufferHeight() const       { return m_logicalHeight; }
 
+    // DX10 Stage 4b: replay infrastructure mirroring Context11Proxy. The
+    // SwapChain10Proxy fires the Pre-Present hook which calls
+    // ReplayFrameCommands(Right) on the device, then Post-Present clears
+    // and arms the recorder for the next frame.
+    void ClearFrameCommands();
+    void ReplayFrameCommands(Eye eye);
+    void SetPresentHookActive(bool active) { m_presentHookActive = active; }
+    bool IsPresentHookActive() const       { return m_presentHookActive; }
+
 private:
     ID3D10Device* m_real;
     LONG          m_refs;
     Eye           m_activeEye;
     UINT          m_logicalWidth;
     UINT          m_logicalHeight;
+    bool          m_presentHookActive;
+    std::vector<std::function<void()>> m_frameCommands;
 };
 
 } // namespace wiz3d

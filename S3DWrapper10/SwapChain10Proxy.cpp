@@ -362,8 +362,8 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::ResizeBuffers(
 {
     DDILog("SwapChain10Proxy::ResizeBuffers: count=%u %ux%u fmt=%d flags=0x%X\n",
            BufferCount, Width, Height, (int)NewFormat, SwapChainFlags);
-    // DX10 Stage 4b will clear frame commands here too. For now just drop
-    // the BB siblings so DXGI can resize.
+    // Clear recording — BB-derived handles in the closures would dangle.
+    if (m_parent) m_parent->ClearFrameCommands();
     ReleaseStereoBackBuffer();
     HRESULT hr = m_real->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
     DDILog("SwapChain10Proxy::ResizeBuffers -> hr=0x%08lX\n", hr);
@@ -374,6 +374,7 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::SetFullscreenState(BOOL Fullscreen, 
 {
     DDILog("SwapChain10Proxy::SetFullscreenState: fullscreen=%d target=%p\n",
            (int)Fullscreen, pTarget);
+    if (m_parent) m_parent->ClearFrameCommands();
     HRESULT hr = m_real->SetFullscreenState(Fullscreen, pTarget);
     DDILog("SwapChain10Proxy::SetFullscreenState -> hr=0x%08lX\n", hr);
     return hr;
@@ -382,16 +383,17 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::SetFullscreenState(BOOL Fullscreen, 
 void SwapChain10Proxy::OnPresentBoundaryPre()
 {
     if (!gInfo.UseCOMWrapReplay) return;
-    // Replay is a Stage 4b DX10 follow-up — when added, this is where
-    // ReplayFrameCommands(Right) will fire. For now the composite shows
-    // LEFT-eye content in both halves (proves the BB wrap + shader path).
+    if (!m_parent) return;
+    if (m_parent->IsPresentHookActive())
+        m_parent->ReplayFrameCommands(Device10Proxy::Eye::Right);
     DoComposite();
 }
 
 void SwapChain10Proxy::OnPresentBoundaryPost()
 {
-    // Stage 4b DX10 follow-up will clear m_frameCommands and re-arm the
-    // recorder here.
+    if (!m_parent) return;
+    m_parent->ClearFrameCommands();
+    m_parent->SetPresentHookActive(true);
 }
 
 HRESULT STDMETHODCALLTYPE SwapChain10Proxy::Present(UINT SyncInterval, UINT Flags)
