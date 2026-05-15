@@ -38,30 +38,25 @@
 		<!-- Hook OpenGL games on startup: 1=yes 0=no -->
 		<OGLRunAtStartup Value="0"/>
 
-		<!-- OUTPUT MODE — which stereo display method to use.
-			 Set this to the DLL name (without .dll) from the OutputMethods/ folder.
-			 Shipped (present in OutputMethods/):
-			   "SideBySideOutput"            — Side-by-side (VR headsets, 3D TVs, passive monitors)
-			   "AnaglyphOutput"              — Red/cyan anaglyph glasses
-			   "InterlacedOutput"            — Row-interlaced (passive 3D monitors like Zalman)
-			   "S3DOutput"                   — iZ3D monitor native dual-panel output
-			   "S3DMarkedOutput"             — Debug: marks left/right with visual indicators
-			   "ShutterOutput"               — Page-flip shutter glasses (generic)
-			   "S3DShutterOutput"            — iZ3D shutter glasses
-			   "CMOShutterOutput"            — CMO brand shutter glasses
-			   "DLP3DOutput"                 — DLP-Link 3D projectors
-			   "ATIDLP3DOutput"              — ATI DLP-Link 3D projectors
-			   "S3D120HzProjectorsOutput"    — 120 Hz active-stereo projectors
-			   "StereoMirrorOutput"          — Mirror left/right to a second display
-			   "SimulatedRealityWeaveOutput" — Leia / Samsung Odyssey 3D / Acer SpatialLabs (lightfield displays)
-			 Source-only — built but not shipped; copy from bin\Release\<arch>\OutputMethods\\
-			 if you have the hardware: AMDHD3DOutput, DualProjectionOutput, LenovoOutput,
-			 TaerimOutput, VR920Output, Z800Output, AvitridOutput.
+		<!-- The OGL wrapper does NOT load OutputMethod*.dll plugins. It has its own
+			 built-in compositor with GLSL shaders, selected by OutputMode below.
+			 (OutputMethodDll is kept here for config-file uniformity with the DX paths
+			 but is ignored.) Modes:
+			   0 = iZ3D dual-panel hardware (legacy default for the original iZ3D monitor)
+			   1 = Side-by-Side               (L left,  R right)
+			   2 = Over/Under (Top-Bottom)    (L top,   R bottom)
+			   3 = Crosseyed                  (L right, R left  — for free-viewing)
+			   4 = Anaglyph Red/Cyan          (grayscale)
+			   5 = Optimized Anaglyph         (Dubois — most natural colour)
+			   6 = Color Anaglyph             (full-colour, more ghosting)
+			   7 = Line Interleaved           (passive 3D TVs / row-polarised monitors)
+			   8 = Column Interleaved         (rare column-polarised monitors)
+			   9 = Checkerboard               (DLP-Link 3D projectors)
 		-->
-		<OutputMethodDll Value="SimulatedRealityWeaveOutput"/>
+		<OutputMethodDll Value=""/>
 
-		<!-- Output sub-mode (meaning depends on the output plugin, usually 0) -->
-		<OutputMode Value="0"/>
+		<!-- Output mode 0-9. See list above. Default is 1 (SBS) for modern displays. -->
+		<OutputMode Value="1"/>
 		<!-- Span mode: 0=single monitor, 1=span across monitors -->
 		<OutputSpanMode Value="0"/>
 		<!-- Display scaling: 0=none, 1=scale to native res -->

@@ -431,6 +431,18 @@ BOOL	Renderer::InitializeShaders()
 			szBackFS  = g_szColorAnaglyphShaderText;
 			szFrontFS = g_szRAWRightShaderText;
 			break;
+		case OGL_OUTPUT_LINE_INTERLEAVED:
+			szBackFS  = g_szLineInterleavedShaderText;
+			szFrontFS = g_szRAWRightShaderText;
+			break;
+		case OGL_OUTPUT_COLUMN_INTERLEAVED:
+			szBackFS  = g_szColumnInterleavedShaderText;
+			szFrontFS = g_szRAWRightShaderText;
+			break;
+		case OGL_OUTPUT_CHECKERBOARD:
+			szBackFS  = g_szCheckerboardShaderText;
+			szFrontFS = g_szRAWRightShaderText;
+			break;
 		case OGL_OUTPUT_IZ3D:
 		default:
 			szBackFS  = g_szBackScreenShaderText;
@@ -808,7 +820,9 @@ BOOL	Renderer::SwapBuffers()
 	}
 	else
 	{
-		// Anaglyph (modes 4, 5, 6): single full-screen composite
+		// Single-pass composite path. Anaglyph (4-6), Line Interleaved (7),
+		// Column Interleaved (8), Checkerboard (9). The fragment shader
+		// takes both eyes as samplers and produces one merged output buffer.
 		pfnOrig_glDrawBuffer(m_nDrawBufferMode[0]);
 
 		glUseProgramObjectARB(m_hPOBackScreen);

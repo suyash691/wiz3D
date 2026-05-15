@@ -63,7 +63,12 @@ $standardOMs = @(
     'SimulatedRealityWeaveOutput.dll',
     'StereoMirrorOutput.dll'
 )
-$openglOMs = @('SimulatedRealityWeaveOutput.dll')
+# OpenGL has no OutputMethod plugin loader — S3DWrapperOGL has its own built-in
+# GLSL compositor selected by OutputMode (0-9: iZ3D/SBS/TAB/Crosseyed/Anaglyph
+# variants/Line+Column Interleaved/Checkerboard). The previous deploy shipped
+# SimulatedRealityWeaveOutput.dll here but nothing loaded it. SR weave for OGL
+# will land as a native mode in S3DWrapperOGL itself, not as a plugin DLL.
+$openglOMs = @()
 
 function Copy-Files {
     param(
@@ -178,8 +183,12 @@ foreach ($archName in $archs) {
     Copy-Files -SrcDir $binDir   -DstDir $dst                          `
                -Files (@('S3DWrapperOGL.dll') + $openglDeps)           `
                -Tag   "opengl-qbs/$archAlias wrappers+deps"
-    Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
-               -Files $openglOMs -Tag "opengl-qbs/$archAlias OutputMethods"
+    if ($openglOMs.Count -gt 0) {
+        Copy-Files -SrcDir $omSrcDir -DstDir (Join-Path $dst 'OutputMethods') `
+                   -Files $openglOMs -Tag "opengl-qbs/$archAlias OutputMethods"
+    } else {
+        Write-Host ("  {0,-22}  (none — OGL uses built-in modes)" -f "opengl-qbs/$archAlias OutputMethods")
+    }
     Copy-Files -SrcDir $proxyBinDir -DstDir $dst                          `
                -Files @('opengl32.dll')                                   `
                -Tag   "opengl-qbs/$archAlias proxies"

@@ -149,3 +149,46 @@ void main() {											\n\
 	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
 	gl_FragData[0] = vec4(cL.r, cR.g, cR.b, 1.0);		\n\
 }";
+
+// Line Interleaved (row-interleaved). Output even rows from left eye, odd
+// rows from right eye. Used by passive-3D monitors that polarise alternate
+// scanlines. Uses gl_FragCoord.y so the parity is screen-space, independent
+// of the source texture sampling.
+static char g_szLineInterleavedShaderText[] = "			\n\
+uniform sampler2D sL;									\n\
+uniform sampler2D sR;									\n\
+														\n\
+void main() {											\n\
+	vec4 cL = texture2D(sL, gl_TexCoord[0].xy);			\n\
+	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
+	bool isOddRow = mod(floor(gl_FragCoord.y), 2.0) >= 0.5;	\n\
+	gl_FragData[0] = isOddRow ? cR : cL;				\n\
+}";
+
+// Column Interleaved. Like line-interleaved but on vertical lines instead
+// of horizontal. Used by rarer column-polarised displays.
+static char g_szColumnInterleavedShaderText[] = "		\n\
+uniform sampler2D sL;									\n\
+uniform sampler2D sR;									\n\
+														\n\
+void main() {											\n\
+	vec4 cL = texture2D(sL, gl_TexCoord[0].xy);			\n\
+	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
+	bool isOddCol = mod(floor(gl_FragCoord.x), 2.0) >= 0.5;	\n\
+	gl_FragData[0] = isOddCol ? cR : cL;				\n\
+}";
+
+// Checkerboard. XOR of x and y pixel parity. Used by DLP-Link 3D projectors
+// that expect a checkerboard-packed stereo signal.
+static char g_szCheckerboardShaderText[] = "			\n\
+uniform sampler2D sL;									\n\
+uniform sampler2D sR;									\n\
+														\n\
+void main() {											\n\
+	vec4 cL = texture2D(sL, gl_TexCoord[0].xy);			\n\
+	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
+	float xParity = mod(floor(gl_FragCoord.x), 2.0);	\n\
+	float yParity = mod(floor(gl_FragCoord.y), 2.0);	\n\
+	bool useRight = mod(xParity + yParity, 2.0) >= 0.5;	\n\
+	gl_FragData[0] = useRight ? cR : cL;				\n\
+}";
