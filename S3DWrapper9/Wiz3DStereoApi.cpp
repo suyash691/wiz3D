@@ -2,18 +2,17 @@
 #include "Wiz3DStereoApi.h"
 #include "BaseStereoRenderer.h"
 #include "..\S3DAPI\GlobalData.h"
-#include "..\S3DAPI\ReadData.h"   // WriteInputData for UserProfile.xml persistence
+#include "..\S3DAPI\KeyboardHook.h" // gKbdHook.m_Access lock + extern decl
+#include "..\S3DAPI\ReadData.h"     // WriteInputData for UserProfile.xml persistence
 
-// Single active renderer. wiz3D's typical case is one IDirect3DDevice9 per
-// process, so a single global pointer suffices. If a process ever creates
-// multiple devices, the most-recently-registered one wins - that's the
-// surface games expect from NvAPI's stereo handle anyway, since NvAPI itself
-// gates everything through one-handle-per-device-but-one-active-stereo-state.
-//
-// Mutation happens from the game thread (via wrapper Reset / OSD hotkey
-// changes) and from NvAPI threads. Float reads/writes are atomic on x86/x64
-// for naturally-aligned values; we keep the shared state to a single pointer
-// + getters/setters that touch one float at a time, no struct copying.
+// Renderer-presence sentinel. We don't actually mutate the renderer's
+// m_Input — that gets overwritten from gInfo.Input every Present (see
+// BaseStereoRenderer_Main.cpp around line 305: `m_Input = updatedInput`,
+// where updatedInput came from gInfo.Input). The * hotkey and our bridge
+// must both write to gInfo.Input or their changes disappear on the next
+// frame. This pointer just tells us the wrapper is initialised enough
+// to honour state changes; before that, NvApi callers see static
+// defaults so they don't bail out (HelixMod is unforgiving here).
 static CBaseStereoRenderer* g_pActiveRenderer = nullptr;
 
 extern "C"
@@ -30,38 +29,34 @@ void Wiz3D_UnregisterActiveRenderer(CBaseStereoRenderer* pRenderer)
 		g_pActiveRenderer = nullptr;
 }
 
-// When no renderer is registered yet (NvAPI-aware code queries us before
-// CreateDevice — HelixMod and 3D Vision-aware games typically do this at
-// process startup), return *sensible non-zero defaults* rather than 0/false.
-// Returning zeros caused HelixMod to immediately destroy its stereo handle
-// and disable itself ("stereo isn't usable, never mind") - confirmed via
-// Valkyria Chronicles trace 2026-05-08. Defaults chosen so:
+// Defaults returned before the wrapper is fully initialised. Chosen so
+// 3D Vision-aware games / HelixMod don't bail out on a "stereo isn't
+// usable" probe at startup:
 //   - IsActivated = 1   : caller proceeds with stereo setup
 //   - Separation  = 50% : neutral mid-slider value
 //   - Convergence = 1.0 : 1 world-unit depth
-// Once CreateDevice runs and the renderer registers, subsequent queries
-// switch to real wiz3D values.
 
 int Wiz3D_GetStereoActive()
 {
 	if (!g_pActiveRenderer)
 		return 1;
-	return g_pActiveRenderer->m_Input.StereoActive ? 1 : 0;
+	return gInfo.Input.StereoActive ? 1 : 0;
 }
 
 void Wiz3D_SetStereoActive(int active)
 {
 	if (!g_pActiveRenderer)
-		return; // no-op; caller will retry once renderer registers
-	g_pActiveRenderer->m_Input.StereoActive = active ? true : false;
-	WriteInputData(&g_pActiveRenderer->m_Input);
+		return; // wrapper not alive yet; caller will retry once it is
+	CriticalSectionLocker locker(gKbdHook.m_Access);
+	gInfo.Input.StereoActive = active ? true : false;
+	WriteInputData(&gInfo.Input);
 }
 
 float Wiz3D_GetSeparationPercent()
 {
 	if (!g_pActiveRenderer)
 		return 50.0f;
-	const CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	const CameraPreset* p = gInfo.Input.GetActivePreset();
 	return SEPARATION_TO_PERCENT(p->StereoBase);
 }
 
@@ -71,16 +66,17 @@ void Wiz3D_SetSeparationPercent(float percent)
 		return;
 	if (percent < 0.0f) percent = 0.0f;
 	if (percent > 100.0f) percent = 100.0f;
-	CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	CriticalSectionLocker locker(gKbdHook.m_Access);
+	CameraPreset* p = gInfo.Input.GetActivePreset();
 	p->StereoBase = PERCENT_TO_SEPARATION(percent);
-	WriteInputData(&g_pActiveRenderer->m_Input);
+	WriteInputData(&gInfo.Input);
 }
 
 float Wiz3D_GetConvergence()
 {
 	if (!g_pActiveRenderer)
 		return 1.0f;
-	const CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	const CameraPreset* p = gInfo.Input.GetActivePreset();
 	if (p->One_div_ZPS == 0.0f)
 		return 1.0f;
 	return 1.0f / p->One_div_ZPS;
@@ -92,21 +88,23 @@ void Wiz3D_SetConvergence(float depth)
 		return;
 	if (depth <= 0.0f)
 		return;
-	CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	CriticalSectionLocker locker(gKbdHook.m_Access);
+	CameraPreset* p = gInfo.Input.GetActivePreset();
 	p->One_div_ZPS = 1.0f / depth;
-	WriteInputData(&g_pActiveRenderer->m_Input);
+	WriteInputData(&gInfo.Input);
 }
 
 void Wiz3D_StepSeparation(int dir)
 {
 	if (!g_pActiveRenderer)
 		return;
-	CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	CriticalSectionLocker locker(gKbdHook.m_Access);
+	CameraPreset* p = gInfo.Input.GetActivePreset();
 	float step = (dir > 0) ? STEP_STEREOBASE : -STEP_STEREOBASE;
 	p->StereoBase += step;
 	if (p->StereoBase < 0.0f) p->StereoBase = 0.0f;
 	if (p->StereoBase > MAX_STEREOBASE) p->StereoBase = MAX_STEREOBASE;
-	WriteInputData(&g_pActiveRenderer->m_Input);
+	WriteInputData(&gInfo.Input);
 }
 
 void Wiz3D_StepConvergence(int dir)
@@ -115,12 +113,13 @@ void Wiz3D_StepConvergence(int dir)
 	// Since One_div_ZPS = 1/Z_conv, that maps to One_div_ZPS DECREASING.
 	if (!g_pActiveRenderer)
 		return;
-	CameraPreset* p = g_pActiveRenderer->m_Input.GetActivePreset();
+	CriticalSectionLocker locker(gKbdHook.m_Access);
+	CameraPreset* p = gInfo.Input.GetActivePreset();
 	float step = (dir > 0) ? -STEP_ONE_DIV_ZPS : STEP_ONE_DIV_ZPS;
 	p->One_div_ZPS += step;
 	if (p->One_div_ZPS < MIN_ONE_DIV_ZPS) p->One_div_ZPS = MIN_ONE_DIV_ZPS;
 	if (p->One_div_ZPS > MAX_ONE_DIV_ZPS) p->One_div_ZPS = MAX_ONE_DIV_ZPS;
-	WriteInputData(&g_pActiveRenderer->m_Input);
+	WriteInputData(&gInfo.Input);
 }
 
 int Wiz3D_HasProfileEntry()
