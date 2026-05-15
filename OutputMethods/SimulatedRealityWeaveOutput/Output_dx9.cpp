@@ -88,6 +88,13 @@ SimulatedRealityWeaveOutput::SimulatedRealityWeaveOutput(DWORD mode, DWORD spanM
     , m_WeavingEnabled(true)
     , m_bSRGB(true)        // Default sRGB on — matches SR SDK directx9_weaving sample (eColorSpace::sRGBHardware) and modern engines (Source, Unreal, Unity)
     , m_bSRFallbackActive(false)
+    // CBaseStereoRenderer::CreateOutput is followed immediately by a
+    // StereoModeChanged(m_Input.StereoActive != 0) call in the renderer
+    // ctor (BaseStereoRenderer.cpp:245), so the value here is overwritten
+    // before the first Output() runs. Default true matches the previous
+    // behaviour (weaver lazy-inits on first Output) for the unlikely case
+    // where StereoModeChanged is somehow skipped.
+    , m_bStereoActive(true)
 {
 }
 
@@ -218,12 +225,34 @@ void SimulatedRealityWeaveOutput::CleanupWeaver()
     m_WeaverInitialized = false;
 }
 
+// Toggle handler for stereo on/off. On going-mono we destroy the SR weaver
+// entirely (rather than just skipping weave() calls) because the weaver's
+// constructor latches the SR microlens panel and eye-tracking camera into
+// active state; only destroy() releases them. The next stereo-on transition
+// trips Output()'s existing lazy-init path on the very next frame, so the
+// weaver / lens / camera all come back without an explicit re-create call.
+void SimulatedRealityWeaveOutput::StereoModeChanged(bool bNewMode)
+{
+    if (m_bStereoActive == bNewMode)
+        return;
+    m_bStereoActive = bNewMode;
+    if (!bNewMode && m_WeaverInitialized)
+        CleanupWeaver();
+}
+
 HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
 {
     if (!pSwapChain || !m_WeavingEnabled)
         return S_OK;
 
     if (!m_pd3dDevice)
+        return S_OK;
+
+    // Skip weaver work (including lazy init) while in mono mode. Without
+    // this, the next Output() after toggling off would re-create the
+    // weaver and re-light the SR microlens panel + camera, defeating
+    // StereoModeChanged(false)'s teardown.
+    if (!m_bStereoActive)
         return S_OK;
 
     // Lazy-initialize the weaver on the first Output call (device and window are ready by then).

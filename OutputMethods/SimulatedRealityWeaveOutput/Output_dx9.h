@@ -29,6 +29,14 @@ public:
     virtual HRESULT InitializeSCData(CBaseSwapChain* pSwapChain);
     virtual void    Clear();
     virtual void    ReadConfigData(TiXmlNode* config);
+    // CBaseStereoRenderer::Present calls this whenever StereoActive toggles
+    // (NvAPI bridge from a 3D Vision-aware game, or the wiz3D * hotkey).
+    // We tear the SR weaver fully down when going mono so the SR microlens
+    // panel and the eye-tracking camera stop drawing power — leaving them
+    // running while the game is rendering a flat image is a visible nuisance
+    // on Samsung Odyssey 3D / Acer SpatialLabs hardware. Going stereo lets
+    // Output()'s existing lazy-init re-create the weaver on the next frame.
+    virtual void    StereoModeChanged(bool bNewMode);
 
 private:
     SR::IDX9Weaver1*   m_Weaver;
@@ -41,6 +49,7 @@ private:
     bool               m_WeavingEnabled;
     bool               m_bSRGB;             // Treat input as sRGB and write sRGB output. Default true (modern games / SR sample default). Override per-game via config.
     bool               m_bSRFallbackActive; // Sticky: set to true when InitializeWeaver fails (no LeiaSR runtime / no SR display / SR Service down). Once set, Output() renders plain Half SBS instead of attempting SR weave again.
+    bool               m_bStereoActive;     // Last value seen from StereoModeChanged. Output() returns early when false so we neither lazy-init nor weave while the game is in mono mode.
 
     HRESULT InitializeWeaver(IDirect3DDevice9* pDevice, HWND hWnd, UINT width, UINT height);
     void    CleanupWeaver();
