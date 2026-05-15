@@ -492,6 +492,28 @@ Games that used 3D Vision "Automatic Mode" driver stereo injection, but communic
 
 ---
 
+## Keyboard Shortcuts
+
+In-game hotkeys for adjusting stereo on the fly. All bindings are remappable in `wiz3D_Config.xml` under `<HotKeyList>` — see the header comment in that file for the key-code format.
+
+| Key | Action |
+| --- | ------ |
+| `Numpad *` | Toggle stereo 3D on/off |
+| `Numpad +` | Increase separation (stereo depth / eye distance) |
+| `Numpad -` | Decrease separation (stereo depth / eye distance) |
+| `Shift+Numpad +` | Increase convergence (push parallax plane further away) |
+| `Shift+Numpad -` | Decrease convergence (pull parallax plane closer) |
+| `Numpad /` | Toggle auto-focus (auto-adjusts convergence based on scene depth) |
+| `Numpad 7` / `8` / `9` | Switch between three saved stereo presets |
+| `Ctrl+F8` | Swap left/right eyes (for inverted setups) |
+| `Shift+Numpad *` | Open the on-screen wizard overlay |
+| `Shift+F1` | Toggle on-screen hotkey hints |
+| `Ctrl+Numpad /` | Toggle laser sight (crosshair anchored at screen depth) |
+| `PrintScreen` | Save a stereo screenshot to `My Pictures\wiz3D Screenshots\<Game>\` (default format `.jps`; configurable via `<ScreenshotType>`) |
+| `Ctrl+PrintScreen` | Save a stereo screenshot without applying the display's gamma ramp |
+
+---
+
 ## Building from Source
 
 ### Prerequisites

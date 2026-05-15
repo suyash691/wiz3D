@@ -19,7 +19,7 @@
 	Shift+Numpad *    Open on-screen wizard overlay
 	Shift+F1          Toggle hotkey OSD (shows key hints)
 	Ctrl+Numpad /     Toggle laser sight (crosshair at screen depth)
-	PrintScreen       Take screenshot (requires DevIL — disabled in stub)
+	PrintScreen       Take stereo screenshot (saves to My Pictures\wiz3D Screenshots\)
 
   KEY CODE FORMAT: Key="code" where code = (modifier << 8) | VK_code
 	Modifiers: Shift=0x100, Ctrl=0x200, Alt=0x400, Win=0x800
@@ -396,7 +396,7 @@
 			<ToggleAutoFocus Key="111"/>
 			<!-- Ctrl+Numpad /: Toggle laser sight crosshair -->
 			<ToggleLaserSight Key="623"/>
-			<!-- PrintScreen: Take screenshot (requires DevIL) -->
+			<!-- PrintScreen: Take stereo screenshot -->
 			<Screenshot Key="44"/>
 			<!-- Shift+Numpad *: Open stereo wizard overlay -->
 			<ToggleWizard Key="362"/>
