@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <!-- Don't change that file -->
 <Config Version="1" xmlns="http://schemas.iz3d.com/config/2007">
 	<Vendors>
@@ -33,7 +33,7 @@
 		<!-- <OutputMethodDll Value="${outputMethodDll}"/> -->
 		<!-- else -->
 		<!-- Default = SR weave. The SimulatedRealityWeaveOutput plugin auto-falls
-		     back to Half SBS when the LeiaSR runtime / SR Service / SR display
+		     back to Half SBS when the Simulated Reality runtime / SR Service / SR display
 		     isn't available — so users without an SR setup get a usable stereo
 		     image without having to change this. To force pure SBS (or any other
 		     output) regardless of SR availability, set this to "SideBySideOutput"
@@ -108,7 +108,7 @@
 		</S3DMarkedOutput>
 		<SimulatedRealityWeaveOutput>
 			<!-- SR Weave output for Samsung Odyssey 3D / Acer SpatialLabs displays -->
-			<!-- Requires LeiaSR runtime (64-bit only) -->
+			<!-- Requires Simulated Reality runtime (64-bit only) -->
 		</SimulatedRealityWeaveOutput>
 	</Outputs>
 	<ControlCenter>

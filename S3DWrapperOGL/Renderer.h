@@ -52,7 +52,7 @@ class Renderer
 	RECT		m_BackScreenRect, m_FrontScreenRect;
 	void	DumpBuffer( char * szFileName, GLenum buf, char* s );
 
-	// LeiaSR weave (OutputMode 10). void* avoids dragging SR headers into
+	// Simulated Reality weave (OutputMode 10). void* avoids dragging SR headers into
 	// every TU that includes Renderer.h — the full struct lives in
 	// SRWeaveOGL.cpp. m_bSRWeaveTriedInit is sticky so Output() doesn't
 	// keep retrying when the SR runtime is missing.

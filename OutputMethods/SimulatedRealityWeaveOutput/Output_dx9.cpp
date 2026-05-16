@@ -196,7 +196,7 @@ void SimulatedRealityWeaveOutput::Clear()
 	}
 	// Reset the SR-fallback decision on Clear so post-device-reset (e.g. windowed↔
 	// fullscreen toggle) we get a fresh chance to detect the SR runtime. If the
-	// user installed the LeiaSR Service mid-session, this is when it gets picked up.
+	// user installed the Simulated Reality Service mid-session, this is when it gets picked up.
 	m_bSRFallbackActive = false;
 	OutputMethod::Clear();
 }
@@ -227,7 +227,7 @@ HRESULT SimulatedRealityWeaveOutput::Output(CBaseSwapChain* pSwapChain)
         return S_OK;
 
     // Lazy-initialize the weaver on the first Output call (device and window are ready by then).
-    // If the LeiaSR runtime isn't installed, the SR Service isn't running, or no SR display is
+    // If the Simulated Reality runtime isn't installed, the SR Service isn't running, or no SR display is
     // connected, InitializeWeaver fails — we then sticky-flag the session into SBS fallback mode
     // so users on non-SR hardware still see a usable stereo image (plain Half SBS) instead of a
     // black frame, and we don't keep retrying SR every Present.

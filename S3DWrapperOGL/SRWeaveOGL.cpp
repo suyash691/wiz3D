@@ -1,5 +1,5 @@
 /*
- * LeiaSR OpenGL weaver integration for S3DWrapperOGL (mode 10).
+ * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 10).
  * See SRWeaveOGL.h for the public API contract.
  */
 
@@ -14,7 +14,7 @@
 // never touch those types ourselves, so suppress just for this TU.
 #pragma warning(disable: 4946)
 
-// LeiaSR SDK. Headers are identical across the two SDK versions we vendor:
+// Simulated Reality SDK. Headers are identical across the two SDK versions we vendor:
 //   x64:   lib/Simulated Reality/LeiaSR-SDK-1.36.2-win64/include
 //   Win32: lib/Simulated Reality/simulatedreality-1.34.10-win32-Release/include
 // Both export the same IGLWeaver1 / CreateGLWeaver surface; the include
@@ -145,7 +145,7 @@ bool SRWeaveOGL_Initialize(SRWeaveOGLContext** outCtx, HWND hWnd,
         ctx->srContext = SR::SRContext::create();
     }
     catch (...) {
-        OutputDebugStringA("[SRWeaveOGL] LeiaSR runtime unavailable. Falling back to plain SBS.\n");
+        OutputDebugStringA("[SRWeaveOGL] Simulated Reality runtime unavailable. Falling back to plain SBS.\n");
         ctx->glDeleteFramebuffers(1, &ctx->sbsFramebuffer);
         glDeleteTextures(1, &ctx->sbsTexture);
         ctx->sbsFramebuffer = 0;

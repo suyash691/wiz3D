@@ -1,5 +1,5 @@
 /*
- * Minimal LeiaSR interface for DX9 weaving
+ * Minimal Simulated Reality interface for DX9 weaving
  * Avoids full SDK dependency chain while providing just what we need
  */
 

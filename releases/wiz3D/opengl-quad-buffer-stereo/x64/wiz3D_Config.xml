@@ -36,7 +36,13 @@
 		<!-- Hook DX9 games on startup: 1=yes 0=no -->
 		<RunAtStartup Value="1"/>
 		<!-- Hook OpenGL games on startup: 1=yes 0=no -->
-		<OGLRunAtStartup Value="0"/>
+		<OGLRunAtStartup Value="1"/>
+		<!-- Emulate quad-buffer stereo via PFD interception. 1=lie to the game
+			 so it thinks a stereo PIXELFORMAT exists; the wrapper then handles
+			 the double-rendering itself. Required for OGL games like RtCW / Doom 3
+			 that gate on quad-buffer support — modern consumer GPUs don't expose
+			 stereo PFDs natively. 0 = pass through (rare hardware-stereo path). -->
+		<EmulateQB Value="1"/>
 
 		<!-- The OGL wrapper does NOT load OutputMethod*.dll plugins. It has its own
 			 built-in compositor with GLSL shaders, selected by OutputMode below.
@@ -52,7 +58,7 @@
 			   7 = Line Interleaved           (passive 3D TVs / row-polarised monitors)
 			   8 = Column Interleaved         (rare column-polarised monitors)
 			   9 = Checkerboard               (DLP-Link 3D projectors)
-			  10 = LeiaSR Weave              (Samsung Odyssey 3D / Acer SpatialLabs — falls back to plain SBS if SR runtime missing)
+			  10 = Simulated Reality Weave              (Samsung Odyssey 3D / Acer SpatialLabs — falls back to plain SBS if SR runtime missing)
 		-->
 		<OutputMethodDll Value=""/>
 

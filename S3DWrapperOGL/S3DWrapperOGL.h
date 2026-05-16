@@ -25,7 +25,7 @@
 // 7 = Line Interleaved (passive 3D TVs / monitors with row-polarised filter)
 // 8 = Column Interleaved (rarer column-polarised displays)
 // 9 = Checkerboard (DLP-Link 3D projectors)
-// 10 = LeiaSR Weave (Samsung Odyssey 3D / Acer SpatialLabs lightfield displays;
+// 10 = Simulated Reality Weave (Samsung Odyssey 3D / Acer SpatialLabs lightfield displays;
 //                   falls back to plain SBS on systems without the SR runtime)
 #define OGL_OUTPUT_IZ3D            0
 #define OGL_OUTPUT_SBS             1

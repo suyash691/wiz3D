@@ -682,7 +682,7 @@ BOOL	Renderer::SwapBuffers()
 	GLint sL, sR;
 	if (gInfo.OutputMode == OGL_OUTPUT_SR_WEAVE)
 	{
-		// LeiaSR weave path. Lazy-init the SR weaver on first call (HWND,
+		// Simulated Reality weave path. Lazy-init the SR weaver on first call (HWND,
 		// per-eye textures and GL context all need to be live by now);
 		// then per frame copy the eyes into the SBS texture and let the
 		// SR runtime weave to the default framebuffer. Falls back to SBS

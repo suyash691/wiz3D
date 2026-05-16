@@ -80,7 +80,7 @@
              8 = Simulated Reality    — Leia / Samsung Odyssey moving-lightfield
                                         weave. Implemented for DX11; falls back
                                         to SBS automatically on systems without
-                                        the LeiaSR runtime installed (delay-load
+                                        the Simulated Reality runtime installed (delay-load
                                         catches MOD_NOT_FOUND, ServerNot-
                                         Available exceptions, and per-game SR-
                                         incompatible exe blacklist). DX9/DX10/

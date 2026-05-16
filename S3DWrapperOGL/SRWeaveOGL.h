@@ -1,7 +1,7 @@
 /*
- * LeiaSR OpenGL weaver integration for S3DWrapperOGL (mode 10).
+ * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 10).
  *
- * Glue layer that hides the LeiaSR SDK's C++ headers (exception types,
+ * Glue layer that hides the Simulated Reality SDK's C++ headers (exception types,
  * IDestroyable / IQueryInterface bases, etc.) behind a small C-style API.
  * Renderer.cpp only sees opaque-pointer get/set functions plus the
  * once-per-frame Render call — it doesn't include any sr/* headers.
@@ -12,7 +12,7 @@
  *
  * Runtime fallback: SimulatedRealityCore.dll and SimulatedRealityOpenGL.dll
  * are linked via /DELAYLOAD, so the wrapper still loads on machines
- * without the LeiaSR runtime. If either DLL is missing — or the SR Service
+ * without the Simulated Reality runtime. If either DLL is missing — or the SR Service
  * isn't running — initialisation throws and we sticky-flag fallback mode
  * (the caller renders plain SBS instead, same Half-SBS fallback as DX9).
  */
