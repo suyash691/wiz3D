@@ -109,19 +109,11 @@ void main() {											\n\
 	gl_TexCoord[0] = gl_MultiTexCoord0;					\n\
 }";
 
+// Anaglyph Red/Cyan using the Dubois colour-optimized matrix. Operates in
+// linear-light space (gamma-correct), then re-encodes to sRGB. Single anaglyph
+// option shipped — earlier grayscale and naive full-colour variants produced
+// worse retinal rivalry / ghosting, so they were retired.
 static char g_szAnaglyphShaderText[] = "				\n\
-uniform sampler2D sL;									\n\
-uniform sampler2D sR;									\n\
-														\n\
-void main() {											\n\
-	vec4 cL = texture2D(sL, gl_TexCoord[0].xy);			\n\
-	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
-	float lL = dot(cL.rgb, vec3(0.299, 0.587, 0.114));	\n\
-	float lR = dot(cR.rgb, vec3(0.299, 0.587, 0.114));	\n\
-	gl_FragData[0] = vec4(lL, lR, lR, 1.0);				\n\
-}";
-
-static char g_szOptAnaglyphShaderText[] = "				\n\
 uniform sampler2D sL;									\n\
 uniform sampler2D sR;									\n\
 														\n\
@@ -138,16 +130,6 @@ void main() {											\n\
 			+ dot(R, vec3(-0.0258,-0.0450, 0.9741));	\n\
 	vec3 c = pow(max(vec3(r, g, b), vec3(0.0)), vec3(0.4545)); \n\
 	gl_FragData[0] = vec4(c, 1.0);						\n\
-}";
-
-static char g_szColorAnaglyphShaderText[] = "			\n\
-uniform sampler2D sL;									\n\
-uniform sampler2D sR;									\n\
-														\n\
-void main() {											\n\
-	vec4 cL = texture2D(sL, gl_TexCoord[0].xy);			\n\
-	vec4 cR = texture2D(sR, gl_TexCoord[0].xy);			\n\
-	gl_FragData[0] = vec4(cL.r, cR.g, cR.b, 1.0);		\n\
 }";
 
 // Line Interleaved (row-interleaved). Output even rows from left eye, odd

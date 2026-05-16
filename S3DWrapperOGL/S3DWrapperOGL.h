@@ -14,37 +14,41 @@
 #define S3DWRAPPEROGL_API __declspec(dllimport)
 #endif
 
-// OutputMode values for OGL wrapper
-// 0 = iZ3D dual-panel hardware (legacy default)
-// 1 = Side-by-Side (L left, R right)
-// 2 = Over/Under (L top, R bottom)
-// 3 = Crosseyed (L right, R left)
-// 4 = Anaglyph Red/Cyan (grayscale)
-// 5 = Optimized Anaglyph (Dubois)
-// 6 = Color Anaglyph
-// 7 = Line Interleaved (passive 3D TVs / monitors with row-polarised filter)
-// 8 = Column Interleaved (rarer column-polarised displays)
-// 9 = Checkerboard (DLP-Link 3D projectors)
-// 10 = Simulated Reality Weave (Samsung Odyssey 3D / Acer SpatialLabs lightfield displays;
-//                   falls back to plain SBS on systems without the SR runtime)
-#define OGL_OUTPUT_IZ3D            0
-#define OGL_OUTPUT_SBS             1
-#define OGL_OUTPUT_OVERUNDER       2
-#define OGL_OUTPUT_CROSSEYED       3
-#define OGL_OUTPUT_ANAGLYPH        4
-#define OGL_OUTPUT_OPT_ANAGLYPH    5
-#define OGL_OUTPUT_COLOR_ANAGLYPH  6
-#define OGL_OUTPUT_LINE_INTERLEAVED   7
-#define OGL_OUTPUT_COLUMN_INTERLEAVED 8
-#define OGL_OUTPUT_CHECKERBOARD       9
-#define OGL_OUTPUT_SR_WEAVE          10
+// OutputMode values for OGL wrapper. Single-digit so config files can't be
+// mis-parsed (an earlier 2-digit mode 10 was misread as 1 by hand-edits).
+// 0 = iZ3D dual-panel hardware (legacy)
+// 1 = Half Side-by-Side  (each eye squashed to half width — works at the game's native res)
+// 2 = Full Side-by-Side  (each eye at full width — game must render at half display width)
+// 3 = Half Top-and-Bottom (each eye squashed to half height — works at native res)
+// 4 = Full Top-and-Bottom (each eye at full height — game must render at half display height)
+// 5 = Anaglyph Red/Cyan (Dubois colour-optimized — single shipped anaglyph; left=red, right=cyan)
+// 6 = Line Interleaved (passive 3D TVs / row-polarised monitors)
+// 7 = Column Interleaved (rare column-polarised displays)
+// 8 = Checkerboard (DLP-Link 3D projectors)
+// 9 = Simulated Reality Weave (default — Samsung Odyssey 3D / Acer SpatialLabs lightfield
+//                              displays; falls back to plain Half-SBS on systems
+//                              without the SR runtime)
+// Eye swapping is controlled separately by the SwapEyes config flag, which
+// applies across every OutputMode rather than living as its own mode.
+#define OGL_OUTPUT_IZ3D                0
+#define OGL_OUTPUT_HALF_SBS            1
+#define OGL_OUTPUT_FULL_SBS            2
+#define OGL_OUTPUT_HALF_TB             3
+#define OGL_OUTPUT_FULL_TB             4
+#define OGL_OUTPUT_ANAGLYPH            5
+#define OGL_OUTPUT_LINE_INTERLEAVED    6
+#define OGL_OUTPUT_COLUMN_INTERLEAVED  7
+#define OGL_OUTPUT_CHECKERBOARD        8
+#define OGL_OUTPUT_SR_WEAVE            9
 
 struct GlobalInfo
-{                   
+{
 	UINT		Trace;
-	UINT		EmulateQB; 
+	UINT		EmulateQB;
 	UINT		RouterType;
 	UINT		OutputMode;
+	UINT		SwapEyes;
+	UINT		MonoHudOverlay;
 	TCHAR		DriverDirectory[MAX_PATH];
 	TCHAR		DriverFileName[MAX_PATH];
 	TCHAR       ApplicationFileName[MAX_PATH];

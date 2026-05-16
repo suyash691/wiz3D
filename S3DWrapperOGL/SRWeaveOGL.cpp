@@ -1,5 +1,5 @@
 /*
- * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 10).
+ * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 9).
  * See SRWeaveOGL.h for the public API contract.
  */
 
@@ -111,11 +111,17 @@ bool SRWeaveOGL_Initialize(SRWeaveOGLContext** outCtx, HWND hWnd,
         return false;
     }
 
-    // SBS texture: 2*viewWidth wide, viewHeight tall, sRGB so the shader-side
-    // sRGB conversion in the weaver works correctly.
+    // SBS texture: 2*viewWidth wide, viewHeight tall, plain RGBA8 (linear).
+    // Earlier sRGB-encoded format darkened the final image: the wrapper's
+    // fixed-function copy from per-eye PBuffer textures to this SBS texture
+    // doesn't enable GL_FRAMEBUFFER_SRGB on write, so display-encoded source
+    // bytes were stored as-is; then the weaver's sample of a GL_SRGB8_ALPHA8
+    // texture sRGB-decodes them (treating 0.5 as ~0.21 linear), and there's
+    // no setOutputSRGBWrite on IGLWeaver1 to re-encode. End result: half
+    // brightness. Plain RGBA8 keeps values byte-identical through the pipe.
     glGenTextures(1, &ctx->sbsTexture);
     glBindTexture(GL_TEXTURE_2D, ctx->sbsTexture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, viewWidth * 2, viewHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, viewWidth * 2, viewHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -169,9 +175,13 @@ bool SRWeaveOGL_Initialize(SRWeaveOGLContext** outCtx, HWND hWnd,
         return false;
     }
 
-    // setInputViewTexture: per-eye width (the weaver knows the texture is SBS
-    // and splits it in half internally).
-    ctx->weaver->setInputViewTexture(ctx->sbsTexture, viewWidth, viewHeight, GL_SRGB8_ALPHA8);
+    // setInputViewTexture takes the TOTAL SBS texture dimensions (2*viewWidth,
+    // viewHeight), not per-eye. Same contract as the DX11/DX9 weave paths
+    // (see NvDirectMode/d3d11 SwapChainProxy.cpp passing m_srSBSW = logicalW*2).
+    // Passing per-eye dims here is what produced the black-screen RtCW test:
+    // SR thinks the texture is 1x but the actual layout is 2x, so the weaver
+    // splits and reads garbage.
+    ctx->weaver->setInputViewTexture(ctx->sbsTexture, viewWidth * 2, viewHeight, GL_RGBA8);
 
     // Per the SR SDK contract, initialize() runs AFTER weaver creation.
     ctx->srContext->initialize();
@@ -180,18 +190,68 @@ bool SRWeaveOGL_Initialize(SRWeaveOGLContext** outCtx, HWND hWnd,
     return true;
 }
 
+// Set while we're inside the known-AV-prone SR runtime cleanup calls so the
+// proxy's VEH can choose to skip dump-writing when the AV is one we expect
+// and have an inner SEH handler for. Defined here, exported via the .def
+// alongside HookOGL so the proxy GetProcAddress's it at load time.
+volatile LONG g_suppressCrashDump = 0;
+
+extern "C" __declspec(dllexport) BOOL WINAPI ShouldSuppressCrashDump()
+{
+    return InterlockedCompareExchange(&g_suppressCrashDump, 0, 0) != 0;
+}
+
 void SRWeaveOGL_Cleanup(SRWeaveOGLContext** ctxPtr)
 {
     if (!ctxPtr || !*ctxPtr) return;
     SRWeaveOGLContext* ctx = *ctxPtr;
 
-    if (ctx->weaver) {
-        ctx->weaver->destroy();
-        ctx->weaver = nullptr;
-    }
-    if (ctx->srContext) {
-        SR::SRContext::deleteSRContext(ctx->srContext);
-        ctx->srContext = nullptr;
+    // Process-exit ordering: the wrapper's Renderer destructors run from
+    // C++ static dtors (g_RendererList), which fire during _cexit. At that
+    // point the SR runtime's own statics may already have torn down even
+    // though the DLLs are still loaded — the crash dump traced through
+    // glog.dll into SR core, suggesting SR's logging singleton was already
+    // gone. The first defence is the GetModuleHandle check below (catches
+    // the unloaded-DLL case the delay-load helper would otherwise trip on);
+    // the second is SEH-wrapping the SR calls so anything else corrupted
+    // inside the runtime can't take down the process during exit.
+#ifdef _WIN64
+    HMODULE hSRCore = GetModuleHandleW(L"SimulatedRealityCore.dll");
+    HMODULE hSRGL   = GetModuleHandleW(L"SimulatedRealityOpenGL.dll");
+#else
+    HMODULE hSRCore = GetModuleHandleW(L"SimulatedRealityCore32.dll");
+    HMODULE hSRGL   = GetModuleHandleW(L"SimulatedRealityOpenGL32.dll");
+#endif
+    bool srRuntimeAlive = (hSRCore != NULL && hSRGL != NULL);
+
+    if (srRuntimeAlive)
+    {
+        // Tell the proxy's crash-dump VEH that any AV from here is expected
+        // and has an inner SEH handler — it should skip the dump file write.
+        InterlockedExchange(&g_suppressCrashDump, 1);
+        if (ctx->weaver) {
+            __try {
+                ctx->weaver->destroy();
+            }
+            __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION
+                        ? EXCEPTION_EXECUTE_HANDLER
+                        : EXCEPTION_CONTINUE_SEARCH) {
+                OutputDebugStringA("[SRWeaveOGL] weaver->destroy() raised AV - swallowing for clean process exit.\n");
+            }
+            ctx->weaver = nullptr;
+        }
+        if (ctx->srContext) {
+            __try {
+                SR::SRContext::deleteSRContext(ctx->srContext);
+            }
+            __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION
+                        ? EXCEPTION_EXECUTE_HANDLER
+                        : EXCEPTION_CONTINUE_SEARCH) {
+                OutputDebugStringA("[SRWeaveOGL] deleteSRContext raised AV - swallowing for clean process exit.\n");
+            }
+            ctx->srContext = nullptr;
+        }
+        InterlockedExchange(&g_suppressCrashDump, 0);
     }
     if (ctx->sbsFramebuffer && ctx->glDeleteFramebuffers) {
         ctx->glDeleteFramebuffers(1, &ctx->sbsFramebuffer);
@@ -235,9 +295,18 @@ bool SRWeaveOGL_Render(SRWeaveOGLContext* ctx,
     glGetIntegerv(0x8B8D /* GL_CURRENT_PROGRAM */, &savedProgram);
 
     typedef void (APIENTRY *PFN_UseProgram)(GLuint program);
-    static PFN_UseProgram useProgram = nullptr;
-    if (!useProgram) useProgram = (PFN_UseProgram)wglGetProcAddress("glUseProgram");
+    typedef void (APIENTRY *PFN_ActiveTexture)(GLenum texture);
+    static PFN_UseProgram   useProgram   = nullptr;
+    static PFN_ActiveTexture activeTexture = nullptr;
+    if (!useProgram)   useProgram   = (PFN_UseProgram)  wglGetProcAddress("glUseProgram");
+    if (!activeTexture) activeTexture = (PFN_ActiveTexture)wglGetProcAddress("glActiveTexture");
     if (useProgram) useProgram(0);
+
+    // Caller leaves active texture unit at GL_TEXTURE1 (after binding the two
+    // PBuffer eye textures to units 0+1). Fixed-function glBegin/glTexCoord2f
+    // samples from unit 0 by default, so force unit 0 before draw to avoid a
+    // unit-mismatch that produces blank quads.
+    if (activeTexture) activeTexture(0x84C0 /* GL_TEXTURE0 */);
 
     ctx->glBindFramebuffer(GL_FRAMEBUFFER, ctx->sbsFramebuffer);
     glEnable(GL_TEXTURE_2D);
@@ -270,7 +339,7 @@ bool SRWeaveOGL_Render(SRWeaveOGLContext* ctx,
     }
 
     // Restore previously-bound shader program (the wrapper's compose shader,
-    // unused in mode 10 but other code may depend on it being set).
+    // unused in mode 9 but other code may depend on it being set).
     if (useProgram && savedProgram) useProgram((GLuint)savedProgram);
 
     return ok;

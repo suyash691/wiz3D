@@ -1,5 +1,5 @@
 /*
- * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 10).
+ * Simulated Reality OpenGL weaver integration for S3DWrapperOGL (mode 9).
  *
  * Glue layer that hides the Simulated Reality SDK's C++ headers (exception types,
  * IDestroyable / IQueryInterface bases, etc.) behind a small C-style API.

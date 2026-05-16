@@ -99,26 +99,34 @@ bool ReadConfig()
 	_tcscpy_s(szApplicationFileName, _countof(szApplicationFileName), gInfo.ApplicationFileName);
 	_tcslwr_s(szApplicationFileName, MAX_PATH);
 	TCHAR path[MAX_PATH];
-#ifndef FINAL_RELEASE
-	// Dev check: parent dir, prefer wiz3D_Config.xml, fall back to Config.xml
+	// Portable install: wiz3D_Config.xml sits next to the wrapper DLL in the
+	// game folder. Check there first so OGL works without the BaseProfile.xml
+	// sentinel the legacy iZ3D path resolver requires.
 	_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
-	_tcscat(path, _T("\\.."));
 	PathAppend(path, TEXT("wiz3D_Config.xml"));
 	if (!PathFileExists(path))
 	{
+#ifndef FINAL_RELEASE
+		// Dev check: parent dir, prefer wiz3D_Config.xml, fall back to Config.xml
 		_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
 		_tcscat(path, _T("\\.."));
-		PathAppend(path, TEXT("Config.xml"));
-	}
-	if (!PathFileExists(path))
-#endif
-	{
-		iz3d::resources::GetAllUsersDirectory(path);
 		PathAppend(path, TEXT("wiz3D_Config.xml"));
 		if (!PathFileExists(path))
 		{
-			iz3d::resources::GetAllUsersDirectory(path);
+			_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
+			_tcscat(path, _T("\\.."));
 			PathAppend(path, TEXT("Config.xml"));
+		}
+		if (!PathFileExists(path))
+#endif
+		{
+			iz3d::resources::GetAllUsersDirectory(path);
+			PathAppend(path, TEXT("wiz3D_Config.xml"));
+			if (!PathFileExists(path))
+			{
+				iz3d::resources::GetAllUsersDirectory(path);
+				PathAppend(path, TEXT("Config.xml"));
+			}
 		}
 	}
 	TiXmlDocument* docConfig = DNew TiXmlDocument( common::utils::to_multibyte(path) );
@@ -175,6 +183,30 @@ bool ReadConfig()
 		{
 			itemElement->QueryIntAttribute("Value", (int*)&gInfo.OutputMode);
 		}
+		// MonoHudOverlay defaults to OFF when the config doesn't list it.
+		// The activation path (OnHudCandidate -> ActivateOverlayPhase) is
+		// currently a no-op pending a reliable per-engine detection signal
+		// for the post-stereo HUD phase. Hook/trace plumbing remains in
+		// place; see project_sr_weave_ogl_wip memory for the reason.
+		gInfo.MonoHudOverlay = 0;
+		itemElement = node->FirstChildElement("MonoHudOverlay");
+		if (itemElement)
+		{
+			itemElement->QueryIntAttribute("Value", (int*)&gInfo.MonoHudOverlay);
+		}
+	}
+	// SwapEyes lives under DefaultProfile in the iZ3D-shape config; for the
+	// OGL wrapper we surface it as a global on/off flag. Look under either
+	// node so users can put it wherever feels natural.
+	{
+		TiXmlNode* defaultProfile = rootNode->FirstChild("DefaultProfile");
+		TiXmlElement* swapEl = NULL;
+		if (defaultProfile)
+			swapEl = defaultProfile->FirstChildElement("SwapEyes");
+		if (!swapEl && node)
+			swapEl = node->FirstChildElement("SwapEyes");
+		if (swapEl)
+			swapEl->QueryIntAttribute("Value", (int*)&gInfo.SwapEyes);
 	}
 	//node = rootNode->FirstChild("DefaultProfile");
 	//if (node)

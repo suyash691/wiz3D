@@ -25,6 +25,12 @@
 // ---------------------------------------------------------------------------
 static FILE* g_logFile = NULL;
 
+// Cached wrapper query for "I'm about to swallow an AV myself, please don't
+// write a crash dump for it". Resolved after the wrapper DLL loads; remains
+// NULL on older wrappers that don't export ShouldSuppressCrashDump.
+typedef BOOL (WINAPI* PFN_ShouldSuppressCrashDump)(void);
+static PFN_ShouldSuppressCrashDump g_pfnShouldSuppressCrashDump = NULL;
+
 static void LogOpen(void)
 {
     if (g_logFile) return;
@@ -32,7 +38,7 @@ static void LogOpen(void)
     GetModuleFileNameW(NULL, dir, MAX_PATH);
     WCHAR* pSlash = wcsrchr(dir, L'\\');
     if (pSlash) *(pSlash + 1) = L'\0';
-    lstrcatW(dir, L"wiz3D_opengl32_proxy.log");
+    lstrcatW(dir, L"OpenGL32Proxy.log");
     g_logFile = _wfopen(dir, L"a");  // append: shared with other proxies
 }
 
@@ -67,6 +73,14 @@ static LONG CALLBACK VectoredCrashHandler(EXCEPTION_POINTERS* pExInfo)
     default:
         return EXCEPTION_CONTINUE_SEARCH;
     }
+    // If the wrapper has flagged that it's currently inside a code path with
+    // its own inner __except handler (e.g. SR runtime teardown at process
+    // exit), skip the dump entirely — the inner handler will swallow it and
+    // shutdown will continue cleanly. Without this, every clean exit looked
+    // like a crash because the VEH wrote a dump before the SEH frame got
+    // a chance to handle the AV.
+    if (g_pfnShouldSuppressCrashDump && g_pfnShouldSuppressCrashDump())
+        return EXCEPTION_CONTINUE_SEARCH;
     if (InterlockedCompareExchange(&g_crashLogged, 1, 0) != 0)
         return EXCEPTION_CONTINUE_SEARCH;
 
@@ -622,6 +636,12 @@ static void LoadWrapper(void)
     else
         Log("WARN: SetRealOpenGL32 not found in wrapper\n");
 
+    // Cache the wrapper's ShouldSuppressCrashDump query for the VEH so it can
+    // skip dump writes for AVs the wrapper is about to swallow itself (e.g.
+    // the SR runtime's deleteSRContext path at process exit). Missing in
+    // older wrappers — VEH falls back to always-log behaviour.
+    g_pfnShouldSuppressCrashDump = (PFN_ShouldSuppressCrashDump)GetProcAddress(g_hWrapper, "ShouldSuppressCrashDump");
+
     // Install hooks
     pfnHookOGL pHookOGL = (pfnHookOGL)GetProcAddress(g_hWrapper, "HookOGL");
     if (pHookOGL)
@@ -1034,6 +1054,24 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID lpReserved)
     case DLL_PROCESS_ATTACH:
         g_hProxy = hModule;
         DisableThreadLibraryCalls(hModule);
+        // Declare the host process DPI-aware before the game creates its
+        // window. Without this, non-DPI-aware games like RtCW running on a
+        // 4K/HiDPI desktop get a virtualized backbuffer (the wrapper draws
+        // into 3840x2160 virtual pixels but only ~2/3 of that is visible on
+        // the physical display, producing the "oversized SBS" symptom).
+        // Prefer the per-monitor V2 context on Win10 1703+, fall back to
+        // SetProcessDPIAware for everything older.
+        {
+            HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+            typedef BOOL (WINAPI *PFN_SPDAC)(HANDLE);
+            PFN_SPDAC pfnSPDAC = hUser32
+                ? (PFN_SPDAC)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext")
+                : NULL;
+            if (!pfnSPDAC || !pfnSPDAC((HANDLE)-4 /* DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 */))
+            {
+                SetProcessDPIAware();
+            }
+        }
         LogOpen();
         g_hVEH = AddVectoredExceptionHandler(1, VectoredCrashHandler);
         {

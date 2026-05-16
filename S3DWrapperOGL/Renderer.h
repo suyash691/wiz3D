@@ -52,12 +52,34 @@ class Renderer
 	RECT		m_BackScreenRect, m_FrontScreenRect;
 	void	DumpBuffer( char * szFileName, GLenum buf, char* s );
 
-	// Simulated Reality weave (OutputMode 10). void* avoids dragging SR headers into
+	// Simulated Reality weave (OutputMode 9). void* avoids dragging SR headers into
 	// every TU that includes Renderer.h — the full struct lives in
 	// SRWeaveOGL.cpp. m_bSRWeaveTriedInit is sticky so Output() doesn't
 	// keep retrying when the SR runtime is missing.
 	void*	m_pSRWeave;
 	BOOL	m_bSRWeaveTriedInit;
+
+	// Mono-HUD overlay state (gInfo.MonoHudOverlay). idTech 3 family games
+	// (RtCW / Q3 / Doom 3) render the HUD via mono GL_BACK draws after the
+	// two per-eye 3D passes, which makes the HUD/cinematics/menus appear in
+	// only one eye. We catch the post-stereo mono phase and redirect those
+	// draws into m_OverlayFBO; at SwapBuffers we alpha-blit the overlay on
+	// top of whatever the per-eye composite produced, so the HUD lands in
+	// both eyes at screen plane.
+	GLuint	m_OverlayTextureID;
+	GLuint	m_OverlayFBO;
+	UINT	m_OverlayWidth;
+	UINT	m_OverlayHeight;
+	BOOL	m_bSeenLeftEye;
+	BOOL	m_bSeenRightEye;
+	BOOL	m_bOverlayActive;       // currently routing mono draws into overlay FBO
+	BOOL	m_bOverlayHasContent;   // game drew something into overlay this frame
+	BOOL	m_bInCompose;           // true while our own SwapBuffers compose path runs;
+	                                // suppresses overlay re-trigger when our glDisable /
+	                                // glOrtho calls feed back through the hooks
+	void	EnsureOverlay();
+	void	ActivateOverlayPhase();
+	void	BlitOverlayOverBackBuffer(float fTextureCoordX, float fTextureCoordY);
 
 public:
 	Renderer(void);
@@ -74,6 +96,7 @@ public:
 	void	SetStereoRender(BOOL bStereoRender);
 	inline BOOL	GetStereoRender() { return m_bStereoRender; }
 	BOOL    MakeCurrent(HGLRC hglrc);
+	void	OnHudCandidate(const char* triggerName);
 	BOOL	CheckGLError();
 	BOOL	CheckGLSLError(GLhandleARB Handle, GLenum Param);
 	void	SaveBufferToFile(int width, int height, char* filename);

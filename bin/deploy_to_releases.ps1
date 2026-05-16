@@ -31,7 +31,10 @@ $archs = if ($Arch -eq 'both') { @('Win32', 'x64') } else { @($Arch) }
 # Common dependency DLLs shared across most release subfolders
 $commonDeps    = @('S3DAPI.dll', 'S3DDevIL.dll', 'S3DUtils.dll', 'ZLOg.dll')
 $dx10ExtraDeps = @('S3Dilu.dll')           # dx10-11 only
-$openglDeps    = @('S3DAPI.dll', 'S3DUtils.dll', 'ZLOg.dll')   # OpenGL skips DevIL/ilu
+# OpenGL wrapper only ships ZLOg.dll (statically imported via zlog::VldReportHook).
+# It has no LoadLibrary calls and never references S3DAPI/S3DUtils — those are
+# DX-wrapper helpers. nvapi is also excluded (no NvAPI usage on the OGL path).
+$openglDeps    = @('ZLOg.dll')
 
 # Output methods supported by each render API. Most APIs ship the same set;
 # OpenGL only ships the SR weave method (no other OGL implementations exist yet).
@@ -285,13 +288,12 @@ foreach ($archAlias in $archs | ForEach-Object { if ($_ -eq 'Win32') { 'x86' } e
     $nvapiName = if ($archAlias -eq 'x86') { 'nvapi.dll' } else { 'nvapi64.dll' }
     $srcNvapi  = Join-Path $relRoot "dx9\$archAlias\$nvapiName"
     # nvapi spreads into:
-    #   - regular wiz3D dx10-11 / opengl-quad-buffer-stereo folders (3D Vision-aware
-    #     games using passive)
+    #   - regular wiz3D dx10-11 (3D Vision-aware games using passive)
     #   - all four 3d-vision-direct/<api>/<arch>/ leaves (Direct Mode games need NvApiProxy
     #     beside the NvDirectMode proxy DLL because they call NvAPI_Stereo_SetActiveEye etc.)
+    # NOT into opengl-quad-buffer-stereo: the OGL wrapper never touches NvAPI.
     $nvapiTargets = @(
         "$relRoot\dx10-11\$archAlias",
-        "$relRoot\opengl-quad-buffer-stereo\$archAlias",
         "$relRoot\3d-vision-direct\dx9\$archAlias",
         "$relRoot\3d-vision-direct\dx10\$archAlias",
         "$relRoot\3d-vision-direct\dx11\$archAlias"

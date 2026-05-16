@@ -18,3 +18,4 @@ EXPORTS
 HookOGL
 SetSyncRenderCallback
 SetRealOpenGL32
+ShouldSuppressCrashDump

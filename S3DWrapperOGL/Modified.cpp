@@ -116,6 +116,81 @@ void WINAPI HglDrawBuffer(GLenum mode)
 		pfnOrig_glDrawBuffer (mode);
 }
 
+// Mono-HUD overlay candidate triggers. idTech 3 family games emit only two
+// DrawBuffer calls per frame (BACK_LEFT, BACK_RIGHT), so overlay activation
+// has to hook into some other GL call that fires between the right-eye 3D
+// pass and the 2D HUD pass. The reliable candidates the engine touches when
+// switching to 2D are:
+//   glOrtho           — direct ortho setup (Q3 source uses it; some builds
+//                       compute the matrix manually and bypass this)
+//   glMatrixMode(PROJECTION) — projection-matrix switch right before loading
+//                              the 2D matrix
+//   glDisable(GL_DEPTH_TEST) — HUD always disables depth test
+// We hook all three and any one fires the activation. The trace logger
+// records which one triggered so we can prune the list per engine later.
+typedef void (APIENTRY *PFN_glOrtho)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
+typedef void (APIENTRY *PFN_glMatrixMode)(GLenum mode);
+typedef void (APIENTRY *PFN_glDisable)(GLenum cap);
+PFN_glOrtho      pfnOrig_glOrtho      = NULL;
+PFN_glMatrixMode pfnOrig_glMatrixMode = NULL;
+PFN_glDisable    pfnOrig_glDisable    = NULL;
+// One-shot file logger used by the HUD-candidate hooks to confirm whether
+// the hook is ever being entered. Each hook logs its first call regardless
+// of the trace-window state. Lets us tell "hook installed but function not
+// called" from "hook didn't install at all".
+static void LogHookFirstCall(const char* tag)
+{
+	TCHAR path[MAX_PATH];
+	_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
+	_tcscat_s(path, MAX_PATH, _T("\\OpenGLQuadBufferStereo.log"));
+	FILE* f = NULL;
+	_tfopen_s(&f, path, _T("a"));
+	if (!f) return;
+	fprintf(f, "[wiz3D-OGL hook-firstcall] %s\n", tag);
+	fflush(f);
+	fclose(f);
+}
+
+void APIENTRY HglOrtho(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar)
+{
+	static volatile LONG firstCall = 0;
+	if (InterlockedCompareExchange(&firstCall, 1, 0) == 0) LogHookFirstCall("glOrtho");
+	HDC hdc = pfnOrig_wglGetCurrentDC();
+	Renderer *pRenderer = GetRenderer(hdc);
+	if (pRenderer)
+		pRenderer->OnHudCandidate("glOrtho");
+	if (pfnOrig_glOrtho)
+		pfnOrig_glOrtho(left, right, bottom, top, zNear, zFar);
+}
+void APIENTRY HglMatrixMode(GLenum mode)
+{
+	static volatile LONG firstCall = 0;
+	if (InterlockedCompareExchange(&firstCall, 1, 0) == 0) LogHookFirstCall("glMatrixMode");
+	if (mode == GL_PROJECTION)
+	{
+		HDC hdc = pfnOrig_wglGetCurrentDC();
+		Renderer *pRenderer = GetRenderer(hdc);
+		if (pRenderer)
+			pRenderer->OnHudCandidate("glMatrixMode(PROJECTION)");
+	}
+	if (pfnOrig_glMatrixMode)
+		pfnOrig_glMatrixMode(mode);
+}
+void APIENTRY HglDisable(GLenum cap)
+{
+	static volatile LONG firstCall = 0;
+	if (InterlockedCompareExchange(&firstCall, 1, 0) == 0) LogHookFirstCall("glDisable");
+	if (cap == GL_DEPTH_TEST)
+	{
+		HDC hdc = pfnOrig_wglGetCurrentDC();
+		Renderer *pRenderer = GetRenderer(hdc);
+		if (pRenderer)
+			pRenderer->OnHudCandidate("glDisable(GL_DEPTH_TEST)");
+	}
+	if (pfnOrig_glDisable)
+		pfnOrig_glDisable(cap);
+}
+
 BOOL WINAPI HwglMakeCurrent(HDC hdc, HGLRC hglrc)
 {
 	Renderer *pRenderer = GetRenderer(hdc);
@@ -384,6 +459,28 @@ BOOL WINAPI HookOGL()
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "glViewport"), (LPVOID)HglViewport, (LPVOID*)&pfnOrig_glViewport);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "glScissor"), (LPVOID)HglScissor, (LPVOID*)&pfnOrig_glScissor);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "glDrawBuffer"), (LPVOID)HglDrawBuffer, (LPVOID*)&pfnOrig_glDrawBuffer);
+		// Log MinHook status for the HUD-detection candidates so we can tell
+		// install success from "hooks installed but functions never called".
+		// FP_ADDR for log clarity: also log the address each hook is patching.
+		{
+			LPVOID addrOrtho      = (LPVOID)GetProcAddress(g_hRealOpenGL32, "glOrtho");
+			LPVOID addrMatrixMode = (LPVOID)GetProcAddress(g_hRealOpenGL32, "glMatrixMode");
+			LPVOID addrDisable    = (LPVOID)GetProcAddress(g_hRealOpenGL32, "glDisable");
+			MH_STATUS rcO = MH_CreateHook(addrOrtho,      (LPVOID)HglOrtho,      (LPVOID*)&pfnOrig_glOrtho);
+			MH_STATUS rcM = MH_CreateHook(addrMatrixMode, (LPVOID)HglMatrixMode, (LPVOID*)&pfnOrig_glMatrixMode);
+			MH_STATUS rcD = MH_CreateHook(addrDisable,    (LPVOID)HglDisable,    (LPVOID*)&pfnOrig_glDisable);
+			TCHAR path[MAX_PATH];
+			_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
+			_tcscat_s(path, MAX_PATH, _T("\\OpenGLQuadBufferStereo.log"));
+			FILE* f = NULL;
+			_tfopen_s(&f, path, _T("a"));
+			if (f) {
+				fprintf(f, "[wiz3D-OGL hook-status] glOrtho:      addr=%p rc=%d\n", addrOrtho,      (int)rcO);
+				fprintf(f, "[wiz3D-OGL hook-status] glMatrixMode: addr=%p rc=%d\n", addrMatrixMode, (int)rcM);
+				fprintf(f, "[wiz3D-OGL hook-status] glDisable:    addr=%p rc=%d\n", addrDisable,    (int)rcD);
+				fflush(f); fclose(f);
+			}
+		}
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "glReadBuffer"), (LPVOID)HglReadBuffer, (LPVOID*)&pfnOrig_glReadBuffer);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "wglCreateContext"), (LPVOID)HwglCreateContext, (LPVOID*)&pfnOrig_wglCreateContext);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "wglDeleteContext"), (LPVOID)HwglDeleteContext, (LPVOID*)&pfnOrig_wglDeleteContext);
