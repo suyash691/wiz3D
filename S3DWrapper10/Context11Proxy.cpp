@@ -103,6 +103,9 @@ namespace wiz3d
 
 Context11Proxy::Context11Proxy(ID3D11DeviceContext* real, Device11Proxy* parent)
     : m_real(real)
+    , m_real1(nullptr)
+    , m_real2(nullptr)
+    , m_real3(nullptr)
     , m_parent(parent)
     , m_refs(1)
     , m_currentBBBound(false)
@@ -111,6 +114,12 @@ Context11Proxy::Context11Proxy(ID3D11DeviceContext* real, Device11Proxy* parent)
     , m_boundVS(nullptr)
 {
     for (UINT i = 0; i < kMaxVSCBSlots; ++i) m_boundVSCBs[i] = nullptr;
+    if (m_real)
+    {
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11DeviceContext1), reinterpret_cast<void**>(&m_real1)))) m_real1 = nullptr;
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11DeviceContext2), reinterpret_cast<void**>(&m_real2)))) m_real2 = nullptr;
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11DeviceContext3), reinterpret_cast<void**>(&m_real3)))) m_real3 = nullptr;
+    }
 }
 
 Context11Proxy::~Context11Proxy()
@@ -120,6 +129,9 @@ Context11Proxy::~Context11Proxy()
     // setting calls with captured COM pointers will release them in
     // ClearFrameCommands; the dtor will route there.
     ClearFrameCommands();
+    if (m_real3) { m_real3->Release(); m_real3 = nullptr; }
+    if (m_real2) { m_real2->Release(); m_real2 = nullptr; }
+    if (m_real1) { m_real1->Release(); m_real1 = nullptr; }
 }
 
 void Context11Proxy::ClearFrameCommands()
@@ -529,8 +541,28 @@ HRESULT STDMETHODCALLTYPE Context11Proxy::QueryInterface(REFIID riid, void** ppv
         AddRef();
         return S_OK;
     }
-    // Context1+ family: refuse so games fall back to the wrapped base
-    // interface instead of getting an unwrapped escape hatch.
+    // Claim Context1/2/3 with `this` so games accessing the immediate context
+    // via Device1::GetImmediateContext1 (or QI for the higher versions) land
+    // on our proxy rather than the unwrapped real ctx. Without this, every
+    // state-setter call after that would bypass our record-for-replay logic.
+    if (riid == __uuidof(ID3D11DeviceContext1) && m_real1)
+    {
+        *ppvObj = static_cast<ID3D11DeviceContext1*>(this);
+        AddRef();
+        return S_OK;
+    }
+    if (riid == __uuidof(ID3D11DeviceContext2) && m_real2)
+    {
+        *ppvObj = static_cast<ID3D11DeviceContext2*>(this);
+        AddRef();
+        return S_OK;
+    }
+    if (riid == __uuidof(ID3D11DeviceContext3) && m_real3)
+    {
+        *ppvObj = static_cast<ID3D11DeviceContext3*>(this);
+        AddRef();
+        return S_OK;
+    }
     *ppvObj = nullptr;
     return E_NOINTERFACE;
 }

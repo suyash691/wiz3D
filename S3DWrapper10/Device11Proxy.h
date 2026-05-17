@@ -12,7 +12,15 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <d3d11.h>
+#include <d3d9types.h>   // D3DCOLORVALUE for the DXGI_RGBA shim below
+#ifndef _DXGI_RGBA_DEFINED
+#define _DXGI_RGBA_DEFINED
+typedef D3DCOLORVALUE DXGI_RGBA;     // bundled lib/d3d10 dxgitype.h still
+                                     // shadows the SDK header for DXGI_RGBA;
+                                     // pre-define before d3d11_3.h pulls in
+                                     // dxgi1_2.h via its transitive chain.
+#endif
+#include <d3d11_3.h>   // ID3D11Device3 (inherits Device2/Device1/Device)
 #include <unordered_set>
 #include <unordered_map>
 #include "ShaderAnalyzer11.h"  // ShaderAnalysis11Result
@@ -23,7 +31,7 @@ namespace wiz3d
 class Context11Proxy;
 class DXGIDeviceProxy;
 
-class Device11Proxy : public ID3D11Device
+class Device11Proxy : public ID3D11Device3
 {
 public:
     explicit Device11Proxy(ID3D11Device* real);
@@ -86,6 +94,41 @@ public:
     HRESULT STDMETHODCALLTYPE SetExceptionMode(UINT RaiseFlags) override                                                                                                                     { return m_real->SetExceptionMode(RaiseFlags); }
     UINT    STDMETHODCALLTYPE GetExceptionMode() override                                                                                                                                    { return m_real->GetExceptionMode(); }
 
+    // ----- ID3D11Device1 (D3D11.1) — claim these IIDs in QI with `this` so
+    // games that QI for the higher Device versions land on our proxy instead
+    // of getting an unwrapped real device handed back (which was the dominant
+    // right-eye-breakage bypass identified May 2026). Methods that return
+    // contexts are wrapped (return our Context proxy via the higher cast).
+    // Resource-creating *1 / *2 / *3 variants currently passthrough — most
+    // games use the base CreateTexture2D / CreateRenderTargetView which are
+    // already wrapped via the Device-base vtable slots.
+    void    STDMETHODCALLTYPE GetImmediateContext1(ID3D11DeviceContext1** ppImmediateContext) override;
+    HRESULT STDMETHODCALLTYPE CreateDeferredContext1(UINT ContextFlags, ID3D11DeviceContext1** ppDeferredContext) override                                                                  { return m_real1 ? m_real1->CreateDeferredContext1(ContextFlags, ppDeferredContext) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateBlendState1(const D3D11_BLEND_DESC1* pBlendStateDesc, ID3D11BlendState1** ppBlendState) override                                                        { return m_real1 ? m_real1->CreateBlendState1(pBlendStateDesc, ppBlendState) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateRasterizerState1(const D3D11_RASTERIZER_DESC1* pRasterizerDesc, ID3D11RasterizerState1** ppRasterizerState) override                                    { return m_real1 ? m_real1->CreateRasterizerState1(pRasterizerDesc, ppRasterizerState) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateDeviceContextState(UINT Flags, const D3D_FEATURE_LEVEL* pFeatureLevels, UINT FeatureLevels, UINT SDKVersion, REFIID EmulatedInterface, D3D_FEATURE_LEVEL* pChosenFeatureLevel, ID3DDeviceContextState** ppContextState) override { return m_real1 ? m_real1->CreateDeviceContextState(Flags, pFeatureLevels, FeatureLevels, SDKVersion, EmulatedInterface, pChosenFeatureLevel, ppContextState) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE OpenSharedResource1(HANDLE hResource, REFIID returnedInterface, void** ppResource) override                                                                   { return m_real1 ? m_real1->OpenSharedResource1(hResource, returnedInterface, ppResource) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE OpenSharedResourceByName(LPCWSTR lpName, DWORD dwDesiredAccess, REFIID returnedInterface, void** ppResource) override                                         { return m_real1 ? m_real1->OpenSharedResourceByName(lpName, dwDesiredAccess, returnedInterface, ppResource) : E_NOINTERFACE; }
+
+    // ----- ID3D11Device2 (D3D11.2)
+    void    STDMETHODCALLTYPE GetImmediateContext2(ID3D11DeviceContext2** ppImmediateContext) override;
+    HRESULT STDMETHODCALLTYPE CreateDeferredContext2(UINT ContextFlags, ID3D11DeviceContext2** ppDeferredContext) override                                                                  { return m_real2 ? m_real2->CreateDeferredContext2(ContextFlags, ppDeferredContext) : E_NOINTERFACE; }
+    void    STDMETHODCALLTYPE GetResourceTiling(ID3D11Resource* pTiledResource, UINT* pNumTilesForEntireResource, D3D11_PACKED_MIP_DESC* pPackedMipDesc, D3D11_TILE_SHAPE* pStandardTileShapeForNonPackedMips, UINT* pNumSubresourceTilings, UINT FirstSubresourceTilingToGet, D3D11_SUBRESOURCE_TILING* pSubresourceTilingsForNonPackedMips) override { if (m_real2) m_real2->GetResourceTiling(pTiledResource, pNumTilesForEntireResource, pPackedMipDesc, pStandardTileShapeForNonPackedMips, pNumSubresourceTilings, FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips); }
+    HRESULT STDMETHODCALLTYPE CheckMultisampleQualityLevels1(DXGI_FORMAT Format, UINT SampleCount, UINT Flags, UINT* pNumQualityLevels) override                                            { return m_real2 ? m_real2->CheckMultisampleQualityLevels1(Format, SampleCount, Flags, pNumQualityLevels) : E_NOINTERFACE; }
+
+    // ----- ID3D11Device3 (D3D11.3)
+    HRESULT STDMETHODCALLTYPE CreateTexture2D1(const D3D11_TEXTURE2D_DESC1* pDesc1, const D3D11_SUBRESOURCE_DATA* pInitialData, ID3D11Texture2D1** ppTexture2D) override                     { return m_real3 ? m_real3->CreateTexture2D1(pDesc1, pInitialData, ppTexture2D) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateTexture3D1(const D3D11_TEXTURE3D_DESC1* pDesc1, const D3D11_SUBRESOURCE_DATA* pInitialData, ID3D11Texture3D1** ppTexture3D) override                     { return m_real3 ? m_real3->CreateTexture3D1(pDesc1, pInitialData, ppTexture3D) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateRasterizerState2(const D3D11_RASTERIZER_DESC2* pRasterizerDesc, ID3D11RasterizerState2** ppRasterizerState) override                                    { return m_real3 ? m_real3->CreateRasterizerState2(pRasterizerDesc, ppRasterizerState) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateShaderResourceView1(ID3D11Resource* pResource, const D3D11_SHADER_RESOURCE_VIEW_DESC1* pDesc1, ID3D11ShaderResourceView1** ppSRView1) override          { return m_real3 ? m_real3->CreateShaderResourceView1(pResource, pDesc1, ppSRView1) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateUnorderedAccessView1(ID3D11Resource* pResource, const D3D11_UNORDERED_ACCESS_VIEW_DESC1* pDesc1, ID3D11UnorderedAccessView1** ppUAView1) override       { return m_real3 ? m_real3->CreateUnorderedAccessView1(pResource, pDesc1, ppUAView1) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateRenderTargetView1(ID3D11Resource* pResource, const D3D11_RENDER_TARGET_VIEW_DESC1* pDesc1, ID3D11RenderTargetView1** ppRTView1) override                { return m_real3 ? m_real3->CreateRenderTargetView1(pResource, pDesc1, ppRTView1) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CreateQuery1(const D3D11_QUERY_DESC1* pQueryDesc1, ID3D11Query1** ppQuery1) override                                                                          { return m_real3 ? m_real3->CreateQuery1(pQueryDesc1, ppQuery1) : E_NOINTERFACE; }
+    void    STDMETHODCALLTYPE GetImmediateContext3(ID3D11DeviceContext3** ppImmediateContext) override;
+    HRESULT STDMETHODCALLTYPE CreateDeferredContext3(UINT ContextFlags, ID3D11DeviceContext3** ppDeferredContext) override                                                                  { return m_real3 ? m_real3->CreateDeferredContext3(ContextFlags, ppDeferredContext) : E_NOINTERFACE; }
+    void    STDMETHODCALLTYPE WriteToSubresource(ID3D11Resource* pDstResource, UINT DstSubresource, const D3D11_BOX* pDstBox, const void* pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch) override { if (m_real3) m_real3->WriteToSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch); }
+    void    STDMETHODCALLTYPE ReadFromSubresource(void* pDstData, UINT DstRowPitch, UINT DstDepthPitch, ID3D11Resource* pSrcResource, UINT SrcSubresource, const D3D11_BOX* pSrcBox) override { if (m_real3) m_real3->ReadFromSubresource(pDstData, DstRowPitch, DstDepthPitch, pSrcResource, SrcSubresource, pSrcBox); }
+
     // Accessor for 1b-iii / 1b-iv to plumb through state mutators.
     ID3D11Device*   GetReal()         const { return m_real;     }
     // Stage 4b.2: SwapChain11Proxy::Present needs the immediate context to
@@ -135,6 +178,11 @@ private:
     DXGIDeviceProxy* GetOrCreateDXGIDeviceProxyAddRef();
 
     ID3D11Device*    m_real;
+    // Cached upgrades of m_real for Device1/2/3 method dispatch. Nullable —
+    // populated in the constructor via QueryInterface. Refs released in dtor.
+    ID3D11Device1*   m_real1;
+    ID3D11Device2*   m_real2;
+    ID3D11Device3*   m_real3;
     Context11Proxy*  m_ctxProxy;       // not owned — created in dllmain, freed on Release chain
     DXGIDeviceProxy* m_dxgiDeviceProxy;// strong ref (released in ~Device11Proxy)
     CRITICAL_SECTION m_dxgiCacheLock;

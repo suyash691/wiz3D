@@ -9,7 +9,13 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <d3d11.h>
+#include <d3d9types.h>   // D3DCOLORVALUE for the DXGI_RGBA shim below
+#ifndef _DXGI_RGBA_DEFINED
+#define _DXGI_RGBA_DEFINED
+typedef D3DCOLORVALUE DXGI_RGBA;     // bundled lib/d3d10 dxgitype.h still
+                                     // shadows the SDK header for DXGI_RGBA.
+#endif
+#include <d3d11_3.h>  // ID3D11DeviceContext3 (inherits Context2/Context1/Context)
 #include <functional>
 #include <vector>
 
@@ -55,7 +61,7 @@ struct ComRefHolder
 
 class Device11Proxy;
 
-class Context11Proxy : public ID3D11DeviceContext
+class Context11Proxy : public ID3D11DeviceContext3
 {
 public:
     Context11Proxy(ID3D11DeviceContext* real, Device11Proxy* parent);
@@ -188,6 +194,49 @@ public:
     UINT STDMETHODCALLTYPE GetContextFlags() override                                                                                                                                              { return m_real->GetContextFlags(); }
     HRESULT STDMETHODCALLTYPE FinishCommandList(BOOL RestoreDeferredContextState, ID3D11CommandList** ppCommandList) override                                                                      { return m_real->FinishCommandList(RestoreDeferredContextState, ppCommandList); }
 
+    // ----- ID3D11DeviceContext1 — claim Context1 in QI with `this` so games
+    // accessing the immediate context via Device1::GetImmediateContext1 land
+    // on our proxy, not the unwrapped real Context1. New methods passthrough
+    // through m_real1 — none have per-eye logic yet, so games using these
+    // (ClearView, DiscardView, *SetConstantBuffers1) will skip per-eye state
+    // for those calls. Future stage can fill in record-for-replay.
+    void STDMETHODCALLTYPE CopySubresourceRegion1(ID3D11Resource* pDstResource, UINT DstSubresource, UINT DstX, UINT DstY, UINT DstZ, ID3D11Resource* pSrcResource, UINT SrcSubresource, const D3D11_BOX* pSrcBox, UINT CopyFlags) override { if (m_real1) m_real1->CopySubresourceRegion1(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox, CopyFlags); }
+    void STDMETHODCALLTYPE UpdateSubresource1(ID3D11Resource* pDstResource, UINT DstSubresource, const D3D11_BOX* pDstBox, const void* pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags) override { if (m_real1) m_real1->UpdateSubresource1(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags); }
+    void STDMETHODCALLTYPE DiscardResource(ID3D11Resource* pResource) override                                                                                                                    { if (m_real1) m_real1->DiscardResource(pResource); }
+    void STDMETHODCALLTYPE DiscardView(ID3D11View* pResourceView) override                                                                                                                        { if (m_real1) m_real1->DiscardView(pResourceView); }
+    void STDMETHODCALLTYPE VSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->VSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE HSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->HSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE DSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->DSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE GSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->GSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE PSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->PSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE CSSetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer* const* ppConstantBuffers, const UINT* pFirstConstant, const UINT* pNumConstants) override         { if (m_real1) m_real1->CSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE VSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->VSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE HSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->HSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE DSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->DSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE GSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->GSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE PSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->PSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE CSGetConstantBuffers1(UINT StartSlot, UINT NumBuffers, ID3D11Buffer** ppConstantBuffers, UINT* pFirstConstant, UINT* pNumConstants) override                           { if (m_real1) m_real1->CSGetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants); }
+    void STDMETHODCALLTYPE SwapDeviceContextState(ID3DDeviceContextState* pState, ID3DDeviceContextState** ppPreviousState) override                                                              { if (m_real1) m_real1->SwapDeviceContextState(pState, ppPreviousState); }
+    void STDMETHODCALLTYPE ClearView(ID3D11View* pView, const FLOAT Color[4], const D3D11_RECT* pRect, UINT NumRects) override                                                                    { if (m_real1) m_real1->ClearView(pView, Color, pRect, NumRects); }
+    void STDMETHODCALLTYPE DiscardView1(ID3D11View* pResourceView, const D3D11_RECT* pRects, UINT NumRects) override                                                                              { if (m_real1) m_real1->DiscardView1(pResourceView, pRects, NumRects); }
+
+    // ----- ID3D11DeviceContext2 — tiled-resource APIs + annotations
+    HRESULT STDMETHODCALLTYPE UpdateTileMappings(ID3D11Resource* pTiledResource, UINT NumTiledResourceRegions, const D3D11_TILED_RESOURCE_COORDINATE* pTiledResourceRegionStartCoordinates, const D3D11_TILE_REGION_SIZE* pTiledResourceRegionSizes, ID3D11Buffer* pTilePool, UINT NumRanges, const UINT* pRangeFlags, const UINT* pTilePoolStartOffsets, const UINT* pRangeTileCounts, UINT Flags) override { return m_real2 ? m_real2->UpdateTileMappings(pTiledResource, NumTiledResourceRegions, pTiledResourceRegionStartCoordinates, pTiledResourceRegionSizes, pTilePool, NumRanges, pRangeFlags, pTilePoolStartOffsets, pRangeTileCounts, Flags) : E_NOINTERFACE; }
+    HRESULT STDMETHODCALLTYPE CopyTileMappings(ID3D11Resource* pDestTiledResource, const D3D11_TILED_RESOURCE_COORDINATE* pDestRegionStartCoordinate, ID3D11Resource* pSourceTiledResource, const D3D11_TILED_RESOURCE_COORDINATE* pSourceRegionStartCoordinate, const D3D11_TILE_REGION_SIZE* pTileRegionSize, UINT Flags) override { return m_real2 ? m_real2->CopyTileMappings(pDestTiledResource, pDestRegionStartCoordinate, pSourceTiledResource, pSourceRegionStartCoordinate, pTileRegionSize, Flags) : E_NOINTERFACE; }
+    void STDMETHODCALLTYPE CopyTiles(ID3D11Resource* pTiledResource, const D3D11_TILED_RESOURCE_COORDINATE* pTileRegionStartCoordinate, const D3D11_TILE_REGION_SIZE* pTileRegionSize, ID3D11Buffer* pBuffer, UINT64 BufferStartOffsetInBytes, UINT Flags) override { if (m_real2) m_real2->CopyTiles(pTiledResource, pTileRegionStartCoordinate, pTileRegionSize, pBuffer, BufferStartOffsetInBytes, Flags); }
+    void STDMETHODCALLTYPE UpdateTiles(ID3D11Resource* pDestTiledResource, const D3D11_TILED_RESOURCE_COORDINATE* pDestTileRegionStartCoordinate, const D3D11_TILE_REGION_SIZE* pDestTileRegionSize, const void* pSourceTileData, UINT Flags) override { if (m_real2) m_real2->UpdateTiles(pDestTiledResource, pDestTileRegionStartCoordinate, pDestTileRegionSize, pSourceTileData, Flags); }
+    HRESULT STDMETHODCALLTYPE ResizeTilePool(ID3D11Buffer* pTilePool, UINT64 NewSizeInBytes) override                                                                                              { return m_real2 ? m_real2->ResizeTilePool(pTilePool, NewSizeInBytes) : E_NOINTERFACE; }
+    void STDMETHODCALLTYPE TiledResourceBarrier(ID3D11DeviceChild* pBeforeBarrier, ID3D11DeviceChild* pAfterBarrier) override                                                                      { if (m_real2) m_real2->TiledResourceBarrier(pBeforeBarrier, pAfterBarrier); }
+    BOOL STDMETHODCALLTYPE IsAnnotationEnabled() override                                                                                                                                          { return m_real2 ? m_real2->IsAnnotationEnabled() : FALSE; }
+    void STDMETHODCALLTYPE SetMarkerInt(LPCWSTR pLabel, INT Data) override                                                                                                                         { if (m_real2) m_real2->SetMarkerInt(pLabel, Data); }
+    void STDMETHODCALLTYPE BeginEventInt(LPCWSTR pLabel, INT Data) override                                                                                                                        { if (m_real2) m_real2->BeginEventInt(pLabel, Data); }
+    void STDMETHODCALLTYPE EndEvent() override                                                                                                                                                     { if (m_real2) m_real2->EndEvent(); }
+
+    // ----- ID3D11DeviceContext3 — Flush1 + protected-state
+    void STDMETHODCALLTYPE Flush1(D3D11_CONTEXT_TYPE ContextType, HANDLE hEvent) override                                                                                                          { if (m_real3) m_real3->Flush1(ContextType, hEvent); }
+    void STDMETHODCALLTYPE SetHardwareProtectionState(BOOL HwProtectionEnable) override                                                                                                            { if (m_real3) m_real3->SetHardwareProtectionState(HwProtectionEnable); }
+    void STDMETHODCALLTYPE GetHardwareProtectionState(BOOL* pHwProtectionEnable) override                                                                                                          { if (m_real3) m_real3->GetHardwareProtectionState(pHwProtectionEnable); }
+
     // Accessors for 1b-iv routing logic
     ID3D11DeviceContext* GetReal()  const { return m_real; }
     Device11Proxy*       GetParent() const { return m_parent; }
@@ -266,6 +315,11 @@ private:
         ID3D11DepthStencilView* pDepthStencilView, UINT ClearFlags, FLOAT Depth, UINT8 Stencil);
 
     ID3D11DeviceContext* m_real;
+    // Cached upgrades of m_real for Context1/2/3 dispatch (claimed in QI
+    // with `this`; new-version method overrides route through these).
+    ID3D11DeviceContext1* m_real1;
+    ID3D11DeviceContext2* m_real2;
+    ID3D11DeviceContext3* m_real3;
     Device11Proxy*       m_parent;
     LONG                 m_refs;
     bool                 m_currentBBBound;       // last OMSet had BB-RTV at slot 0

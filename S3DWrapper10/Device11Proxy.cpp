@@ -30,6 +30,9 @@ namespace wiz3d
 
 Device11Proxy::Device11Proxy(ID3D11Device* real)
     : m_real(real)
+    , m_real1(nullptr)
+    , m_real2(nullptr)
+    , m_real3(nullptr)
     , m_ctxProxy(nullptr)
     , m_dxgiDeviceProxy(nullptr)
     , m_refs(1)
@@ -40,6 +43,16 @@ Device11Proxy::Device11Proxy(ID3D11Device* real)
     InitializeCriticalSection(&m_rtvSetLock);
     InitializeCriticalSection(&m_dxgiCacheLock);
     InitializeCriticalSection(&m_shaderProjLock);
+    // Cache Device1/2/3 upgrades. QI failures leave the pointer null; we
+    // refuse to claim the corresponding IID in our own QI when null.
+    if (m_real)
+    {
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11Device1), reinterpret_cast<void**>(&m_real1)))) m_real1 = nullptr;
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11Device2), reinterpret_cast<void**>(&m_real2)))) m_real2 = nullptr;
+        if (FAILED(m_real->QueryInterface(__uuidof(ID3D11Device3), reinterpret_cast<void**>(&m_real3)))) m_real3 = nullptr;
+        LOG_VERBOSE("  Device11Proxy ctor: real=%p real1=%p real2=%p real3=%p\n",
+                    m_real, m_real1, m_real2, m_real3);
+    }
 }
 
 Device11Proxy::~Device11Proxy()
@@ -53,6 +66,9 @@ Device11Proxy::~Device11Proxy()
         m_dxgiDeviceProxy->Release();
         m_dxgiDeviceProxy = nullptr;
     }
+    if (m_real3) { m_real3->Release(); m_real3 = nullptr; }
+    if (m_real2) { m_real2->Release(); m_real2 = nullptr; }
+    if (m_real1) { m_real1->Release(); m_real1 = nullptr; }
     DeleteCriticalSection(&m_rtvSetLock);
     DeleteCriticalSection(&m_dxgiCacheLock);
     DeleteCriticalSection(&m_shaderProjLock);
@@ -281,12 +297,36 @@ HRESULT STDMETHODCALLTYPE Device11Proxy::QueryInterface(REFIID riid, void** ppvO
         return hr;
     }
 
-    // Device1/Device2/Device3/etc. — pass through unwrapped for now.
-    // 1b-iii/iv may need to claim those if a Direct Mode game uses them
-    // for swap-chain / RTV creation.
+    // Claim Device1/2/3 with `this` so games QI'ing for the higher Device
+    // versions land on our proxy instead of getting an unwrapped real device
+    // back. The base ID3D11Device methods dispatch through the same vtable
+    // slots regardless of which Device1+ view the caller holds, so existing
+    // overrides apply automatically. Methods unique to Device1+ dispatch
+    // through m_real1/2/3. Closes the dominant DX10/11 right-eye bypass
+    // identified May 2026 via the per-frame trace.
+    if (riid == __uuidof(ID3D11Device1) && m_real1)
+    {
+        *ppvObj = static_cast<ID3D11Device1*>(this);
+        AddRef();
+        return S_OK;
+    }
+    if (riid == __uuidof(ID3D11Device2) && m_real2)
+    {
+        *ppvObj = static_cast<ID3D11Device2*>(this);
+        AddRef();
+        return S_OK;
+    }
+    if (riid == __uuidof(ID3D11Device3) && m_real3)
+    {
+        *ppvObj = static_cast<ID3D11Device3*>(this);
+        AddRef();
+        return S_OK;
+    }
+    // Device4/5, vendor IIDs, etc.: pass through unwrapped. Identity won't
+    // be preserved for these; extend if a game needs it.
     HRESULT hr = m_real->QueryInterface(riid, ppvObj);
     NVDM_TRACE_FIRST_N(16,
-        "  Device11Proxy::QI(unknown IID, e.g. Device1+) hr=0x%08lX -- bypass risk\n", hr);
+        "  Device11Proxy::QI(unhandled IID) hr=0x%08lX -- bypass risk\n", hr);
     return hr;
 }
 
@@ -341,6 +381,50 @@ void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext(ID3D11DeviceContext** 
     // Fallback: game calls GetImmediateContext before we've stashed a proxy
     // (shouldn't happen via the standard D3D11CreateDevice path, but defensive).
     m_real->GetImmediateContext(ppImmediateContext);
+}
+
+// GetImmediateContext1/2/3: return our wrapped Context cast as the higher
+// interface. Context11Proxy was extended to implement ID3D11DeviceContext3
+// so the cast is valid. Required so games using Device1+ get a wrapped
+// Context — without this they'd get the real unwrapped Context1+ and all
+// state-setter calls would bypass our record-for-replay logic.
+void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext1(ID3D11DeviceContext1** ppImmediateContext)
+{
+    if (!ppImmediateContext) return;
+    if (m_ctxProxy)
+    {
+        *ppImmediateContext = static_cast<ID3D11DeviceContext1*>(m_ctxProxy);
+        m_ctxProxy->AddRef();
+        return;
+    }
+    if (m_real1) m_real1->GetImmediateContext1(ppImmediateContext);
+    else *ppImmediateContext = nullptr;
+}
+
+void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext2(ID3D11DeviceContext2** ppImmediateContext)
+{
+    if (!ppImmediateContext) return;
+    if (m_ctxProxy)
+    {
+        *ppImmediateContext = static_cast<ID3D11DeviceContext2*>(m_ctxProxy);
+        m_ctxProxy->AddRef();
+        return;
+    }
+    if (m_real2) m_real2->GetImmediateContext2(ppImmediateContext);
+    else *ppImmediateContext = nullptr;
+}
+
+void STDMETHODCALLTYPE Device11Proxy::GetImmediateContext3(ID3D11DeviceContext3** ppImmediateContext)
+{
+    if (!ppImmediateContext) return;
+    if (m_ctxProxy)
+    {
+        *ppImmediateContext = static_cast<ID3D11DeviceContext3*>(m_ctxProxy);
+        m_ctxProxy->AddRef();
+        return;
+    }
+    if (m_real3) m_real3->GetImmediateContext3(ppImmediateContext);
+    else *ppImmediateContext = nullptr;
 }
 
 HRESULT STDMETHODCALLTYPE Device11Proxy::CreateBuffer(
