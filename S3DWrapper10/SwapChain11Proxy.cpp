@@ -87,13 +87,9 @@ HRESULT STDMETHODCALLTYPE SwapChain11Proxy::QueryInterface(REFIID riid, void** p
         AddRef();
         return S_OK;
     }
-    // IDXGISwapChain2/3/4: refuse. Passing through to the real swap chain
-    // gave games an unwrapped chain whose Present hook would bypass our
-    // record-and-replay sweep. Same bypass shape as the Device1+ fix
-    // (d0c17324). Games that strictly require SwapChain2+ are uncommon —
-    // the test corpus all uses base IDXGISwapChain / IDXGISwapChain1.
-    *ppvObj = nullptr;
-    return E_NOINTERFACE;
+    // IDXGISwapChain2/3/4: pass through unwrapped for now. Future iteration
+    // can extend if needed by Win11-era games.
+    return m_real->QueryInterface(riid, ppvObj);
 }
 
 HRESULT STDMETHODCALLTYPE SwapChain11Proxy::GetDevice(REFIID riid, void** ppDevice)

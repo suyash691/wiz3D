@@ -84,11 +84,7 @@ HRESULT STDMETHODCALLTYPE SwapChain10Proxy::QueryInterface(REFIID riid, void** p
         AddRef();
         return S_OK;
     }
-    // IDXGISwapChain2/3/4 and anything else: refuse rather than hand back an
-    // unwrapped real chain (which would bypass our Present hook). Mirror of
-    // the SwapChain11Proxy fix.
-    *ppvObj = nullptr;
-    return E_NOINTERFACE;
+    return m_real->QueryInterface(riid, ppvObj);
 }
 
 HRESULT STDMETHODCALLTYPE SwapChain10Proxy::GetDevice(REFIID riid, void** ppDevice)

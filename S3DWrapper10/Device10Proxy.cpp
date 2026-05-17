@@ -204,13 +204,8 @@ HRESULT STDMETHODCALLTYPE Device10Proxy::QueryInterface(REFIID riid, void** ppvO
         dp->Release();
         return hr;
     }
-    // ID3D10Device1 + vendor IIDs — refuse to avoid the same bypass the DX11
-    // fix (d0c17324) closes: handing back an unwrapped real device lets the
-    // game create textures + RTVs through a path that skips our wrap, so
-    // every per-eye RTV ends up identical. Games that strictly require
-    // ID3D10Device1 will fail init — documented limitation.
-    *ppvObj = nullptr;
-    return E_NOINTERFACE;
+    // ID3D10Device1 + vendor IIDs — pass through unwrapped for now.
+    return m_real->QueryInterface(riid, ppvObj);
 }
 
 // ---------------------------------------------------------------------------
