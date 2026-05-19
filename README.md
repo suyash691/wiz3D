@@ -20,13 +20,13 @@ This project modernizes that source code, replaces kernel-level hooks with a pro
 ## Current Status
 
 * **AMD HD3D:** ✅ **Mostly Working!** HD3D games render stereo interally, so all that's needed is proxy to enable that rendering, capture the quad buffer output, and display it using modern stereo3D standards. The Proxy chain is successfully triggering stereo3D and capturing the quad buffer output. All that remains is getting that quad buffer output to display corrently in modern formats like Top-and-Bottom and Side-by-Side. Currently Half TAB and Half SBS is supported with about half the games, the other games still need work displaying the output correctly.
+* **OpenGL Quad-Buffer Stereo:** ✅ **Partially Worikng.** Similar to HD3D and 3D Vision 'Direct Mode', OpenGL Quad-BufferStereo acts as a ssurface for games that supported OpenGL Quad -buffer to display their stereo 3D onto, and then convert it to display onto any screen. This tends to be legacy older titles such as _Quake_ and _American McGee's Alice_. This does not inject stereo into OpenGL games.
 * **Nvidia 3D Vision 'Direct Mode':** ✅ **Partially Working.** DirectX11 games currently working, DX9 and 10 games to com. Tomb Raider not wearing to SR currently.
 * **Nvidia 3D Vision 'Automatic Mode':** ✅ **Partially Working.** These are games that rlied on Nvidia's driver stereo injection. The ones listes speciffically have 3D Vision ingame settings, shader fixes and config settings. current aim for these is to inject stereo via iZ3D instead, and make the ingame settings and shaderfixes apply to iZ3D. Currently, enable/disable settings do work. But convergance and seperations liders aren't hooked up to iZ3D, and shader fixes arnt triggering yet.
 * **DirectX 9:** ✅ **Mostly Working!** `d3d9.dll` proxy loader works! Left 4 Dead 2 and many others run in full stereo3D, outputs in all originally supported formats, and the profile system loads shader fixes and stereo settings for all originally supported games.
 * **DirectX 8:** ✅ **Partially Worikng.** Wrapper to convert DX8 to use DX9's stereoization. One tested game working, needs further testing.
 * **DirectX 7:** ⚠️ **In Progress.** Wrapper to convert DX7 to use DX9's stereoization. DX7 to DX9 converstion is working. Here for testing.
 * **DirectX 10/11:** ⚠️ **Partial.** The DX10/11 wrapper was never completely finished by iZ3D Inc. Some games work, but implementation in wiz3D still has some way to go and hasn't got any games booting with stereo3D initialised yet.
-* **OpenGL Quad-Buffer Stereo:** ⚠️ **In Progress.** Similar to HD3D and 3D Vision 'Direct Mode', OpenGL Quad-BufferStereo acts as a ssurface for games that supported OpenGL Quad -buffer to display their stereo 3D onto, and then convert it to display onto any screen. This tends to be legacy older titles such as _Quake_ and _American McGee's Alice_. This does not inject stereo into OpenGL games.
 
 ---
 
