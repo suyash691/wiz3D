@@ -449,7 +449,7 @@ Games that used 3D Vision "Automatic Mode" driver stereo injection, but communic
 | Metro: Last Light | DX9/DX11 | x86 | ✕ | Untested | Lists 3D Vision support in [Official PC Requirements](https://www.reddit.com/r/Games/comments/1cjh4l/metro_last_light_official_pc_requirements/). |
 | [Orbiter Space Flight Simulator](https://github.com/orbitersim/orbiter) | DX9 | x64 | ✕ | Untested | `Stereoscopic 3D` in settings. |
 | Resident Evil 5 | DX9/DX10 | x86 | ✓ | ✅ Working | `Stereo=ON` in `config.ini`.<br>DX9 only on Steam, only tested DX9. |
-| Resident Evil 6 | DX9 | x86 | ✕ | Untested | `Stereo=ON` in `config.ini`. |
+| Resident Evil 6 | DX9 | x86 | ✕ | ✅ Working | `Stereo=ON` in `config.ini`. Might need shader fix. |
 | rFactor 2 | DX9/DX11 | x64 | ✕ | Untested | Use Single-player only. |
 | Roller Coaster Rampage | DX9 | x86 | ✕ | Untested |  |
 | Sid Meier's Civilization V | DX9/DX11 | x86 | ✓ | Untested |  |
