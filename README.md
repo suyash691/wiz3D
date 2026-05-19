@@ -463,32 +463,44 @@ Games that used 3D Vision "Automatic Mode" driver stereo injection, but communic
 - **Excluded (Online Ban Risk):** *Aion: The Tower of Eternity*, *Diablo III*, *Hawken*, *Pirate101*, *Rusty Hearts*, *Wizard101*, *StarCraft II*.
 - **Excluded (Demo or Benchmark):** *Aliens vs. Triangles*, *Endless City*, *Stone Giant*, *Supersonic Sled*, *Passion Leads Army Benchmark*, *Unigine: Heaven Benchmark*.
 
-## OpenGL Quad-Buffer Stereo Games (Testing Release)
+## OpenGL Quad-Buffer Stereo Games
 
 | Game | API | Bits | Testing | Notes |
 |------|-----|---------|--------|-------|
-| American McGee's Alice (2011) | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec1TwuooyYEpOvAb) to enable the game's native stereo 3D. |
-| Darkest Dungeon | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec7BJH9upc90nvsi) to enable the game's native stereo 3D. |
-| DarkPlaces | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recVVJQxrjuGFbsxA) to enable the game's native stereo 3D. |
+| American McGee's Alice | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec1TwuooyYEpOvAb) to enable the game's native stereo 3D. |
+| Beyond Sunset | OpenGL 3.3/4.0 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Darkest Dungeon | OpenGL 3.2 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec7BJH9upc90nvsi) to enable the game's native stereo 3D. |
+| Captain Wayne - Vacation Desperation | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
 | Final Fantasy IV (3D Remake) | OpenGL | x86 | Untested |  |
 | Final Fantasy IV: The After Years | OpenGL | x86 | Untested |  |
-| FlightGear | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recNbODkwtnnqlQqO) to enable the game's native stereo 3D. |
+| FlightGear | OpenGL | x86 | Untested | Use instructions on [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recNbODkwtnnqlQqO) and [flightgear wiki](https://wiki.flightgear.org/Anaglyph_(3D)) to enable the game's native stereo 3D. |
 | Goodbye Deponia | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recJuY1XRDu9lF9gB) to enable the game's native stereo 3D. |
-| GZDoom | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
-| Heavy Metal: F.A.K.K.² | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recx8IhEW9qN2VC6t) to enable the game's native stereo 3D. |
-| Hotline Miami | DX8/OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recW9i65jXiVue5TQ) to enable the game's native stereo 3D. |
-| Prey (2006) | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rech3exawnWvSNm31) to enable the game's native stereo 3D. |
-| Quake | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=reciOCmaXBxKj4N3D) to enable the game's native stereo 3D. |
-| Quake II | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recY4PQQVRFPDYUh7) to enable the game's native stereo 3D. |
-| Quake III Arena | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec1zJdFTfKoty2ZO) to enable the game's native stereo 3D. |
-| Return to Castle Wolfenstein | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recIgh2WvNLp0VdKe) to enable the game's native stereo 3D. |
-| Space Engine | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recg8wr1aqpc4BoFH) to enable the game's native stereo 3D. |
+| Hands of Necromancy | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Hands of Necromancy II | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Heavy Metal: F.A.K.K.² | OpenGL 1.1 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recx8IhEW9qN2VC6t) to enable the game's native stereo 3D. |
+| Hedon | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Hotline Miami | DX8/OpenGL 2.1 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recW9i65jXiVue5TQ) to enable the game's native stereo 3D. |
+| I Am Sakuya: Touhou FPS Game | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Prey (2006) | OpenGL 2.0 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rech3exawnWvSNm31) to enable the game's native stereo 3D. |
+| Quake | OpenGL 1.0 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=reciOCmaXBxKj4N3D) to enable the game's native stereo 3D. |
+| Quake II | OpenGL 1.1 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recY4PQQVRFPDYUh7) to enable the game's native stereo 3D. |
+| Quake III Arena | OpenGL 1.1 | x86 | ✅ Working | Use instructions on [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec1zJdFTfKoty2ZO) and [ioquake3 wiki](https://web.archive.org/web/20190507130336/https://wiki.ioquake3.org/Stereo_Rendering) to enable the game's native stereo 3D. |
+| Project Absentia | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| REKKR: Sunken Land | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Return to Castle Wolfenstein | OpenGL 1.1 | x86 | ✅ Working | Use instructions on [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recIgh2WvNLp0VdKe) to enable the game's native stereo 3D. |
+| Selaco | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| SpaceEngine | OpenGL 4.4 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recg8wr1aqpc4BoFH) to enable the game's native stereo 3D. |
 | Star Wars: Jedi Knight - Jedi Academy | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=reclLl1NuWWFtyD73) to enable the game's native stereo 3D. |
-| Star Wars: Jedi Knight II: Jedi Outcast | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recg8qqxNUmWEcMHS) to enable the game's native stereo 3D. |
-| SuperTuxKart | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rectLIRCA4uYSpMnk) to enable the game's native stereo 3D. |
-| The Binding of Isaac: Rebirth | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recYlJ9YTgmF7wMc5) to enable the game's native stereo 3D. |
+| Star Wars: Jedi Knight II: Jedi Outcast | OpenGL 1.1 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recg8qqxNUmWEcMHS) to enable the game's native stereo 3D. |
+| SuperTuxKart | OpenGL 3.3 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rectLIRCA4uYSpMnk) to enable the game's native stereo 3D. |
+| Supplice | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| The Binding of Isaac: Rebirth | OpenGL 2.0 | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recYlJ9YTgmF7wMc5) to enable the game's native stereo 3D. |
+| The Forestale | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Twilight Town: A Cyberpunk FPS | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Twilight Manor: Roguelite FPS | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
+| Vomitoreum | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recp8rMIlwRlwDYzX) to enable the game's native stereo 3D. |
 | World of Padman  | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=rec5wq4OBzfTqGSJq) to enable the game's native stereo 3D. |
-| Xonotic | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recYwwsghPx4vXGMh) to enable the game's native stereo 3D. |
+| Wrath: Aeon of Ruin | OpenGL | x86 | Untested | Check [3D/VR Compatibility Database](https://airtable.com/appByPZJsOQSVGDID/shrAfMuGs1IOIEpRT?uMgeK=recVVJQxrjuGFbsxA) to enable the game's native stereo 3D. |
 
 ---
 
