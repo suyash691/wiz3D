@@ -50,6 +50,28 @@
 		     0 = pass through (rare native quad-buffer hardware only). -->
 		<EmulateQB Value="1"/>
 
+		<!-- Anaglyph Steal: alternative stereo source for OpenGL games that
+		     support anaglyph (red/cyan etc.) but NOT quad-buffer stereo, or
+		     where the QBS path is buggy in the engine (e.g. ioquake3's
+		     r_zProj one-eye-black issue). Turn on the game's anaglyph mode
+		     (e.g. ioquake3: r_anaglyphMode 1; quake3e: r_anaglyphMode 1) and
+		     pick a mode below. The wrapper hooks glColorMask, detects the
+		     per-eye anaglyph mask, redirects each eye into its own PBuffer,
+		     and forces the colour mask to all-true so the output is full
+		     RGB instead of channel-filtered. The captured eyes drive
+		     whatever OutputMode you have selected (SBS / T-B / SR / etc.) —
+		     so you can play anaglyph-only games on any stereo display.
+		     0 = off (default — QBS only).
+		     1 = always on — every anaglyph-shaped glColorMask is treated as
+		         a stereo eye marker. Use this for games that use anaglyph
+		         exclusively.
+		     2 = auto — engage anaglyph capture only when QBS hasn't been
+		         observed in the current or previous frame. Safe for games
+		         that use both modes (QBS wins) and for games that issue
+		         partial colour masks for non-stereo reasons (no false
+		         positive because they'd still be calling QBS DrawBuffer). -->
+		<AnaglyphSteal Value="0"/>
+
 		<!-- Wrapper enable.
 		     0 = wrapper active (default)
 		     2 = bypass — opengl32 proxy stays loaded but the wrapper hooks no-op,

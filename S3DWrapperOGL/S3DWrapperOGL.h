@@ -49,6 +49,15 @@ struct GlobalInfo
 	UINT		OutputMode;
 	UINT		SwapEyes;
 	UINT		MonoHudOverlay;
+	// Anaglyph Steal mode: when on, hook glColorMask and detect the engine's
+	// anaglyph stereo pattern (e.g. ioquake3 r_anaglyphMode). The first
+	// anaglyph-shaped mask of a frame routes subsequent draws into the
+	// left-eye PBuffer, the second routes into the right-eye PBuffer, and we
+	// force the real glColorMask to all-true so neither eye gets channel-
+	// filtered. Lets games with anaglyph but no QBS (or buggy QBS — see the
+	// ioquake3 r_zProj one-eye-black bug) drive our full SBS/T-B/SR/etc.
+	// compositor. 0 = off (default). 1 = on.
+	UINT		AnaglyphSteal;
 	TCHAR		DriverDirectory[MAX_PATH];
 	TCHAR		DriverFileName[MAX_PATH];
 	TCHAR       ApplicationFileName[MAX_PATH];

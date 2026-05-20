@@ -194,6 +194,16 @@ bool ReadConfig()
 		{
 			itemElement->QueryIntAttribute("Value", (int*)&gInfo.MonoHudOverlay);
 		}
+		// AnaglyphSteal defaults OFF. When ON the renderer hooks glColorMask
+		// and treats anaglyph-shaped masks (R-only / cyan / etc.) as stereo
+		// eye boundaries — see Renderer::ColorMask. Lets games that only
+		// support anaglyph drive our SBS/T-B/SR composer.
+		gInfo.AnaglyphSteal = 0;
+		itemElement = node->FirstChildElement("AnaglyphSteal");
+		if (itemElement)
+		{
+			itemElement->QueryIntAttribute("Value", (int*)&gInfo.AnaglyphSteal);
+		}
 	}
 	// SwapEyes lives under DefaultProfile in the iZ3D-shape config; for the
 	// OGL wrapper we surface it as a global on/off flag. Look under either

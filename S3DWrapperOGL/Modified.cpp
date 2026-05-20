@@ -131,9 +131,14 @@ void WINAPI HglDrawBuffer(GLenum mode)
 typedef void (APIENTRY *PFN_glOrtho)(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar);
 typedef void (APIENTRY *PFN_glMatrixMode)(GLenum mode);
 typedef void (APIENTRY *PFN_glDisable)(GLenum cap);
+typedef void (APIENTRY *PFN_glColorMask)(GLboolean r, GLboolean g, GLboolean b, GLboolean a);
 PFN_glOrtho      pfnOrig_glOrtho      = NULL;
 PFN_glMatrixMode pfnOrig_glMatrixMode = NULL;
 PFN_glDisable    pfnOrig_glDisable    = NULL;
+// Exposed via extern in Renderer.cpp so Renderer::ColorMask can call the real
+// driver function (we force the mask to all-true rather than passing the
+// engine's anaglyph mask through).
+PFN_glColorMask  pfnOrig_glColorMask  = NULL;
 // One-shot file logger used by the HUD-candidate hooks to confirm whether
 // the hook is ever being entered. Each hook logs its first call regardless
 // of the trace-window state. Lets us tell "hook installed but function not
@@ -189,6 +194,28 @@ void APIENTRY HglDisable(GLenum cap)
 	}
 	if (pfnOrig_glDisable)
 		pfnOrig_glDisable(cap);
+}
+
+// Anaglyph Steal: when gInfo.AnaglyphSteal is set, route anaglyph-shaped masks
+// through the Renderer (which redirects to per-eye PBuffers and forces the
+// real mask to all-true). With the feature off, this is a thin passthrough.
+void APIENTRY HglColorMask(GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+	static volatile LONG firstCall = 0;
+	if (InterlockedCompareExchange(&firstCall, 1, 0) == 0) LogHookFirstCall("glColorMask");
+	if (gInfo.AnaglyphSteal)
+	{
+		HDC hdc = pfnOrig_wglGetCurrentDC();
+		Renderer *pRenderer = GetRenderer(hdc);
+		if (pRenderer && pRenderer->ColorMask(r, g, b, a))
+		{
+			// Renderer handled the call (already pushed a forced all-true mask
+			// to the driver). Don't double-apply the original mask.
+			return;
+		}
+	}
+	if (pfnOrig_glColorMask)
+		pfnOrig_glColorMask(r, g, b, a);
 }
 
 BOOL WINAPI HwglMakeCurrent(HDC hdc, HGLRC hglrc)
@@ -482,6 +509,26 @@ BOOL WINAPI HookOGL()
 			}
 		}
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "glReadBuffer"), (LPVOID)HglReadBuffer, (LPVOID*)&pfnOrig_glReadBuffer);
+		// Anaglyph Steal (gInfo.AnaglyphSteal): hook glColorMask so the
+		// Renderer can detect engines' anaglyph stereo patterns and reroute
+		// per-eye draws into PBuffer eyes. Hook installs unconditionally so
+		// toggling AnaglyphSteal at runtime works; the gating happens inside
+		// HglColorMask. Cost when off is one branch + indirect call per
+		// glColorMask — negligible.
+		{
+			LPVOID addrCM = (LPVOID)GetProcAddress(g_hRealOpenGL32, "glColorMask");
+			MH_STATUS rcCM = MH_CreateHook(addrCM, (LPVOID)HglColorMask, (LPVOID*)&pfnOrig_glColorMask);
+			TCHAR path[MAX_PATH];
+			_tcscpy_s(path, MAX_PATH, gInfo.DriverDirectory);
+			_tcscat_s(path, MAX_PATH, _T("\\OpenGLQuadBufferStereo.log"));
+			FILE* f = NULL;
+			_tfopen_s(&f, path, _T("a"));
+			if (f) {
+				fprintf(f, "[wiz3D-OGL hook-status] glColorMask: addr=%p rc=%d (anaglyph-steal=%u)\n",
+					addrCM, (int)rcCM, gInfo.AnaglyphSteal);
+				fflush(f); fclose(f);
+			}
+		}
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "wglCreateContext"), (LPVOID)HwglCreateContext, (LPVOID*)&pfnOrig_wglCreateContext);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "wglDeleteContext"), (LPVOID)HwglDeleteContext, (LPVOID*)&pfnOrig_wglDeleteContext);
 		MH_CreateHook((LPVOID)GetProcAddress(g_hRealOpenGL32, "wglGetCurrentContext"), (LPVOID)HwglGetCurrentContext, (LPVOID*)&pfnOrig_wglGetCurrentContext);

@@ -81,6 +81,22 @@ class Renderer
 	void	ActivateOverlayPhase();
 	void	BlitOverlayOverBackBuffer(float fTextureCoordX, float fTextureCoordY);
 
+	// Anaglyph Steal (gInfo.AnaglyphSteal). Per-frame eye counter — the engine's
+	// anaglyph pattern always emits exactly two non-full glColorMask calls per
+	// frame (one per eye), with a full-mask restore before SwapBuffers. We use
+	// the count to route the first → left PBuffer, second → right PBuffer.
+	// m_bAnaglyphActiveFrame tracks whether the current frame's stereo was
+	// driven by anaglyph patterns (used to suppress the QBS DrawBuffer path
+	// when both could fire).
+	int		m_AnaglyphEyeIndexThisFrame;   // 0 = next is left, 1 = next is right, 2 = saturated
+	BOOL	m_bAnaglyphActiveFrame;
+	// QBS-observed flags, used by the auto-detect mode (gInfo.AnaglyphSteal=2):
+	// "if we've seen any glDrawBuffer(BACK_LEFT/RIGHT) this frame or the prior
+	// one, the game is using QBS — leave anaglyph capture off." Two-frame
+	// window so an idle frame between game phases doesn't flip mode.
+	BOOL	m_bSawQbsThisFrame;
+	BOOL	m_bSawQbsLastFrame;
+
 public:
 	Renderer(void);
 	~Renderer(void);
@@ -91,6 +107,13 @@ public:
 
 	BOOL	IsDCMatched(HDC hDC);
 	void	DrawBuffer(GLenum mode);
+	// Called from the glColorMask hook (Modified.cpp:HglColorMask). When
+	// gInfo.AnaglyphSteal is on and the mask matches an anaglyph signature
+	// (one of: R / G / B / RG / RB / GB with A=true), routes the next draws
+	// to the appropriate PBuffer eye and forces the real mask to all-true.
+	// Returns TRUE if the call was handled (caller skips its own glColorMask),
+	// FALSE for pass-through.
+	BOOL	ColorMask(GLboolean r, GLboolean g, GLboolean b, GLboolean a);
 	BOOL	SwapBuffers();
 
 	void	SetStereoRender(BOOL bStereoRender);

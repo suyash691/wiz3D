@@ -23,6 +23,12 @@
 std::vector<Renderer>	g_RendererList;
 static HWND	m_hFrontWnd;
 
+// Real glColorMask pointer — owned by Modified.cpp's hook setup, exposed for
+// Renderer::ColorMask which needs to push the forced all-true mask to the
+// driver after capturing the anaglyph-shaped mask the game requested.
+typedef void (APIENTRY *PFN_glColorMask)(GLboolean r, GLboolean g, GLboolean b, GLboolean a);
+extern PFN_glColorMask pfnOrig_glColorMask;
+
 // First-frames trace state. Bumped in SwapBuffers (post-present). When
 // g_traceFrameIdx < kTraceFrames, every DrawBuffer / glOrtho /
 // glMatrixMode(PROJECTION) / glDisable(GL_DEPTH_TEST) call logs a line, plus
@@ -394,6 +400,10 @@ void	Renderer::DrawBuffer(GLenum mode)
 	// overlay routing can fire at the right transition.
 	if (mode == GL_BACK_LEFT  || mode == GL_FRONT_LEFT  || mode == GL_LEFT)  m_bSeenLeftEye  = TRUE;
 	if (mode == GL_BACK_RIGHT || mode == GL_FRONT_RIGHT || mode == GL_RIGHT) m_bSeenRightEye = TRUE;
+	// QBS observed — feeds the AnaglyphSteal=2 (auto) gate. With QBS active
+	// we don't second-guess the engine even if it happens to glColorMask for
+	// non-stereo reasons (alpha-only / channel-isolated FX).
+	m_bSawQbsThisFrame = TRUE;
 	HGLRC hCurrentContext = pfnOrig_wglGetCurrentContext();
 	if (hCurrentContext != m_hPBufferContext)
 		m_hApplicationContext = hCurrentContext;
@@ -414,6 +424,95 @@ void	Renderer::DrawBuffer(GLenum mode)
 	pfnOrig_wglMakeCurrent(m_hPBufferDC, m_hPBufferContext);
 	pfnOrig_glDrawBuffer(nIndex == 0 ? GL_FRONT : GL_BACK);
 	//wglCopyContext(hCurrentContext, m_hPBufferContext, GL_ALL_ATTRIB_BITS);
+}
+
+BOOL	Renderer::ColorMask(GLboolean r, GLboolean g, GLboolean b, GLboolean a)
+{
+	// AnaglyphSteal values:
+	//   0 = off (default). Pass through every call.
+	//   1 = always on. Recognise anaglyph-shaped masks and route per-eye.
+	//   2 = auto. Same as 1 BUT only when QBS hasn't been observed in the
+	//       current frame or the previous one — that means the game isn't
+	//       using glDrawBuffer(BACK_LEFT/RIGHT), so a non-full glColorMask
+	//       is most likely an anaglyph eye marker rather than a non-stereo
+	//       channel mask (alpha-only / G-buffer write etc.).
+	if (gInfo.AnaglyphSteal == 0) return FALSE;
+	if (gInfo.AnaglyphSteal == 2)
+	{
+		if (m_bSawQbsThisFrame || m_bSawQbsLastFrame) return FALSE;
+	}
+
+	// Recognise the anaglyph signatures: at least one of R/G/B disabled, alpha
+	// typically enabled. Pure (T,T,T,T) is the "restore" call — pass through.
+	// Pure (F,F,F,F) is rare (channel-isolated stencil-only passes) and not
+	// anaglyph — pass through too.
+	const BOOL allOn   = (r && g && b);
+	const BOOL allOff  = (!r && !g && !b);
+	const BOOL anaglyphShaped = (!allOn && !allOff);
+	if (!anaglyphShaped)
+	{
+		// Pass through unchanged via caller.
+		return FALSE;
+	}
+
+	// Per-frame eye counter. First anaglyph-mask = left eye, second = right.
+	// Anything beyond the second (rare; some games re-issue the mask mid-eye
+	// for post-FX) gets clamped — we keep routing to the right-eye PBuffer
+	// rather than spuriously kicking off a "third eye".
+	int nIndex = (m_AnaglyphEyeIndexThisFrame >= 1) ? 1 : 0;
+	m_AnaglyphEyeIndexThisFrame = nIndex + 1;
+	m_bAnaglyphActiveFrame = TRUE;
+
+	// Track which eyes we've seen for the mono-HUD overlay activation path
+	// (gInfo.MonoHudOverlay). Without this the overlay would never fire in
+	// anaglyph-steal mode because m_bSeenLeftEye/Right are only set by the
+	// glDrawBuffer path.
+	if (nIndex == 0) m_bSeenLeftEye  = TRUE;
+	else             m_bSeenRightEye = TRUE;
+
+	HGLRC hCurrentContext = pfnOrig_wglGetCurrentContext();
+	if (hCurrentContext != m_hPBufferContext)
+		m_hApplicationContext = hCurrentContext;
+
+	m_bSwapBuffersCalled = FALSE;
+	m_bStereoRender = TRUE;
+	// Record synthetic DrawBuffer modes so SwapBuffers' composite picks them
+	// up identically to the QBS path. The actual GL state we set just below
+	// is glDrawBuffer(FRONT/BACK) within the PBuffer context.
+	m_nDrawBufferMode[nIndex] = (nIndex == 0) ? GL_BACK_LEFT : GL_BACK_RIGHT;
+
+	if (nIndex == 0)
+	{
+		if (!Create())
+		{
+			DEBUG_MESSAGE("Error: Create() returns FALSE (anaglyph-steal)\n");
+			return FALSE;
+		}
+	}
+	pfnOrig_wglMakeCurrent(m_hPBufferDC, m_hPBufferContext);
+	pfnOrig_glDrawBuffer(nIndex == 0 ? GL_FRONT : GL_BACK);
+
+	// Wipe the eye PBuffer's colour channel. The game's own Clear pattern
+	// is biased toward "color+depth on left eye, depth-only on right eye"
+	// because in native anaglyph the two eyes share a buffer — the second
+	// Clear would erase eye 1's red pixels. With per-eye PBuffers we have
+	// the opposite need: each eye buffer must start clean every frame, so
+	// we issue our own color clear here regardless of what the game does.
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Force the real glColorMask to all-true so the game's draws aren't
+	// channel-filtered. Caller (HglColorMask hook) sees TRUE and skips its
+	// own pass-through of the original mask.
+	if (pfnOrig_glColorMask) pfnOrig_glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+	if (g_traceFrameIdx < kTraceFrames)
+	{
+		DiagLogDrawBuffer(g_traceFrameIdx, g_traceCallIdx++,
+			(nIndex == 0) ? GL_BACK_LEFT : GL_BACK_RIGHT,
+			m_bSeenLeftEye, m_bSeenRightEye, m_bOverlayActive, "AnaglyphSteal");
+	}
+	return TRUE;
 }
 
 BOOL    Renderer::MakeCurrent(HGLRC hglrc)
@@ -1295,6 +1394,14 @@ BOOL	Renderer::SwapBuffers()
 	m_bSeenRightEye      = FALSE;
 	m_bOverlayActive     = FALSE;
 	m_bOverlayHasContent = FALSE;
+	// Anaglyph Steal per-frame reset. Next frame's first non-full glColorMask
+	// will land on left-eye routing again.
+	m_AnaglyphEyeIndexThisFrame = 0;
+	m_bAnaglyphActiveFrame      = FALSE;
+	// Rotate the QBS-observed window: this-frame becomes last-frame, this
+	// frame's slot starts FALSE. Auto-mode gating uses both — see ColorMask.
+	m_bSawQbsLastFrame  = m_bSawQbsThisFrame;
+	m_bSawQbsThisFrame  = FALSE;
 
 	return bResult;
 }
