@@ -313,12 +313,15 @@ public:
 	//--- add renderer to list ---
 	inline void AddWrapper(IDirectInteface* pDirect, Wrapper* pRenderer)
 	{
+		EnterCriticalSection(&g_DirectWrapperListLock);
 		m_WrapperList.push_back(AddressPair(pDirect, pRenderer));
+		LeaveCriticalSection(&g_DirectWrapperListLock);
 	}
 
 	//--- remove renderer from list ---
 	inline void RemoveWrapper(Wrapper* pWrapper)
 	{
+		EnterCriticalSection(&g_DirectWrapperListLock);
 		AddressPairIterator _First = m_WrapperList.begin();
 		AddressPairIterator _Last  = m_WrapperList.end();
 		for (; _First != _Last; ++_First)
@@ -327,26 +330,52 @@ public:
 				m_WrapperList.erase(_First);
 				break;
 			}
+		LeaveCriticalSection(&g_DirectWrapperListLock);
 	}
 
 	inline Wrapper* FindWrapper(IDirectInteface* pDirect)
 	{
+		EnterCriticalSection(&g_DirectWrapperListLock);
+		Wrapper* hit = NULL;
 		AddressPairIterator _First = m_WrapperList.begin();
 		AddressPairIterator _Last  = m_WrapperList.end();
 		for (; _First != _Last; ++_First)
 			if (_First->first == pDirect)
-				return _First->second;
-		return NULL;
+			{
+				hit = _First->second;
+				break;
+			}
+		LeaveCriticalSection(&g_DirectWrapperListLock);
+		return hit;
+	}
+
+	// Count of entries whose real-pointer matches pDirect. Used by the DX9
+	// crash-investigation diagnostics to detect the GRFS-style scenario
+	// where multiple wrappers share one real D3D9 singleton.
+	inline size_t CountByReal(IDirectInteface* pDirect)
+	{
+		EnterCriticalSection(&g_DirectWrapperListLock);
+		size_t n = 0;
+		for (AddressPairIterator it = m_WrapperList.begin(); it != m_WrapperList.end(); ++it)
+			if (it->first == pDirect) ++n;
+		LeaveCriticalSection(&g_DirectWrapperListLock);
+		return n;
 	}
 
 	inline bool IsWrapperInList(Wrapper* pRenderer)
 	{
+		EnterCriticalSection(&g_DirectWrapperListLock);
+		bool found = false;
 		AddressPairIterator _First = m_WrapperList.begin();
 		AddressPairIterator _Last  = m_WrapperList.end();
 		for (; _First != _Last; ++_First)
 			if (_First->second == pRenderer)
-				return true;
-		return false;
+			{
+				found = true;
+				break;
+			}
+		LeaveCriticalSection(&g_DirectWrapperListLock);
+		return found;
 	}
 };
 																						

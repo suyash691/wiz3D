@@ -296,6 +296,12 @@ void HookUM()
 	}
 }
 
+// Per-process serial counter for Direct3DCreate9{Ex} calls. Diagnostic only —
+// games like GRFS issue 5 sequential Direct3DCreate9 calls as part of
+// capability probing, and the serial lets us correlate the wrapper instance
+// in the log with the call that produced it.
+static volatile LONG g_Create9SerialCounter = 0;
+
 IDirect3D9* WINAPI WDirect3DCreate9(UINT SDKVersion)
 {
 	HRESULT hResult = S_OK;
@@ -307,9 +313,11 @@ IDirect3D9* WINAPI WDirect3DCreate9(UINT SDKVersion)
 
 	HookUM();
 
+	const LONG serial = InterlockedIncrement(&g_Create9SerialCounter);
+
 	if (IS_D3D9EX_PRESENTER) // 9Ex
 	{
-		pfDirect3DCreateEx pDirect3DCreate9Ex = GetD3D9CreatorEx(); 
+		pfDirect3DCreateEx pDirect3DCreate9Ex = GetD3D9CreatorEx();
 		if(pDirect3DCreate9Ex)
 		{
 			CComPtr<IDirect3D9Ex> pDirect3D9Ex;
@@ -324,13 +332,16 @@ IDirect3D9* WINAPI WDirect3DCreate9(UINT SDKVersion)
 					pReturnedDirect3D9 = pDirect3D9Ex;
 				else
 					pReturnedDirect3D9 = (IDirect3D9*)pDirectWrapper;
+				D9Log("WDirect3DCreate9 #%ld (9Ex path): real=%p -> CDirect3D9=%p (sameRealRefs=%zu)\n",
+					(long)serial, (void*)(IDirect3D9Ex*)pDirect3D9Ex, (void*)pDirectWrapper,
+					g_pDirectWrapperList.CountByReal(pDirect3D9Ex));
 				//ScalingAgent::Instance()->RegisterDirect3D9(pReturnedDirect3D9);
 				return pReturnedDirect3D9;
 			}
 		}
 	}
 
-	pfDirect3DCreate pDirect3DCreate9 = GetD3D9Creator(); 
+	pfDirect3DCreate pDirect3DCreate9 = GetD3D9Creator();
 	if(pDirect3DCreate9)
 	{
 		CComPtr<IDirect3D9> pDirect3D9;
@@ -343,6 +354,9 @@ IDirect3D9* WINAPI WDirect3DCreate9(UINT SDKVersion)
 			pReturnedDirect3D9 = pDirect3D9;
 		else
 			pReturnedDirect3D9 = (IDirect3D9*)pDirectWrapper;
+		D9Log("WDirect3DCreate9 #%ld: real=%p -> CDirect3D9=%p (sameRealRefs=%zu)\n",
+			(long)serial, (void*)(IDirect3D9*)pDirect3D9, (void*)pDirectWrapper,
+			g_pDirectWrapperList.CountByReal(pDirect3D9));
 		//ScalingAgent::Instance()->RegisterDirect3D9(pReturnedDirect3D9);
 		return pReturnedDirect3D9;
 	}
@@ -356,8 +370,10 @@ HRESULT WINAPI WDirect3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 	EnsureWrapperInitialized();
 
 	HookUM();
-	
-	pfDirect3DCreateEx pDirect3DCreate9Ex = GetD3D9CreatorEx(); 
+
+	const LONG serial = InterlockedIncrement(&g_Create9SerialCounter);
+
+	pfDirect3DCreateEx pDirect3DCreate9Ex = GetD3D9CreatorEx();
 	if(pDirect3DCreate9Ex)
 	{
 		CComPtr<IDirect3D9Ex> pDirect3D9Ex;
@@ -374,6 +390,9 @@ HRESULT WINAPI WDirect3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex **ppD3D)
 				*ppD3D = (IDirect3D9Ex*)pDirectWrapper;
 			if (*ppD3D)
 				hResult = S_OK;
+			D9Log("WDirect3DCreate9Ex #%ld: real=%p -> CDirect3D9=%p (sameRealRefs=%zu)\n",
+				(long)serial, (void*)(IDirect3D9Ex*)pDirect3D9Ex, (void*)pDirectWrapper,
+				g_pDirectWrapperList.CountByReal(pDirect3D9Ex));
 			//ScalingAgent::Instance()->RegisterDirect3D9(*ppD3D);
 		}
 		else

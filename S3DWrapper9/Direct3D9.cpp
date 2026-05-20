@@ -21,6 +21,7 @@
 
 CDirect3D9::~CDirect3D9()
 {
+	D9Log("~CDirect3D9: wrapper=%p real=%p\n", (void*)this, (void*)m_Direct3D9.GetReal());
 	if(gInfo.RouterType == ROUTER_TYPE_HOOK)
 	{
 		UnHookIDirect3D9All();
@@ -38,26 +39,56 @@ STDMETHODIMP CDirect3D9::QueryInterface(REFIID riid, void** ppvObj)
 		if( ppvObj == NULL )
 			return E_POINTER;
 
-		if(InlineIsEqualGUID(riid, IID_IUnknown)) 
+		if(InlineIsEqualGUID(riid, IID_IUnknown))
 		{
 			this->AddRef();
 			* ppvObj = this;
 			return S_OK;
 		}
-		if(InlineIsEqualGUID(riid, IID_IDirect3D9)) 
+		if(InlineIsEqualGUID(riid, IID_IDirect3D9))
 		{
 			this->AddRef();
 			* ppvObj = this;
 			return S_OK;
 		}
-		if(InlineIsEqualGUID(riid, IID_IDirect3D9Ex) && m_Direct3D9.getExMode() == EXMODE_EX) 
+		// Claim IDirect3D9Ex with `this` whenever the underlying real object
+		// supports it — not only in EXMODE_EX. On Vista+ the d3d9.dll singleton
+		// always implements IDirect3D9Ex, so games QI'ing for Ex after a plain
+		// Direct3DCreate9 would otherwise get back an unwrapped real pointer
+		// (the dominant bypass surfaced by the GRFS DX9 crash logs). Returning
+		// `this` keeps every caller routed through our wrapper. We probe the
+		// real interface so behaviour stays correct on pre-Vista d3d9.dll
+		// (where Ex isn't implemented) — pass the real E_NOINTERFACE through.
+		if(InlineIsEqualGUID(riid, IID_IDirect3D9Ex))
 		{
-			this->AddRef();
-			* ppvObj = this;
-			return S_OK;
+			CComPtr<IDirect3D9Ex> probe;
+			HRESULT hrProbe = m_Direct3D9.GetReal()->QueryInterface(IID_IDirect3D9Ex, (void**)&probe);
+			if (SUCCEEDED(hrProbe) && probe)
+			{
+				this->AddRef();
+				*ppvObj = (IDirect3D9Ex*)this;
+				return S_OK;
+			}
+			*ppvObj = NULL;
+			return hrProbe;
 		}
 	}
-	return m_Direct3D9.QueryInterface(riid, ppvObj);
+	// Unknown IID — log it so we can spot QI bypasses the way the DX11
+	// wrapper does. We still forward to the real D3D9 here for compatibility
+	// (refusing E_NOINTERFACE would risk regressions like commits bee6bf68 /
+	// 484ad527 hit on the DX11 stack). Future iteration: extend coverage to
+	// any IID the test corpus actually exercises.
+	HRESULT hr = m_Direct3D9.QueryInterface(riid, ppvObj);
+	char iidName[64];
+	FormatD9IID(riid, iidName, sizeof(iidName));
+	static int s_logged = 0;
+	if (s_logged < 16)
+	{
+		D9Log("  CDirect3D9::QI(%s) wrapper=%p hr=0x%08lX outIface=%p -- bypass risk\n",
+			iidName, (void*)this, hr, ppvObj ? *ppvObj : NULL);
+		++s_logged;
+	}
+	return hr;
 }
 
 STDMETHODIMP_(ULONG) CDirect3D9::AddRef()

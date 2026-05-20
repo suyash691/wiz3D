@@ -34,6 +34,65 @@ extern bool g_bD3D9DllAlreadyLoaded;
 // instead of in DllMain — see EnsureWrapperInitialized below.
 static volatile LONG g_bWrapperInitialized = 0;
 
+CRITICAL_SECTION g_DirectWrapperListLock;
+static volatile LONG g_DirectWrapperListLockInit = 0;
+
+// Direct appender to wiz3D_proxy.log — mirror of S3DWrapper10's DDILog. Opens
+// the file next to the game exe on first call, keeps the FILE* alive for
+// the process. ANSI format. ZLOg / DEBUG_MESSAGE writes elsewhere; this is
+// the high-signal channel for crash-investigation diagnostics that need to
+// show up where the tester is looking.
+void D9Log(const char* fmt, ...)
+{
+	static FILE* fp = NULL;
+	if (!fp)
+	{
+		WCHAR dir[MAX_PATH];
+		GetModuleFileNameW(NULL, dir, MAX_PATH);
+		WCHAR* pSlash = wcsrchr(dir, L'\\');
+		if (pSlash) *(pSlash + 1) = L'\0';
+		lstrcatW(dir, L"wiz3D_proxy.log");
+		fp = _wfopen(dir, L"a");
+		if (fp) fputs("\n--- DX9 wrapper diagnostic stream ---\n", fp);
+	}
+	if (!fp) return;
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(fp, fmt, ap);
+	va_end(ap);
+	fflush(fp);
+}
+
+// IID → name table for the D3D9-side QI fall-through logger. Recognises the
+// canonical IDirect3D9 family and the common IUnknown probe; unknown IIDs
+// fall back to hex {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} form so the GUID
+// can still be hand-grepped against d3d9.h. Mirror of FormatGUID in
+// S3DWrapper10/AdapterFunctions.cpp.
+void FormatD9IID(REFIID riid, char* buf, size_t bufLen)
+{
+	struct Known { const IID* iid; const char* name; };
+	static const Known table[] = {
+		{ &IID_IUnknown,           "IUnknown" },
+		{ &IID_IDirect3D9,         "IDirect3D9" },
+		{ &IID_IDirect3D9Ex,       "IDirect3D9Ex" },
+		{ &IID_IDirect3DDevice9,   "IDirect3DDevice9" },
+		{ &IID_IDirect3DDevice9Ex, "IDirect3DDevice9Ex" },
+	};
+	for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); ++i)
+	{
+		if (IsEqualGUID(riid, *table[i].iid))
+		{
+			_snprintf_s(buf, bufLen, _TRUNCATE, "%s", table[i].name);
+			return;
+		}
+	}
+	_snprintf_s(buf, bufLen, _TRUNCATE,
+		"{%08lX-%04hX-%04hX-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+		(unsigned long)riid.Data1, (unsigned short)riid.Data2, (unsigned short)riid.Data3,
+		riid.Data4[0], riid.Data4[1], riid.Data4[2], riid.Data4[3],
+		riid.Data4[4], riid.Data4[5], riid.Data4[6], riid.Data4[7]);
+}
+
 // Heavy initialisation deferred from DllMain. Runs the first time the proxy
 // calls into us (via InitializeExchangeServer or WDirect3DCreate9), AFTER the
 // loader lock has been released by LoadLibraryW returning.
@@ -94,6 +153,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD dwReason, LPVOID lpvReserved)
 			_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 			_CrtSetReportHookW2( _CRT_RPTHOOK_INSTALL, zlog::VldReportHook );
 			gData.hModule = hinstDLL;
+			if (InterlockedCompareExchange(&g_DirectWrapperListLockInit, 1, 0) == 0)
+				InitializeCriticalSection(&g_DirectWrapperListLock);
 			break;
 		}
 	case DLL_PROCESS_DETACH:
