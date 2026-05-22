@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -106,7 +106,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <AdditionalOptions>-Zm200 %(AdditionalOptions)</AdditionalOptions>
@@ -137,7 +137,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost\include\boost-1_35\;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <AdditionalOptions>-Zm200 %(AdditionalOptions)</AdditionalOptions>
@@ -167,7 +167,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost\include\boost-1_35\;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
@@ -198,7 +198,7 @@
     </Midl>
     <ClCompile>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost\include\boost-1_35\;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
@@ -225,7 +225,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost\;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;BOOST_NO_STD_TYPEINFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -257,7 +257,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\boost\include\boost-1_35\;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\ShaderAnalysis;..\lib\d3d10\include\;..\lib\d3d9\include\;..\S3DInjector;..\lib\ticpp\Include;..\lib\zlib\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER10_EXPORTS;_SECURE_ATL=0;_SECURE_SCL=0;_HAS_ITERATOR_DEBUGGING=0;_HAS_EXCEPTIONS=0;BOOST_NO_STD_TYPEINFO;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>

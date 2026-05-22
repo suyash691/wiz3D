@@ -1,0 +1,29 @@
+{
+  "name": "wiz3d",
+  "version": "0.2",
+  "builtin-baseline": "22d9c655dc24ad24c6cac27607005e619ce46740",
+  "dependencies": [
+    "boost-algorithm",
+    "boost-bind",
+    "boost-circular-buffer",
+    "boost-core",
+    "boost-filesystem",
+    "boost-function",
+    "boost-graph",
+    "boost-lexical-cast",
+    "boost-pool",
+    "boost-property-tree",
+    "boost-ptr-container",
+    "boost-serialization",
+    "boost-smart-ptr",
+    "boost-static-assert",
+    "boost-test",
+    "boost-thread",
+    "boost-throw-exception",
+    "boost-tokenizer",
+    "boost-type-traits",
+    "boost-unordered",
+    "boost-utility",
+    "boost-variant"
+  ]
+}

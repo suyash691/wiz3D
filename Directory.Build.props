@@ -11,4 +11,18 @@
     <!-- ATL is used pervasively (CComPtr, etc.) — enable it for all projects -->
     <UseOfAtl>Static</UseOfAtl>
   </PropertyGroup>
+
+  <!--
+    vcpkg manifest-mode integration. Requires `vcpkg integrate install` to have
+    been run once per machine (installs the global props/targets that pick these
+    properties up). Triplets are *-windows-static so we link static .libs that
+    match the /MT runtime used by Release/FinalRelease configs.
+  -->
+  <PropertyGroup>
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestInstall>true</VcpkgManifestInstall>
+    <VcpkgTriplet Condition="'$(Platform)' == 'Win32'">x86-windows-static</VcpkgTriplet>
+    <VcpkgTriplet Condition="'$(Platform)' == 'x64'">x64-windows-static</VcpkgTriplet>
+  </PropertyGroup>
 </Project>

@@ -382,6 +382,8 @@ lib/PerfSDK/
 lib/madCHook/*.lib
 
 # ----- WiZ3D: misc build/temp artifacts -----
+# vcpkg manifest-mode install tree (per-triplet, restored on build from vcpkg.json)
+vcpkg_installed/
 pp_out.xml
 # Generated shader headers (produced by compile_shaders_dx10.bat at build time)
 OutputMethods/*/Shaders_dx10/*.h
