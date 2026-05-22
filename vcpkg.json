@@ -28,6 +28,10 @@
     "devil",
     "libsquish",
     "minhook",
+    {
+      "name": "xerces-c",
+      "features": ["xmlch-wchar"]
+    },
     "zlib"
   ]
 }
