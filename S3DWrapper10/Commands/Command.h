@@ -2,7 +2,12 @@
 
 #include <boost\noncopyable.hpp>
 #include <boost\intrusive_ptr.hpp>
+// _CRTDBG_MAP_ALLOC (injected via PCH) redefines 'free' as '_free_dbg',
+// which corrupts boost::object_pool::free(). Shield the Pool header only.
+#pragma push_macro("free")
+#undef free
 #include <boost\pool\object_pool.hpp>
+#pragma pop_macro("free")
 #include "..\Array.h"
 #define SMALL_OBJECT_ALLOCATOR_STATISTICS
 #include "..\SmallObjectAllocator.h"
