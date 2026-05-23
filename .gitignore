@@ -403,3 +403,6 @@ Testing/Tutorial07-DX9-DM/
 .claude/
 # GitHub Copilot instructions
 .github/copilot-instructions.md
+
+# ----- Vendor-dropped third-party libraries are always OK. -----
+!ThirdPartyLibs/**
