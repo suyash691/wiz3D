@@ -137,8 +137,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -154,8 +154,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -175,8 +175,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;boost_unit_test_framework.lib;minhook.x32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxml.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;boost_unit_test_framework.lib;minhook.x32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
@@ -196,8 +196,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxml.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -217,8 +217,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticpp.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;minhook.x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxml.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3.lib;d3dcompiler.lib;minhook.x64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">
@@ -238,8 +238,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;ticppd.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Winmm.lib;d3dx10.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -113,8 +113,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;DEBUGANALYSING;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;DEBUGANALYSING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <ExceptionHandling>Async</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -125,7 +125,7 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticppd.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxmld.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\lib\tinyxml\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -140,8 +140,8 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;_DEBUG;_CONSOLE;DEBUGANALYSING;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;_DEBUG;_CONSOLE;DEBUGANALYSING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -151,7 +151,7 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticppd.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxmld.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\lib\tinyxml\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -162,8 +162,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;DEBUGANALYSING;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;DEBUGANALYSING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -172,7 +172,7 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticpp.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxml.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\lib\tinyxml\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -188,8 +188,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;DEBUGANALYSING;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;DEBUGANALYSING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -197,7 +197,7 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticpp.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxml.lib;d3d9.lib;d3dx9.lib;DevIL.lib;ILU.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\lib\tinyxml\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -210,8 +210,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;DEBUGANALYSING;_HAS_EXCEPTIONS=0;_SECURE_ATL=0;_SECURE_SCL=0;BOOST_NO_STD_TYPEINFO;TIXML_USE_TICPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;DEBUGANALYSING;_HAS_EXCEPTIONS=0;_SECURE_ATL=0;_SECURE_SCL=0;BOOST_NO_STD_TYPEINFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -219,8 +219,8 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxml.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -235,8 +235,8 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\lib\ticpp\include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;DEBUGANALYSING;TIXML_USE_TICPP;_HAS_EXCEPTIONS=0;_SECURE_ATL=0;_SECURE_SCL=0;BOOST_NO_STD_TYPEINFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\ShaderAnalysis;..\..\ThirdPartyLibs\TinyXML_v2.6.2\Include\;..\..\S3DWrapper10\;..\..\Shared\;..\..\lib\d3d10\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_CONSOLE;DEBUGANALYSING;_HAS_EXCEPTIONS=0;_SECURE_ATL=0;_SECURE_SCL=0;BOOST_NO_STD_TYPEINFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -247,8 +247,8 @@
       <AdditionalOptions>-Zm160 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;ticpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\lib\ticpp\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Psapi.lib;d3dx10.lib;shlwapi.lib;tinyxml.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>

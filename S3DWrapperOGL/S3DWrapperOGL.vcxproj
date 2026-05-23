@@ -110,7 +110,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticppd.lib;shlwapi.lib;minhook.x32d.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxmld.lib;shlwapi.lib;minhook.x32d.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityOpenGL32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -128,7 +128,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticppd.lib;shlwapi.lib;minhook.x64d.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxmld.lib;shlwapi.lib;minhook.x64d.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityOpenGL.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -143,7 +143,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticpp.lib;shlwapi.lib;minhook.x32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxml.lib;shlwapi.lib;minhook.x32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityOpenGL32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -161,7 +161,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticpp.lib;shlwapi.lib;minhook.x64.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxml.lib;shlwapi.lib;minhook.x64.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityOpenGL.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -176,7 +176,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticpp.lib;shlwapi.lib;minhook.x32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxml.lib;shlwapi.lib;minhook.x32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityOpenGL32.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityOpenGL32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x86\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -194,7 +194,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>opengl32.lib;ticpp.lib;shlwapi.lib;minhook.x64.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;tinyxml.lib;shlwapi.lib;minhook.x64.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityOpenGL.lib;delayimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityOpenGL.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <AdditionalLibraryDirectories>..\lib\gl\lib;..\lib\tinyxml\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>

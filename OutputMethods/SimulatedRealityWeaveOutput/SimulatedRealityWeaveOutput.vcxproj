@@ -99,7 +99,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <OutputFile>$(OutDir)SimulatedRealityWeaveOutput.dll</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)bin\Debug\Win32\OutputMethods;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\lib\ticpp\lib\x86\ticppd.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\tinyxmld.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -125,7 +125,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <OutputFile>$(OutDir)SimulatedRealityWeaveOutput.dll</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)bin\Release\Win32\OutputMethods;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\lib\ticpp\lib\x86\ticpp.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\tinyxml.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -148,7 +148,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <OutputFile>$(OutDir)SimulatedRealityWeaveOutput.dll</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)bin\Debug\Win64\OutputMethods;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\lib\ticpp\lib\x64\ticpp.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib</AdditionalDependencies>
+      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\tinyxml.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -174,7 +174,7 @@
       <TargetMachine>MachineX64</TargetMachine>
       <OutputFile>$(OutDir)SimulatedRealityWeaveOutput.dll</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir)bin\Release\Win64\OutputMethods;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\lib\ticpp\lib\x64\ticpp.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib</AdditionalDependencies>
+      <AdditionalDependencies>OutputLib.lib;d3d9.lib;..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\tinyxml.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
