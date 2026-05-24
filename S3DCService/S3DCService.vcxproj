@@ -362,27 +362,21 @@ exit /B 0
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compiling binary message file</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">mc "%(FullPath)"
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)MSG00001.bin;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
