@@ -17,6 +17,15 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      - name: Strip builtin-baseline from vcpkg.json
+        # Local builds (VS2026-bundled vcpkg) require a baseline for manifest
+        # mode. The runner's standalone vcpkg doesn't — and pinning to a
+        # specific commit on CI just creates "runner doesn't have that SHA"
+        # drift forever. So we keep the baseline in vcpkg.json for local
+        # dev and strip it here. The change is to the runner's ephemeral
+        # checkout only; never committed.
+        run: (Get-Content vcpkg.json) | Where-Object { $_ -notmatch '"builtin-baseline"' } | Set-Content vcpkg.json
+
       - name: Integrate vcpkg with MSBuild
         run: vcpkg integrate install
 
