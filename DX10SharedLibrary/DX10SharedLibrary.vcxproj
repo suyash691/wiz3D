@@ -119,7 +119,7 @@
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Winmm.lib;d3d10.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;LlamaXMLd.lib;squish.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;d3d10.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;LlamaXMLd.lib;squishd.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -137,7 +137,7 @@
     </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Winmm.lib;d3d10.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;LlamaXMLd.lib;squish.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;d3d10.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;LlamaXMLd.lib;squishd.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

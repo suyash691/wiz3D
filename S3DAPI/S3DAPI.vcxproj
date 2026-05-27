@@ -112,7 +112,7 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>squish.lib;d3dx9d.lib;dxerr.lib;Winmm.lib;dinput8.lib;tinyxmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>squishd.lib;d3dx9d.lib;dxerr.lib;Winmm.lib;dinput8.lib;tinyxmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>S3DAPI.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -127,7 +127,7 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>squish.lib;d3dx9d.lib;dxerr.lib;Winmm.lib;dinput8.lib;minhook.x64d.lib;tinyxmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>squishd.lib;d3dx9d.lib;dxerr.lib;Winmm.lib;dinput8.lib;minhook.x64d.lib;tinyxmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>S3DAPI.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>

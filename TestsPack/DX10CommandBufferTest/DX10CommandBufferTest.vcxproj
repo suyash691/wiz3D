@@ -137,7 +137,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9d.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9d.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x86\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -154,7 +154,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Winmm.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zs.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9d.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;d3dx10d.lib;dxgi.lib;dxguid.lib;tinyxmld.lib;zsd.lib;psapi.lib;DevIL.lib;ILU.lib;DxErr.lib;d3dx9d.lib;xerces-c_3D.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\ThirdPartyLibs\TinyXML_v2.6.2\lib\x64\;..\..\lib\madCHook;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
