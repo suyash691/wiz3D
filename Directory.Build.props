@@ -76,4 +76,9 @@
 		</ClCompile>
 	</ItemDefinitionGroup>
 
+	<!--Add all Third Party Libs to the build. These are stored in the ThirdPartyLibs
+		directory as a common file for all projects to use. 
+    -->
+	<Import Project="$(MSBuildThisFileDirectory)ThirdPartyLibs\ThirdPartyLibs.props" />
+
 </Project>
