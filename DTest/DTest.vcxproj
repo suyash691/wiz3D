@@ -249,6 +249,11 @@
     <ClInclude Include="..\lib\DXUT\SDKsound.h" />
     <ClInclude Include="..\lib\DXUT\SDKwavefile.h" />
   </ItemGroup>
+    <ItemDefinitionGroup>
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
