@@ -5,6 +5,10 @@
 		<_TPL>$(MSBuildThisFileDirectory)</_TPL>
 		<_ArchDir Condition="'$(Platform)' == 'Win32'">x86</_ArchDir>
 		<_ArchDir Condition="'$(Platform)' == 'x64'">x64</_ArchDir>
+		<!-- Libs only ship Debug and Release lib folders; Final Release reuses
+		     the optimized Release libs (there is no "Final Release" folder). -->
+		<_Config>$(Configuration)</_Config>
+		<_Config Condition="'$(Configuration)' == 'Final Release'">Release</_Config>
 	</PropertyGroup>
 
 	<!-- Per-lib import names. Projects reference these (e.g. $(MinHookLib)) in their

@@ -109,3 +109,8 @@ if ($content -ne $existing) {
 } else {
     Write-Host "wiz3D version: $major.$minor.$patch ($gitSha)  (temp_version.h unchanged)"
 }
+
+# Explicit success. The `git diff --quiet` dirty-check above exits 1 on a dirty
+# tree, leaving $LASTEXITCODE = 1; pwsh would otherwise propagate that as the
+# script's process exit code and fail the build step even though we succeeded.
+exit 0

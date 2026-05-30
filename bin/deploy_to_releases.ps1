@@ -1,11 +1,14 @@
 # wiz3D - deploy_to_releases.ps1
 #
 # Copies freshly-built DLLs from:
-#   - bin/Release/<arch>/                 (S3DDriver.sln)
+#   - bin/Final Release/<arch>/           (S3DDriver.sln)
 #   - wiz3D-proxy/bin/Release/<arch>/     (wiz3D-proxy.sln)
 #   - NvDirectMode/bin/Release/<arch>/    (NvDirectMode.sln)
 # into the appropriate releases/wiz3D/<api>/<arch>/ subfolders so a release is
 # ready to install into a game directory. Run AFTER building all three slns.
+#
+# S3DDriver ships its Final Release build (FINAL_RELEASE, best optimization).
+# The proxy ships its Release build (no Final Release config on that solution).
 #
 # This script does NOT handle:
 # - Vendor-path proxy DLLs that auto-deploy via their own vcxproj OutDir:
@@ -49,7 +52,7 @@ $openglDeps    = @('ZLOg.dll')
 # different code), Avitrid / DualProjection / Lenovo (variant) / Taerim /
 # VR920 / Z800 — all target hardware that's effectively dead. Users who
 # want any of the source-only ones can drop the built DLL from
-# bin/Release/.../OutputMethods/ into their game folder manually.
+# bin/Final Release/.../OutputMethods/ into their game folder manually.
 $standardOMs = @(
     'AnaglyphOutput.dll',
     'ATIDLP3DOutput.dll',
@@ -110,7 +113,7 @@ function Copy-Files {
 foreach ($archName in $archs) {
     $archAlias = if ($archName -eq 'Win32') { 'x86' } else { 'x64' }
     $outDirName = if ($archName -eq 'Win32') { 'Win32' } else { 'Win64' }
-    $binDir    = Join-Path $repoRoot "bin\Release\$outDirName"
+    $binDir    = Join-Path $repoRoot "bin\Final Release\$outDirName"
     $omSrcDir  = Join-Path $binDir   'OutputMethods'
     # wiz3D-proxy.sln output (entry-point DLLs games actually load: d3d9.dll, etc)
     $proxyBinDir       = Join-Path $repoRoot "wiz3D-proxy\bin\Release\$archName"
@@ -258,7 +261,7 @@ foreach ($archName in $archs) {
 # NvApiProxy auto-deploys to releases/wiz3D/dx9/<arch>/ via its vcxproj OutDir,
 # but games using other render APIs need their own copy. Mirror them here.
 # (Other OutputMethods incl. SimulatedRealityWeaveOutput build to the standard
-#  bin/Release/<arch>/OutputMethods/ and are distributed by the loops above.)
+#  bin/Final Release/<arch>/OutputMethods/ and are distributed by the loops above.)
 function Spread-File {
     param(
         [Parameter(Mandatory)] [string] $SrcPath,

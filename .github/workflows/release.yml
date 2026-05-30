@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [Win32, x64]
-        configuration: [Debug, Release]
+        configuration: [Debug, Release, "Final Release"]
 
     steps:
       - uses: actions/checkout@v6
@@ -26,14 +26,42 @@ jobs:
         run: (Get-Content vcpkg.json) | Where-Object { $_ -notmatch '"builtin-baseline"' } | Set-Content vcpkg.json
 
       - name: Integrate vcpkg with MSBuild
+        # temporary build setup, will be revised.
         run: vcpkg integrate install
 
+      - name: Generate version header
+        # Writes bin/temp_version.h from VERSION.txt + git SHA before any build.
+        run: .\bin\generate_version.ps1
+
       - name: Build S3DDriver.sln
-        run: msbuild S3DDriver.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /m /nologo /verbosity:minimal
+        # Build all 6 targets (Debug/Release/Final Release x Win32/x64) from the same solution.
+        run: msbuild S3DDriver.sln /p:Configuration="${{ matrix.configuration }}" /p:Platform=${{ matrix.platform }} /m /nologo /verbosity:detailed
+
+      - name: Build wiz3D-proxy.sln
+        # Proxy solution only defines Debug/Release (no Final Release target).
+        # On the Final Release leg we still build the proxy in Release so the
+        # staging step below has its DLLs (the shipped release pairs S3DDriver
+        # Final Release with proxy Release).
+        run: msbuild wiz3D-proxy\wiz3D-proxy.sln /p:Configuration="${{ matrix.configuration == 'Final Release' && 'Release' || matrix.configuration }}" /p:Platform=${{ matrix.platform }} /m /nologo /verbosity:detailed
+
+      - name: Stage releases tree
+        # deploy_to_releases.ps1 pairs S3DDriver's Final Release output with the
+        # proxy's Release output, so it runs on the Final Release leg (which built
+        # both above).
+        if: matrix.configuration == 'Final Release'
+        run: .\bin\deploy_to_releases.ps1 -Arch ${{ matrix.platform }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
           name: wiz3D-${{ matrix.configuration }}-${{ matrix.platform }}
           path: bin/
+          if-no-files-found: error
+
+      - name: Upload releases tree
+        if: matrix.configuration == 'Final Release'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wiz3D-release-${{ matrix.platform }}
+          path: releases/
           if-no-files-found: error
