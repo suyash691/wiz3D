@@ -1062,11 +1062,17 @@ Global
 		{95B56ECF-774C-4314-815A-A1A0BB11F19B}.Release|x64.ActiveCfg = Release|x64
 		{95B56ECF-774C-4314-815A-A1A0BB11F19B}.Release|x64.Build.0 = Release|x64
 		{A1B2C3D4-9999-9999-9999-000000000001}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A1B2C3D4-9999-9999-9999-000000000001}.Debug|Win32.Build.0 = Debug|Win32
 		{A1B2C3D4-9999-9999-9999-000000000001}.Debug|x64.ActiveCfg = Debug|x64
+		{A1B2C3D4-9999-9999-9999-000000000001}.Debug|x64.Build.0 = Debug|x64
 		{A1B2C3D4-9999-9999-9999-000000000001}.Final Release|Win32.ActiveCfg = Final Release|Win32
+		{A1B2C3D4-9999-9999-9999-000000000001}.Final Release|Win32.Build.0 = Final Release|Win32
 		{A1B2C3D4-9999-9999-9999-000000000001}.Final Release|x64.ActiveCfg = Final Release|x64
+		{A1B2C3D4-9999-9999-9999-000000000001}.Final Release|x64.Build.0 = Final Release|x64
 		{A1B2C3D4-9999-9999-9999-000000000001}.Release|Win32.ActiveCfg = Release|Win32
+		{A1B2C3D4-9999-9999-9999-000000000001}.Release|Win32.Build.0 = Release|Win32
 		{A1B2C3D4-9999-9999-9999-000000000001}.Release|x64.ActiveCfg = Release|x64
+		{A1B2C3D4-9999-9999-9999-000000000001}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
