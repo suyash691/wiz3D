@@ -1,5 +1,7 @@
-#include "..\BuildSetup\version.h"
+#include "..\bin\temp_version.h"
 #include "..\Shared\ProductNames.h"
+
+#define VERSION_NAME_SUFFIX ""
 
 #define VERSION					Str(PRODUCT_VERSION_MAJOR) + "." + Str(PRODUCT_VERSION_MINOR) + "." + Str(PRODUCT_VERSION_QFE)
 #define DISPLAYED_VERSION       Str(PRODUCT_VERSION_MAJOR) + "." + Str(PRODUCT_VERSION_MINOR) + VERSION_NAME_SUFFIX + "(" + Str(PRODUCT_VERSION_QFE) + ")"

@@ -2,7 +2,7 @@
 #
 # Reads the repo-root VERSION file (MAJOR.MINOR.PATCH), the current git short
 # SHA, and the build date, then writes bin/temp_version.h. That header is
-# included by BuildSetup/version.h and ultimately ends up in every DLL's
+# included by Shared/version.h and ultimately ends up in every DLL's
 # VERSIONINFO resource.
 #
 # Called from Preparing.vcxproj as a pre-build step. Fails the build (exit 1)
@@ -72,8 +72,8 @@ $content = @"
 #define WIZ3D_BUILD_DATE     "$buildDate"
 #define WIZ3D_BUILD_TIME     "$buildTime"
 
-// Legacy iZ3D macro aliases (consumed by Shared/version.h, BuildSetup/version.h,
-// and per-DLL Output.rc / version.h chains). The #undef before each #define
+// Legacy iZ3D macro aliases (consumed by Shared/version.h and per-DLL
+// Output.rc / version.h chains). The #undef before each #define
 // silences C4005 redefinition warnings: per-DLL version.ver files predate this
 // header in the include order and assign their own (now-stale) values; we
 // override them so all DLLs share the unified wiz3D version.
