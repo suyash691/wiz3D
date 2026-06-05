@@ -39,7 +39,7 @@
 		<ZlibLib>zs.lib</ZlibLib>
 		<ZlibLib Condition="'$(Configuration)' == 'Debug'">zsd.lib</ZlibLib>
 
-		<!-- xerces-c 3.3 (built with the xmlch-wchar feature so XMLCh == wchar_t).
+		<!-- Xerces-C 3.3 (built with the xmlch-wchar feature so XMLCh == wchar_t).
 		     vcpkg artifact names are xerces-c_3.lib / xerces-c_3D.lib (Debug). No
 		     XERCES_STATIC_LIBRARY define is needed: the vendored static drop's
 		     Xerces_autoconf_config.hpp self-defines it (and 3.x keys static mode off
@@ -80,7 +80,7 @@
 				$(_TPL)LlamaXML_v1.0.1\Include;
 				$(_TPL)SR-Lib_v1.1.2\include;
 				$(_TPL)zlib_v1.3.2\Include;
-				$(_TPL)xerces-c_v3.3.0\Include;
+				$(_TPL)Xerces-C_v3.3.0\Include;
 				$(_TPL)libsquish_v1.15\Include;
 				$(_TPL)DevIL_v1.8.0\Include;
 				%(AdditionalIncludeDirectories)
@@ -93,7 +93,7 @@
 				$(_TPL)LlamaXML_v1.0.1\lib\$(_Arch86);
 				$(_TPL)SR-Lib_v1.1.2\lib\$(_Arch32)\$(_Config);
 				$(_TPL)zlib_v1.3.2\lib\$(_Arch86)\$(_Config);
-				$(_TPL)xerces-c_v3.3.0\lib\$(_Arch86)\$(_Config);
+				$(_TPL)Xerces-C_v3.3.0\lib\$(_Arch86)\$(_Config);
 				$(_TPL)libsquish_v1.15\lib\$(_Arch86)\$(_Config);
 				$(_TPL)DevIL_v1.8.0\lib\$(_Arch86)\$(_Config);
 				%(AdditionalLibraryDirectories)
