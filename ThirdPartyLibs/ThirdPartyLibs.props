@@ -57,6 +57,19 @@
 		<!-- libsquish 1.15: vcpkg artifact names squish.lib / squishd.lib (Debug). -->
 		<SquishLib>squish.lib</SquishLib>
 		<SquishLib Condition="'$(Configuration)' == 'Debug'">squishd.lib</SquishLib>
+
+		<!-- DevIL 1.8.0, built [core,libpng,libjpeg] (PNG+JPG; BMP/DDS/TGA are core).
+		     Component name properties so each consumer links only the parts it uses:
+		     DevIL (il* base API), ILU (ilu* utilities), ILUT (ilut* GL/D3D bridge),
+		     plus DevIL's codec deps libpng16 and libjpeg (jpeg/turbojpeg). zlib is its
+		     own existing $(ZlibLib). Only libpng16 differs by config (libpng16d). The
+		     bundled zs.lib is kept faithful to the drop but is shadowed by
+		     zlib_v1.3.2 on the search path (listed first); link zlib via $(ZlibLib). -->
+		<DevILLib>DevIL.lib</DevILLib>
+		<ILULib>ILU.lib</ILULib>
+		<LibPngLib>libpng16.lib</LibPngLib>
+		<LibPngLib Condition="'$(Configuration)' == 'Debug'">libpng16d.lib</LibPngLib>
+		<JpegLib>jpeg.lib</JpegLib>
 	</PropertyGroup>
 
 	<ItemDefinitionGroup>
@@ -69,6 +82,7 @@
 				$(_TPL)zlib_v1.3.2\Include;
 				$(_TPL)xerces-c_v3.3.0\Include;
 				$(_TPL)libsquish_v1.15\Include;
+				$(_TPL)DevIL_v1.8.0\Include;
 				%(AdditionalIncludeDirectories)
 			</AdditionalIncludeDirectories>
 		</ClCompile>
@@ -81,6 +95,7 @@
 				$(_TPL)zlib_v1.3.2\lib\$(_Arch86)\$(_Config);
 				$(_TPL)xerces-c_v3.3.0\lib\$(_Arch86)\$(_Config);
 				$(_TPL)libsquish_v1.15\lib\$(_Arch86)\$(_Config);
+				$(_TPL)DevIL_v1.8.0\lib\$(_Arch86)\$(_Config);
 				%(AdditionalLibraryDirectories)
 			</AdditionalLibraryDirectories>
 		</Link>

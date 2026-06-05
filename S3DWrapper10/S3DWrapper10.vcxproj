@@ -131,7 +131,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXMLd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXMLd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
@@ -162,7 +162,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXMLd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXMLd.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
@@ -189,7 +189,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
@@ -219,7 +219,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
@@ -246,7 +246,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
@@ -275,7 +275,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);Winmm.lib;dxgi.lib;LLamaXML.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>

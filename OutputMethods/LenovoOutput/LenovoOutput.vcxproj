@@ -123,6 +123,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -137,6 +138,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -148,6 +150,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -162,6 +165,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -173,6 +177,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -187,6 +192,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
     </Link>

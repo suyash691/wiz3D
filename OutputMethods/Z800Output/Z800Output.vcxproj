@@ -74,7 +74,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>EMADevice\lib\x32\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -88,7 +88,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>EMADevice\lib\x32\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
@@ -102,7 +102,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);EMADevice_LIB.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>EMADevice\lib\x32\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
