@@ -40,8 +40,10 @@
 		<ZlibLib Condition="'$(Configuration)' == 'Debug'">zsd.lib</ZlibLib>
 
 		<!-- xerces-c 3.3 (built with the xmlch-wchar feature so XMLCh == wchar_t).
-		     vcpkg artifact names are xerces-c_3.lib / xerces-c_3D.lib (Debug). The
-		     XERCES_STATIC_LIBRARY define lives in Common.props (global). -->
+		     vcpkg artifact names are xerces-c_3.lib / xerces-c_3D.lib (Debug). No
+		     XERCES_STATIC_LIBRARY define is needed: the vendored static drop's
+		     Xerces_autoconf_config.hpp self-defines it (and 3.x keys static mode off
+		     XERCES_DLL_EXPORT, which it leaves undefined). -->
 		<XercesLib>xerces-c_3.lib</XercesLib>
 		<XercesLib Condition="'$(Configuration)' == 'Debug'">xerces-c_3D.lib</XercesLib>
 	</PropertyGroup>

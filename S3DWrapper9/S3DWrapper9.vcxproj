@@ -248,7 +248,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER9_EXPORTS;XERCES_STATIC_LIBRARY;XML_LIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER9_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <PreLinkEvent>
@@ -327,7 +327,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER9_EXPORTS;BOOST_NO_STD_TYPEINFO;XERCES_STATIC_LIBRARY;XML_LIBRARY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;S3DWRAPPER9_EXPORTS;BOOST_NO_STD_TYPEINFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <PreLinkEvent>

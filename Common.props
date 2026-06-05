@@ -3,7 +3,7 @@
 	<ItemDefinitionGroup>
 		<ClCompile>
 			<AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Shared\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<PreprocessorDefinitions>_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;XERCES_STATIC_LIBRARY;XML_LIBRARY;STRSAFE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+			<PreprocessorDefinitions>_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS;STRSAFE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 			<WarningLevel>Level3</WarningLevel>
 			<MultiProcessorCompilation>true</MultiProcessorCompilation>
 			<DisableSpecificWarnings>4127;4201;4203;4342;4347;4514;4710;4820;4986;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
