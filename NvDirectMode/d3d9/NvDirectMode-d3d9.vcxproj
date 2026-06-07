@@ -91,8 +91,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\include;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\third_party\OpenCV\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;SR_WEAVE_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ThirdPartyLibs\SR-Lib_v1.1.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -100,24 +100,24 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>d3d9.def</ModuleDefinitionFile>
-      <AdditionalDependencies>delayimp.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>delayimp.lib;..\..\ThirdPartyLibs\SR-Lib_v1.1.2\lib\x32\Release\SR-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;SimulatedRealityOpenGL32.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\include;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\third_party\OpenCV\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;SR_WEAVE_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ThirdPartyLibs\SR-Lib_v1.1.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>d3d9.def</ModuleDefinitionFile>
-      <AdditionalDependencies>delayimp.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityCore32.lib;..\..\lib\Simulated Reality\simulatedreality-1.34.10-win32-Release\lib\SimulatedRealityDirectX32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>delayimp.lib;..\..\ThirdPartyLibs\SR-Lib_v1.1.2\lib\x32\Debug\SR-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;SimulatedRealityOpenGL32.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -126,8 +126,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\include;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\third_party\OpenCV\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;SR_WEAVE_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ThirdPartyLibs\SR-Lib_v1.1.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -135,24 +135,24 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>d3d9.def</ModuleDefinitionFile>
-      <AdditionalDependencies>delayimp.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>delayimp.lib;..\..\ThirdPartyLibs\SR-Lib_v1.1.2\lib\x64\Release\SR-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;SimulatedRealityOpenGL.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\include;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\third_party\OpenCV\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;SR_WEAVE_ENABLED;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ThirdPartyLibs\SR-Lib_v1.1.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN64;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>d3d9.def</ModuleDefinitionFile>
-      <AdditionalDependencies>delayimp.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityCore.lib;..\..\lib\Simulated Reality\LeiaSR-SDK-1.36.2-win64\lib\SimulatedRealityDirectX.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>delayimp.lib;..\..\ThirdPartyLibs\SR-Lib_v1.1.2\lib\x64\Debug\SR-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;SimulatedRealityOpenGL.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
