@@ -124,7 +124,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -139,7 +139,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -151,7 +151,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -166,7 +166,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|Win32'">
@@ -178,7 +178,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Final Release|x64'">
@@ -193,7 +193,7 @@
     <Link>
       <ModuleDefinitionFile>$(ProjectName).def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(LibPngLib);$(JpegLib);$(ZlibLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -132,7 +132,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;comsuppw.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;comsuppw.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -165,7 +165,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;strsafe.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;strsafe.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -198,7 +198,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -231,7 +231,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -264,7 +264,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;comsuppw.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;comsuppw.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -297,7 +297,7 @@ exit /B 0
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Psapi.lib;shlwapi.lib;$(TinyXMLLib);Winmm.lib;WtsApi32.lib;strsafe.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;shlwapi.lib;Winmm.lib;WtsApi32.lib;strsafe.lib;$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
     </Link>

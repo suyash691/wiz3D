@@ -130,7 +130,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;SimulatedRealityOpenGL32.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
@@ -148,7 +148,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;SimulatedRealityOpenGL32.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
@@ -166,7 +166,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore32.dll;SimulatedRealityDirectX32.dll;SimulatedRealityOpenGL32.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
@@ -184,7 +184,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;SimulatedRealityOpenGL.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
@@ -202,7 +202,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;SimulatedRealityOpenGL.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>
@@ -220,7 +220,7 @@
     <Link>
       <ModuleDefinitionFile>SimulatedRealityWeaveOutput.def</ModuleDefinitionFile>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(TinyXMLLib);$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SRLib);%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>SimulatedRealityCore.dll;SimulatedRealityDirectX.dll;SimulatedRealityOpenGL.dll;opencv_world343.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <TargetMachine>MachineX64</TargetMachine>
     </Link>

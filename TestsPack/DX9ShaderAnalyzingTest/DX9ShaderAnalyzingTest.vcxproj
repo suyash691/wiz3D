@@ -136,12 +136,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <Link>
-      <AdditionalDependencies>$(BoostLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BoostLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'!='Debug'">
     <Link>
-      <AdditionalDependencies>$(BoostLib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(BoostLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>

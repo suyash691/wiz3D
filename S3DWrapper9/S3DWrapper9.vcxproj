@@ -139,7 +139,7 @@
       <DelayLoadDLLs>version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXMLd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>
@@ -182,7 +182,7 @@
       <DelayLoadDLLs>version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXMLd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>
@@ -222,7 +222,7 @@
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <GenerateMapFile>true</GenerateMapFile>
       <MapFileName>$(OutDir)$(ProjectName).map</MapFileName>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>
@@ -263,7 +263,7 @@
       <DelayLoadDLLs>version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>
@@ -301,7 +301,7 @@
       <DelayLoadDLLs>version.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>
@@ -343,7 +343,7 @@
       <SubSystem>Windows</SubSystem>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
-      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);$(TinyXMLLib);LlamaXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX9Lib);$(DxErrLib);$(DevILLib);$(ILULib);$(LibPngLib);$(JpegLib);$(ZlibLib);$(XercesLib);$(MinHookLib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Xdcmake>
       <OutputFile>$(IntDir)$(TargetName).xml</OutputFile>

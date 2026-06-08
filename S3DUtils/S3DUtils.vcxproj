@@ -126,7 +126,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -157,7 +157,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -190,7 +190,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -223,7 +223,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -254,7 +254,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -285,7 +285,7 @@
       <Culture>0x0419</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(TinyXMLLib);$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ZlibLib);d3d9.lib;$(D3DX9Lib);Winmm.lib;Psapi.lib;$(XercesLib);%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
       <ModuleDefinitionFile>.\$(ProjectName).def</ModuleDefinitionFile>
       <DelayLoadDLLs>d3d9.dll;d3dx9_42.dll;%(DelayLoadDLLs)</DelayLoadDLLs>

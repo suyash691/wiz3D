@@ -88,16 +88,6 @@
     <OutDir>$(SolutionDir)bin\$(Configuration)\Win64\</OutDir>
     <IntDir>Win64\$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <Link>
-      <AdditionalDependencies>LlamaXMLd.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'!='Debug'">
-    <Link>
-      <AdditionalDependencies>LlamaXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>

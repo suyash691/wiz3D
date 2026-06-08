@@ -123,12 +123,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <Link>
-      <AdditionalDependencies>$(D3DX10Lib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX10Lib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'!='Debug'">
     <Link>
-      <AdditionalDependencies>$(D3DX10Lib);$(TinyXMLLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(D3DX10Lib);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup>
