@@ -56,4 +56,18 @@
     -->
 	<Import Project="$(MSBuildThisFileDirectory)ThirdPartyLibs\ThirdPartyLibs.props" />
 
+	<!-- LlamaXML shim wiring for every project that touches XML through the
+     shim layer — directly (S3DWrapper9/10, DX9GenerateCodeFromDump) or
+     transitively (OutputLib + every OutputMethod via the XMLStreamer.h
+     include chain). See lib/LlamaXML_shim.props for the details.
+
+     Excluded: S3DAPI. It is the lone TinyXML 2.6.2 client (sole user of
+     QueryBoolAttribute), built and linked WITHOUT TIXML_USE_TICPP. If the
+     shim props leaked in, the define would flip TiXmlBase to derive from
+     TiCppRC — a silent sizeof/ABI mismatch with the tinyxml.lib S3DAPI
+     links against. The exclusion is structural, not optional. 
+	 -->
+	<Import Project="$(MSBuildThisFileDirectory)lib\LlamaXML_shim.props"
+			Condition="'$(MSBuildProjectName)' != 'S3DAPI'" />
+	
 </Project>
