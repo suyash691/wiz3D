@@ -51,6 +51,23 @@ TiXmlDocument *g_docConfig = NULL;
 TiXmlNode* g_outputConfig = NULL;
 int g_PreTransformProjectionId = 0;
 
+// Backing store for GetOutputConfigXml()'s returned pointer.
+static std::string g_outputConfigXml;
+
+S3DAPI_API const char* GetOutputConfigXml()
+{
+	if (!g_outputConfig)
+		return NULL;
+	// Serialize the subtree here, in S3DAPI's own (plain TinyXML 2.6.2) layout.
+	// Callers re-parse the string with their own parser, so no TiXml object
+	// ever crosses the DLL boundary. See the header comment for why.
+	TiXmlPrinter printer;
+	printer.SetStreamPrinting();  // compact; whitespace is irrelevant to re-parse
+	g_outputConfig->Accept(&printer);
+	g_outputConfigXml = printer.CStr();
+	return g_outputConfigXml.c_str();
+}
+
 enum ValueType
 {
 	vtInt,
@@ -88,8 +105,15 @@ void XmlValue::ReadData(TiXmlElement* pElem, char* pAttribute)
 			pElem->QueryFloatAttribute("Value", (float*)pVal);
 			break;
 		case vtString:
-			_tcscpy((TCHAR*)pVal,	
-				common::utils::to_unicode_simple(pElem->Attribute(pAttribute)).c_str());
+			{
+				// Attribute() returns NULL when the attribute is absent; feeding
+				// that straight into to_unicode_simple constructs std::string(NULL)
+				// (UB / crash). Leave pVal untouched (keeps its default) if missing.
+				const CHAR* attr = pElem->Attribute(pAttribute);
+				if (attr)
+					_tcscpy((TCHAR*)pVal,
+						common::utils::to_unicode_simple(attr).c_str());
+			}
 			break;
 		}
 	}
@@ -181,7 +205,18 @@ bool ReadConfigRouterType()
 
 	int nVersion = 0;
 	TiXmlNode* rootNode = g_docConfig->FirstChild( "Config" );
-	TiXmlElement* itemElement = rootNode->ToElement();
+	// LoadFile() only guarantees well-formed XML, not our schema: a valid file
+	// whose root element is not <Config> (or an effectively empty document)
+	// returns NULL here. Dereferencing it would crash the host game, so treat
+	// a missing/non-element root the same as a corrupt config and bail.
+	TiXmlElement* itemElement = rootNode ? rootNode->ToElement() : NULL;
+	if (!itemElement)
+	{
+		DEBUG_MESSAGE(_T("Config.xml has no <Config> root element\n"));
+		delete g_docConfig;
+		g_docConfig = NULL;
+		return false;
+	}
 	if (itemElement->QueryIntAttribute("Version", &nVersion) != TIXML_SUCCESS)
 	{
 		DEBUG_MESSAGE(_T("Error reading Version = %d; in Config.xml\n"), PROFILES_VERSION);
@@ -346,7 +381,12 @@ void ReadProfileRouterType(TCHAR* szApplicationFileName, TCHAR* szProfilesFileNa
 	{
 		for( TiXmlElement* fileElem = node->FirstChildElement("File"); fileElem; fileElem = fileElem->NextSiblingElement("File") )
 		{
-			std::basic_string<TCHAR> Name = common::utils::from_utf8(fileElem->Attribute("Name"));		
+			// A <File> with no Name attribute returns NULL here; from_utf8(NULL)
+			// builds std::string(NULL) (UB). Skip nameless entries.
+			const char* fileName = fileElem->Attribute("Name");
+			if (!fileName)
+				continue;
+			std::basic_string<TCHAR> Name = common::utils::from_utf8(fileName);
 			std::transform(Name.begin(), Name.end(), Name.begin(), tolower);
 			if (_tcsicmp(appFileName, Name.c_str()) == 0)
 			{
@@ -401,8 +441,12 @@ void ReadProfileRouterType(TCHAR* szApplicationFileName, TCHAR* szProfilesFileNa
 			}
 			if (bChangeProfileName)
 			{
-				_tcscpy_s<MAX_PATH>(gInfo.ProfileName,
-					common::utils::from_utf8(node->ToElement()->Attribute("Name")).c_str());
+				// The matched <Profile> may have no Name attribute; guard against
+				// from_utf8(NULL) -> std::string(NULL) (UB).
+				const char* profName = node->ToElement()->Attribute("Name");
+				if (profName)
+					_tcscpy_s<MAX_PATH>(gInfo.ProfileName,
+						common::utils::from_utf8(profName).c_str());
 			}
 			else
 			{
@@ -776,7 +820,10 @@ void ReadProfilePart2Data(TiXmlNode* node)
 		}
 		else if ( strcmp( itemElement->Value(), "AdditionalMatrixName" ) == 0 )
 		{
-			g_ProfileData.AdditionalMatrixName.push_back(std::string(itemElement->Attribute("Value")));
+			// std::string(NULL) is UB; skip an <AdditionalMatrixName> with no Value.
+			const char* matName = itemElement->Attribute("Value");
+			if (matName)
+				g_ProfileData.AdditionalMatrixName.push_back(std::string(matName));
 		}
 		else if ( strcmp( itemElement->Value(), "Keys" ) == 0 )
 		{
@@ -827,8 +874,12 @@ bool ReadConfig(DWORD Vendor)
 			}
 			if (VendorVal == Vendor)
 			{
-				_tcscpy_s<_countof(gInfo.Vendor)>(gInfo.Vendor,					
-					common::utils::to_unicode_simple( itemElement->Attribute("Name") ).c_str() );
+				// A matching <Vendor> with no Name attribute would hit
+				// to_unicode_simple(NULL) -> std::string(NULL) (UB).
+				const char* vendorName = itemElement->Attribute("Name");
+				if (vendorName)
+					_tcscpy_s<_countof(gInfo.Vendor)>(gInfo.Vendor,
+						common::utils::to_unicode_simple( vendorName ).c_str() );
 				break;
 			}
 		}
@@ -883,6 +934,7 @@ void FreeProfiles()
 		g_docConfig = NULL;
 	}
 	g_outputConfig = NULL;
+	g_outputConfigXml.clear();
 }
 
 LocalizationData g_LocalData;

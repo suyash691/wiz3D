@@ -21,6 +21,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wiz3D-proxy-dxgi", "dxgi\wi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wiz3D-proxy-vulkan-1", "vulkan-1\wiz3D-proxy-vulkan-1.vcxproj", "{E6F7A8B9-AAAA-BBBB-CCCC-DDDDEEEEFFFF}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NvApiProxy", "..\NvApiProxy\NvApiProxy.vcxproj", "{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -99,6 +101,14 @@ Global
 		{E6F7A8B9-AAAA-BBBB-CCCC-DDDDEEEEFFFF}.Release|Win32.Build.0 = Release|Win32
 		{E6F7A8B9-AAAA-BBBB-CCCC-DDDDEEEEFFFF}.Release|x64.ActiveCfg = Release|x64
 		{E6F7A8B9-AAAA-BBBB-CCCC-DDDDEEEEFFFF}.Release|x64.Build.0 = Release|x64
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Debug|Win32.Build.0 = Debug|Win32
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Debug|x64.ActiveCfg = Debug|x64
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Debug|x64.Build.0 = Debug|x64
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Release|Win32.ActiveCfg = Release|Win32
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Release|Win32.Build.0 = Release|Win32
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Release|x64.ActiveCfg = Release|x64
+		{B6F4D9C2-8A1E-4F73-9D52-4A8C2E0E1B58}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
